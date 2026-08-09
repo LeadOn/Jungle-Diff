@@ -2,19 +2,17 @@ import { defineNuxtRouteMiddleware } from '#app'
 import { useAuth } from '~/composables/useAuth'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  // If the route requires authentication, redirect to login if not authenticated
-  // For now, we will assume all routes except index and public ones need auth, 
-  // or we can just protect specific routes. The prompt says "Implement route protection via Nuxt middleware".
-  
-  // We can let specific routes opt-out with definePageMeta({ auth: false })
-  const authRequired = to.meta.auth !== false
+  // By default, pages are public unless explicitly marked with definePageMeta({ auth: true })
+  const authRequired = to.meta.auth === true
 
-  if (authRequired && import.meta.client) {
+  if (import.meta.client) {
     const auth = useAuth()
+    
+    // Always initialize auth to restore session if available (so the navbar shows the user profile)
     await auth.initAuth()
     
-    if (!auth.isAuthenticated.value) {
-      // Need to initiate login, but let oidc-client-ts handle the redirect
+    if (authRequired && !auth.isAuthenticated.value) {
+      // Need to initiate login if the page is protected and user is not authenticated
       await auth.login()
       // Block navigation until auth is resolved
       return false

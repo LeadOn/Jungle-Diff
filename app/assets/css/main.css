@@ -1,5 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
 @theme {
-  --color-brand: #0f172a;
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  
+  --color-brand: #a1783c;
+  --color-brand-hover: #8c6833;
+  
+  --color-bg-base: #faf9f6;
+  --color-bg-surface: #ffffff;
+  
+  --color-text-base: #1c1917;
+  --color-text-muted: #78716c;
+}
+
+@utility bg-base {
+  background-color: var(--color-bg-base);
+}
+
+@utility text-base-color {
+  color: var(--color-text-base);
+}
+
+body {
+  @apply bg-base text-base-color font-sans antialiased;
 }
