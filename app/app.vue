@@ -3,6 +3,17 @@ import { useAuth } from '~/composables/useAuth'
 const auth = useAuth()
 
 useHead({
+  script: [
+    {
+      innerHTML: `
+        try {
+          if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.add('light');
+          }
+        } catch (e) {}
+      `
+    }
+  ],
   link: [
     { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },

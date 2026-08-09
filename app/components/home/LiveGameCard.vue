@@ -7,28 +7,26 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex items-center gap-4 bg-white/80 backdrop-blur-sm pl-4 pr-3 py-2.5 rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100/80">
+  <div class="flex items-center gap-4 bg-surface-base pl-4 pr-3 py-2.5 rounded-full border border-border-base shadow-sm animate-fade-in-up hover:border-border-accent transition-colors relative">
     <!-- Live Indicator (Red Dot) -->
-    <div class="flex h-2.5 w-2.5 relative">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+    <div class="flex h-2 w-2 relative">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75" style="animation-duration: 1.5s;"></span>
+      <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-red animate-blink-live"></span>
     </div>
     
     <!-- Info -->
-    <div class="flex flex-col">
-      <div class="text-[13px] font-extrabold text-gray-900 leading-tight">
+    <div class="flex flex-col flex-1">
+      <div class="text-[13px] font-extrabold text-text-main leading-tight mb-0.5">
         {{ playerName }} est en partie
       </div>
-      <div class="text-[10px] font-bold text-gray-400 tracking-wider uppercase flex gap-2 items-center mt-0.5">
-        <span>{{ kda }}</span>
-        <span class="w-1 h-1 rounded-full bg-gray-300"></span>
-        <span>{{ time }}</span>
+      <div class="font-mono text-[9px] font-bold text-text-ter tracking-[0.1em] uppercase">
+        SOLO/DUO · SION · 14:22
       </div>
     </div>
     
     <!-- Action/Arrow -->
-    <button class="ml-2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors cursor-pointer">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-    </button>
+    <div class="ml-1 text-text-ter pr-1">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </div>
   </div>
 </template>

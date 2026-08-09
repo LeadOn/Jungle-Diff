@@ -24,9 +24,11 @@ You are assisting with the JungleDiff project, a League of Legends stats tracker
 
 # Current Project State
 - Project is scaffolded and successfully building.
+- Custom Dark/Light Design System implemented with CSS variables mapped to Tailwind v4.
+- Homepage fully redesigned (Hero, Ladder, Recent Games) to match a sober, analytical gaming interface.
 - Keycloak authentication flow is wired (with silent renew and middleware routing).
 - API client layers for GameOn API and Riot CDNs are implemented.
-- Base pages (Home, Summoner details, Game details) have been created with mock placeholders for upcoming match history integration.
+- Base pages (Home, Summoner details, Game details) have been created with mock placeholders for remaining match history integration.
 
 # IMPORTANT META-RULE: Synchronization
 At every major modification (adding a feature, technical change, etc.), you MUST:

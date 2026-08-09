@@ -28,8 +28,8 @@ The app connects to Keycloak (`gameon` realm). The global auth middleware (`app/
 - **Pages:** Home, Summoner Profile, and Match Details skeletons are set up.
 
 ## 🛠️ Ongoing Modifications
-- We have just finalized the basic scaffolding and secured the Keycloak authentication flow.
-- We have created synchronized AI instruction files (for Cursor, Windsurf, Claude, Copilot, and Antigravity) to maintain a cohesive context for future developments.
+- Implementation of a custom Dark/Light Design System based on CSS variables mapped to Tailwind v4.
+- Complete redesign of the Homepage (Hero, Ladder, Recent Games) to match a sober, analytical gaming interface.
 
 ## 🤖 AI Instructions Synchronization
 > **Rule:** Any major change to the architecture, tech stack, or feature set must be reflected in `README.md` and all `.rules`/instruction files simultaneously.
