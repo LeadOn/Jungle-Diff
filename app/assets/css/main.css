@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --color-bg-base: var(--color-bg);
+  --color-surface-base: var(--color-surface);
+  --color-surface-high: var(--color-surface-high);
+  
+  --color-border-base: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-accent: var(--color-border-accent);
+  
+  --color-text-main: var(--color-text);
+  --color-text-sec: var(--color-text-secondary);
+  --color-text-ter: var(--color-text-tertiary);
+  
+  --color-brand-gold: var(--color-gold);
+  --color-brand-gold-text: var(--color-gold-text);
+  --color-brand-green: var(--color-green);
+  --color-brand-red: var(--color-red);
+}
+
+:root {
+  /* Dark (Default) */
+  --color-bg: #07090C;
+  --color-surface: #101319;
+  --color-surface-high: #171B23;
+  --color-border: #242A35;
+  --color-border-subtle: #1C212A;
+  --color-border-accent: #3A4354;
+  --color-text: #EAEDF3;
+  --color-text-secondary: #98A1B2;
+  --color-text-tertiary: #7C8599;
+  --color-gold: #F0C24E;
+  --color-gold-text: #17150A;
+  --color-green: #3FD68F;
+  --color-red: #FF6257;
+}
+
+:root.light {
+  /* Light */
+  --color-bg: #FBF9F5;
+  --color-surface: #FFFFFF;
+  --color-surface-high: #F6F4EF;
+  --color-border: #EAE6DF;
+  --color-border-subtle: #F2EFEA;
+  --color-border-accent: #DCD6CD;
+  --color-text: #2D2824;
+  --color-text-secondary: #7A726A;
+  --color-text-tertiary: #9E968D;
+  --color-gold: #967129;
+  --color-gold-text: #FFFFFF;
+  --color-green: #258250;
+  --color-red: #C73B2C;
+}
+
+@utility tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes floatMascot {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.animate-float {
+  animation: floatMascot 7s ease-in-out infinite;
+}
+
+@keyframes blinkLive {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-blink-live {
+  animation: blinkLive 1.5s ease-in-out infinite;
+}

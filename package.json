@@ -1,0 +1,36 @@
+{
+  "name": "junglediff",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "^9.0.0",
+    "@pinia/nuxt": "^0.9.0",
+    "flowbite-vue": "^0.1.2",
+    "nuxt": "^4.5.2",
+    "oidc-client-ts": "^3.1.0",
+    "pinia": "^2.3.0",
+    "vue": "latest"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^0.7.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^26.2.0",
+    "eslint": "^9.15.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vue-tsc": "^2.2.0"
+  },
+  "overrides": {
+    "nanoid": "^5.1.16",
+    "esbuild": "^0.25.0"
+  }
+}
