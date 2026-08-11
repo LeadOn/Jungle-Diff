@@ -26,6 +26,7 @@ The app connects to Keycloak (`gameon` realm). The global auth middleware (`app/
 - **Dependencies:** Installed and audited (overrides configured for `nanoid` and `esbuild` vulnerabilities).
 - **Authentication:** Operational.
 - **Pages:** Home, Summoner Profile, and Match Details skeletons are set up.
+- **LoL Patches:** Integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils is fully operational.
 
 ## 🛠️ Ongoing Modifications
 - Implementation of a custom Dark/Light Design System based on CSS variables mapped to Tailwind v4.

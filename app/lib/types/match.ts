@@ -1,20 +1,3 @@
-export interface LoLQueue {
-  queueId: number
-  map: string
-  description: string | null
-  notes: string | null
-}
-
-export interface Summoner {
-  id: string
-  accountId: string
-  puuid: string
-  name: string
-  profileIconId: number
-  revisionDate: number
-  summonerLevel: number
-}
-
 export interface Match {
   metadata: {
     dataVersion: string

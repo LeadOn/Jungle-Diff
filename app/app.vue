@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useAuth } from '~/composables/useAuth'
+import { usePatchStore } from '~/stores/patch'
 const auth = useAuth()
+const patchStore = usePatchStore()
+
+await useAsyncData('init-lol-patches', () => patchStore.loadPatches())
 
 useHead({
   script: [

@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from '#app'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
+import { usePatchStore } from '~/stores/patch'
 import StatCard from '~/components/home/StatCard.vue'
 import LadderTable from '~/components/home/LadderTable.vue'
 import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
-import LiveGameCard from '~/components/home/LiveGameCard.vue'
 import MockBadge from '~/components/ui/MockBadge.vue'
 
 const store = useLolStore()
+const patchStore = usePatchStore()
 const router = useRouter()
 const searchName = ref('')
 const isSearchFocused = ref(false)
+
+await useAsyncData('homeStats', () => store.fetchHomeStats())
+await useAsyncData('players', () => store.fetchPlayers())
 
 onMounted(async () => {
   // Ensure queues are loaded
@@ -24,29 +28,42 @@ const onSearch = () => {
     router.push(`/summoner/${encodeURIComponent(searchName.value)}`)
   }
 }
+
+const netLpFormatted = computed(() => {
+  const lp = store.homeStats?.weeklyActivity.netLpChangeThisWeek
+  if (lp === undefined || lp === null) return '0 LP'
+  if (lp > 0) return `+${lp} LP`
+  return `${lp} LP`
+})
+
+const netLpColor = computed(() => {
+  const lp = store.homeStats?.weeklyActivity.netLpChangeThisWeek
+  if (lp === undefined || lp === null || lp === 0) return ''
+  return lp > 0 ? 'text-brand-green' : 'text-brand-red'
+})
 </script>
 
 <template>
   <div class="w-full pt-6 pb-16">
     <!-- Hero Section -->
-    <div class="flex flex-col md:flex-row items-center justify-between gap-12 mb-16 animate-fade-in-up" style="animation-delay: 50ms;">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-12 mb-16 animate-fade-in-up relative z-50" style="animation-delay: 50ms;">
       <!-- Left text & search -->
       <div class="w-full md:w-2/3 flex flex-col items-start text-left">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-accent bg-surface-high text-text-ter font-mono text-[10.5px] font-bold mb-6 tracking-[0.1em] uppercase">
           <span class="w-1.5 h-1.5 rounded-full bg-brand-gold"></span>
-          EUW · PATCH 16.13
+          EUW · PATCH {{ patchStore.currentPatch }}
         </div>
         
         <h1 class="text-6xl md:text-7xl lg:text-[80px] font-extrabold text-text-main leading-[1] mb-6 tracking-[-0.03em]">
-          Tout le crew,<br />une seule page.
+          Dominez la Faille,<br />analysez vos résultats.
         </h1>
         
         <p class="text-lg text-text-sec mb-10 max-w-[500px] leading-relaxed font-medium">
           Ranks, forme, historique et records — mis à jour à chaque fin de partie. Cherche aussi n'importe quel invocateur EUW.
         </p>
         
-        <div class="flex items-center gap-6 w-full flex-wrap relative z-20">
-          <div class="relative w-full max-w-[320px]">
+        <div class="flex items-center gap-6 w-full flex-wrap relative z-50">
+          <div class="relative w-full max-w-full md:max-w-[380px]">
             <form @submit.prevent="onSearch" 
                   class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300"
                   :class="isSearchFocused ? 'border-brand-gold ring-4 ring-brand-gold/10' : 'border-border-base hover:border-border-accent'">
@@ -67,7 +84,7 @@ const onSearch = () => {
             </form>
 
             <!-- Search Suggestions Overlay (Mock) -->
-            <div v-if="isSearchFocused" class="absolute top-[calc(100%+8px)] left-0 w-full bg-surface-base border border-border-base rounded-2xl shadow-xl overflow-hidden py-2 animate-fade-in-up" style="animation-delay: 0ms;">
+            <div v-if="isSearchFocused" class="absolute z-50 top-[calc(100%+8px)] left-0 w-full bg-surface-base border border-border-base rounded-2xl shadow-xl overflow-hidden py-2 animate-fade-in-up" style="animation-delay: 0ms;">
               <div class="px-4 py-2 font-mono text-[10px] text-text-ter font-bold uppercase tracking-[0.1em]">Récents</div>
               <button disabled class="w-full flex items-center justify-between px-4 py-2.5 bg-surface-base opacity-50 cursor-not-allowed text-left group">
                 <div class="flex items-center gap-3">
@@ -102,34 +119,40 @@ const onSearch = () => {
           <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Hero" class="relative z-10 w-full h-full object-contain drop-shadow-2xl animate-float" />
           <div class="absolute -bottom-4 w-32 h-4 bg-black/20 dark:bg-black/40 blur-xl rounded-full"></div>
         </div>
-        <div class="w-full max-w-[280px] relative">
-          <MockBadge />
-          <LiveGameCard 
-            playerName="Hugo"
-            kda="SOLO/DUO · SION · 14:22"
-            time=""
-          />
-        </div>
       </div>
     </div>
     
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="animate-fade-in-up relative" style="animation-delay: 100ms;">
-        <MockBadge />
-        <StatCard title="PARTIES · 7 JOURS" value="47" subtitle="+9 vs semaine passée" />
+        <StatCard 
+          title="PARTIES · CETTE SEMAINE" 
+          :value="(store.homeStats?.weeklyActivity.gamesThisWeek ?? 0).toString()" 
+          :subtitle="((store.homeStats?.weeklyActivity.gamesThisWeek ?? 0) >= (store.homeStats?.weeklyActivity.gamesLastWeek ?? 0) ? '+' : '') + ((store.homeStats?.weeklyActivity.gamesThisWeek ?? 0) - (store.homeStats?.weeklyActivity.gamesLastWeek ?? 0)) + ' vs semaine passée'" 
+        />
       </div>
       <div class="animate-fade-in-up relative" style="animation-delay: 150ms;">
-        <MockBadge />
-        <StatCard title="WINRATE DU CREW" value="53 %" subtitle="25 victoires - 22 défaites" valueClass="text-brand-green" />
+        <StatCard 
+          title="WINRATE DU CREW" 
+          :value="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) + ' %'" 
+          :subtitle="(store.homeStats?.weeklyActivity.winsThisWeek ?? 0) + ' victoires - ' + (store.homeStats?.weeklyActivity.lossesThisWeek ?? 0) + ' défaites'" 
+          :valueClass="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) >= 50 ? 'text-brand-green' : 'text-brand-red'" 
+        />
       </div>
       <div class="animate-fade-in-up relative" style="animation-delay: 200ms;">
-        <MockBadge />
-        <StatCard title="LP NETS" value="+186" subtitle="meilleure semaine du mois" valueClass="text-brand-gold" />
+        <StatCard 
+          title="LP NETS" 
+          :value="netLpFormatted" 
+          subtitle="Cumul du crew cette semaine" 
+          :valueClass="netLpColor" 
+        />
       </div>
       <div class="animate-fade-in-up relative" style="animation-delay: 250ms;">
-        <MockBadge />
-        <StatCard title="TEMPS DE JEU" value="21 h" subtitle="27 min par partie" />
+        <StatCard 
+          title="TEMPS DE JEU" 
+          :value="Math.round((store.homeStats?.weeklyActivity.totalPlaytimeMinutesThisWeek ?? 0) / 60) + ' h'" 
+          :subtitle="(store.homeStats?.weeklyActivity.averageGameDurationMinutesThisWeek ?? 0) + ' min par partie'" 
+        />
       </div>
     </div>
 
@@ -138,8 +161,7 @@ const onSearch = () => {
       <!-- Left Column: Ladder & Recent Games -->
       <div class="flex-1 relative animate-fade-in-up" style="animation-delay: 300ms;">
         <div class="relative mb-6">
-          <MockBadge />
-          <LadderTable />
+          <LadderTable :players="store.players" />
         </div>
         <div class="relative">
           <MockBadge />
