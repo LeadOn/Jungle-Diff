@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Summoner } from '~/lib/types/lol'
+import type { Summoner } from '~/lib/types'
 import { useLolStore } from '~/stores/lol'
 import { computed } from 'vue'
 

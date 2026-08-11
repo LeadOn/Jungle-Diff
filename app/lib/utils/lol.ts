@@ -1,4 +1,4 @@
-import type { LoLQueue } from '~/lib/types/lol'
+import type { LoLQueue } from '~/lib/types'
 
 export const formatQueue = (queueId: number, queues: LoLQueue[]): string => {
   const queue = queues.find((q) => q.queueId === queueId)

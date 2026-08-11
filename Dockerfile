@@ -12,7 +12,8 @@ RUN npm install
 COPY . .
 
 # Build the Nuxt application
-RUN npm run build
+# Force prepare after all files are copied so tsconfig.json has the correct aliases for Nuxt 4 (app/ directory)
+RUN npx nuxi prepare && npm run build
 
 # Production image
 FROM node:23.6.1-alpine AS runner

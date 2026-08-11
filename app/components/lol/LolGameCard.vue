@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Match, Participant } from '~/lib/types/lol'
+import type { Match, Participant } from '~/lib/types'
 import { formatQueue } from '~/lib/utils/lol'
 import { useLolStore } from '~/stores/lol'
 import { computed } from 'vue'
