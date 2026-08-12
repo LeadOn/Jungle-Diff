@@ -31,9 +31,17 @@ export interface LoLFunStatDto {
   gameDate: string | null; // ISO 8601 UTC
 }
 
+export interface LoLChampionStatDto {
+  championName: string;
+  gamesPlayed: number;
+  wins: number;
+  winRate: number;
+}
+
 export interface LoLGlobalStatsDto {
   totalGamesAnalyzed: number;
   totalPlayersTracked: number;
+  topChampions: LoLChampionStatDto[];
   pingMachine: LoLFunStatDto | null;
   biggestInter: LoLFunStatDto | null;
   highestBounty: LoLFunStatDto | null;

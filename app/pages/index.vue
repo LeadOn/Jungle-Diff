@@ -9,6 +9,7 @@ import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
 import MockBadge from '~/components/ui/MockBadge.vue'
 import type { LoLFunStatDto } from '~/lib/types/home'
+import { getChampionIconUrl } from '~/utils/ddragon'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
@@ -146,6 +147,35 @@ const topAwards = computed(() => {
   }
   
   return results.slice(0, 3)
+})
+
+const formatChampionName = (name: string): string => {
+  const overrides: Record<string, string> = {
+    'MonkeyKing': 'Wukong',
+    'Chogath': "Cho'Gath",
+    'Kaisa': "Kai'Sa",
+    'Khazix': "Kha'Zix",
+    'Velkoz': "Vel'Koz",
+    'Belveth': "Bel'Veth",
+    'RekSai': "Rek'Sai",
+    'KogMaw': "Kog'Maw",
+    'DrMundo': 'Dr. Mundo',
+    'Nunu': 'Nunu & Willump',
+    'Renata': 'Renata Glasc',
+    'AurelionSol': 'Aurelion Sol',
+    'JarvanIV': 'Jarvan IV',
+    'LeeSin': 'Lee Sin',
+    'MasterYi': 'Master Yi',
+    'MissFortune': 'Miss Fortune',
+    'TahmKench': 'Tahm Kench',
+    'TwistedFate': 'Twisted Fate',
+    'XinZhao': 'Xin Zhao',
+  }
+  return overrides[name] || name.replace(/([A-Z])/g, ' $1').trim()
+}
+
+const topChampions = computed(() => {
+  return store.homeStats?.crewRecords?.topChampions || []
 })
 </script>
 
@@ -303,7 +333,7 @@ const topAwards = computed(() => {
         
         <!-- Records du crew -->
         <div v-if="topAwards.length > 0" class="relative">
-          <SideCard title="Records du crew" badge="Tous">
+          <SideCard title="Records de la semaine" badge="Tous">
             <div class="flex flex-col gap-4 mt-4">
               <template v-for="(award, index) in topAwards" :key="award.key">
                 <div class="flex items-center justify-between">
@@ -320,39 +350,22 @@ const topAwards = computed(() => {
         </div>
 
         <!-- Champions du crew -->
-        <div class="relative">
-          <MockBadge />
-          <SideCard title="Champions du crew">
+        <div v-if="topChampions.length > 0" class="relative">
+          <SideCard title="Champions - 7 jours">
             <div class="flex flex-col gap-3 mt-4">
-              <div class="flex items-center gap-3">
+              <div v-for="champ in topChampions" :key="champ.championName" class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-surface-high overflow-hidden flex-shrink-0 border border-border-accent">
-                  <img src="https://ddragon.leagueoflegends.com/cdn/14.13.1/img/champion/Leona.png" alt="Leona" class="w-full h-full object-cover">
+                  <img :src="getChampionIconUrl(champ.championName, patchStore.currentPatch)" :alt="formatChampionName(champ.championName)" class="w-full h-full object-cover">
                 </div>
                 <div class="flex-grow">
-                  <div class="font-extrabold text-[13px] text-text-main">Leona</div>
+                  <div class="font-extrabold text-[13px] text-text-main">{{ formatChampionName(champ.championName) }}</div>
                   <div class="w-full bg-border-subtle rounded-full h-1 mt-1.5 overflow-hidden">
-                    <div class="h-1 rounded-full bg-brand-green" style="width: 58%"></div>
+                    <div class="h-1 rounded-full" :class="champ.winRate >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: champ.winRate + '%' }"></div>
                   </div>
                 </div>
                 <div class="text-right flex flex-col justify-end h-full">
-                  <div class="text-[13px] font-black text-brand-green leading-none tabular-nums">58%</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">54 PARTIES</div>
-                </div>
-              </div>
-              
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-surface-high overflow-hidden flex-shrink-0 border border-border-accent">
-                  <img src="https://ddragon.leagueoflegends.com/cdn/14.13.1/img/champion/LeeSin.png" alt="Lee Sin" class="w-full h-full object-cover">
-                </div>
-                <div class="flex-grow">
-                  <div class="font-extrabold text-[13px] text-text-main">Lee Sin</div>
-                  <div class="w-full bg-border-subtle rounded-full h-1 mt-1.5 overflow-hidden">
-                    <div class="h-1 rounded-full bg-brand-green" style="width: 52%"></div>
-                  </div>
-                </div>
-                <div class="text-right flex flex-col justify-end h-full">
-                  <div class="text-[13px] font-black text-brand-green leading-none tabular-nums">52%</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">42 PARTIES</div>
+                  <div class="text-[13px] font-black leading-none tabular-nums" :class="champ.winRate >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ champ.winRate }}%</div>
+                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">{{ champ.gamesPlayed }} PARTIE{{ champ.gamesPlayed > 1 ? 'S' : '' }}</div>
                 </div>
               </div>
             </div>
