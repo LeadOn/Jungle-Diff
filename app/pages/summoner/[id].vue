@@ -1,103 +1,122 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
-import type { LeaguePlayer, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLQueue, LoLGameDto } from '~/lib/types'
-import { gameDayKey, formatDayLabel } from '~/lib/utils/lol'
+import type { LeaguePlayer, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
+import LolPlayerHeader from '~/components/lol/LolPlayerHeader.vue'
+import LolPlayerRanks from '~/components/lol/LolPlayerRanks.vue'
+import PerformanceKpis from '~/components/lol/PerformanceKpis.vue'
+import LpProgressionCard from '~/components/lol/LpProgressionCard.vue'
+import ChampionsAside from '~/components/lol/ChampionsAside.vue'
+import RolesAside from '~/components/lol/RolesAside.vue'
+import DuosAside from '~/components/lol/DuosAside.vue'
+import PlayerNotFound from '~/components/lol/PlayerNotFound.vue'
+import LolGameCard from '~/components/lol/LolGameCard.vue'
+
+type Period = '7j' | '30j' | 'saison'
+
+function toApiPeriod(p: Period): LoLStatsPeriod {
+  return p === '7j' ? 'Week' : p === '30j' ? 'Month' : 'AllTime'
+}
 
 const route = useRoute()
 const gameOnApi = useGameOnLol()
-const store = useLolStore()
 const patchStore = usePatchStore()
+const lolStore = useLolStore()
 
 const playerId = route.params.id as string
 
+// Player
 const loading = ref(true)
+const hasError = ref(false)
 const player = ref<LeaguePlayer | null>(null)
-const rankPosition = ref<number | null>(null)
-
-const rankHistoryLoading = ref(false)
-const rankHistory = ref<LeagueOfLegendsRank[]>([])
-const rankHistoryRange = ref<'sevenDays' | 'day' | 'week' | 'month'>('day')
-
-const gameHistoryLoading = ref(false)
-const gamesPlayed = ref<LoLGameDto[]>([])
-const currentPage = ref(1)
-const pageSize = ref(10)
-const totalItems = ref(0)
-const totalPages = ref(1)
-const rankedOnly = ref(true)
-
-const queueOptions = ref<LoLQueue[]>([])
-const selectedQueueIds = ref<number[]>([])
-
-const startDate = ref<string | null>(null)
-const endDate = ref<string | null>(null)
-
-const queueFilterOpen = ref(false)
-const dateFilterOpen = ref(false)
-
 const isRefreshing = ref(false)
 
-// Fetch Initial Data
+// Performances / LP progression period (partagé entre le panneau KPI et le sparkline LP)
+const period = ref<Period>('30j')
+
+// Rank history (alimente uniquement le sparkline LP, données réelles)
+const rankHistoryLoading = ref(false)
+const rankHistory = ref<LeagueOfLegendsRank[]>([])
+
+// Match history
+const gameHistoryLoading = ref(false)
+const loadingMoreGames = ref(false)
+const gamesPlayed = ref<LoLGameDto[]>([])
+const currentPage = ref(1)
+const pageSize = 10
+const totalItems = ref(0)
+const totalPages = ref(1)
+
+const queueOptions = ref<{ id: number, label: string }[]>([])
+const queueFilterOpen = ref(false)
+const selectedQueueIds = ref<number[]>([])
+
+useSeoMeta({
+  title: computed(() => player.value ? `${player.value.riotGamesNickname || player.value.nickname} · Profil` : 'Profil joueur'),
+})
+
 onMounted(async () => {
-  await Promise.all([
-    store.fetchQueues(),
-    patchStore.loadPatches(),
-    loadPlayer()
-  ])
-  
+  await Promise.all([patchStore.loadPatches(), lolStore.fetchQueues()])
+  await loadPlayer()
   if (player.value) {
     const pId = player.value.id.toString()
     await Promise.all([
       loadRankHistory(pId),
       loadQueueOptions(pId),
       loadGames(pId),
-      loadRankPosition()
     ])
   }
 })
 
-// Player Loading
+// --- Player ---
 async function loadPlayer() {
   loading.value = true
+  hasError.value = false
   try {
-    player.value = await gameOnApi.getPlayerById(playerId)
+    player.value = await gameOnApi.getPlayerById(playerId, toApiPeriod(period.value))
   } catch (e) {
     console.error(e)
+    hasError.value = true
   } finally {
     loading.value = false
   }
 }
 
-// Rank Position (Basic implementation based on store data)
-async function loadRankPosition() {
-  if (!player.value?.leagueOfLegendsSoloRank) {
-    rankPosition.value = null
-    return
-  }
-  try {
-    await store.fetchPlayers()
-    const ranked = store.players
-      .filter(p => p.leagueOfLegendsSoloRank != null)
-      .sort((a, b) => (b.leagueOfLegendsSoloRank?.leaguePoints || 0) - (a.leagueOfLegendsSoloRank?.leaguePoints || 0))
-    const index = ranked.findIndex(p => p.id === player.value!.id)
-    rankPosition.value = index >= 0 ? index + 1 : null
-  } catch (e) {
-    console.error(e)
+async function retryLoadPlayer() {
+  await loadPlayer()
+  if (player.value) {
+    const pId = player.value.id.toString()
+    await Promise.all([
+      loadRankHistory(pId),
+      loadQueueOptions(pId),
+      loadGames(pId),
+    ])
   }
 }
 
-// Rank History
-const rankHistoryGranularity = computed<LoLRankHistoryGranularity>(() => {
-  if (rankHistoryRange.value === 'sevenDays' || rankHistoryRange.value === 'day') return 'Day'
-  if (rankHistoryRange.value === 'week') return 'Week'
-  return 'Month'
-})
+async function handleRefresh() {
+  if (!player.value) return
+  isRefreshing.value = true
+  try {
+    await gameOnApi.refreshPlayer(player.value.id)
+    await loadPlayer()
+    if (player.value) {
+      const pId = player.value.id.toString()
+      await Promise.all([loadRankHistory(pId), loadGames(pId)])
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isRefreshing.value = false
+  }
+}
 
-const rankHistoryDays = computed(() => rankHistoryRange.value === 'sevenDays' ? 7 : undefined)
+// --- LP progression (réel, via l'historique de rangs) ---
+const rankHistoryGranularity = computed<LoLRankHistoryGranularity>(() => (period.value === 'saison' ? 'Month' : 'Day'))
+const rankHistoryDays = computed(() => (period.value === '7j' ? 7 : period.value === '30j' ? 30 : undefined))
 
 async function loadRankHistory(pId: string) {
   rankHistoryLoading.value = true
@@ -110,364 +129,211 @@ async function loadRankHistory(pId: string) {
   }
 }
 
-function onRankHistoryRangeChange(event: Event) {
-  rankHistoryRange.value = (event.target as HTMLSelectElement).value as any
-  if (player.value) {
-    loadRankHistory(player.value.id.toString())
-  }
-}
-
-// Rank Winrates
-const soloWins = computed(() => rankHistory.value.filter(h => h.queueType === 'RANKED_SOLO_5x5').pop()?.wins || 0)
-const soloLosses = computed(() => rankHistory.value.filter(h => h.queueType === 'RANKED_SOLO_5x5').pop()?.losses || 0)
-const soloWinRate = computed(() => {
-  const total = soloWins.value + soloLosses.value
-  return total > 0 ? (soloWins.value / total) * 100 : 0
-})
-
-const flexWins = computed(() => rankHistory.value.filter(h => h.queueType === 'RANKED_FLEX_SR').pop()?.wins || 0)
-const flexLosses = computed(() => rankHistory.value.filter(h => h.queueType === 'RANKED_FLEX_SR').pop()?.losses || 0)
-const flexWinRate = computed(() => {
-  const total = flexWins.value + flexLosses.value
-  return total > 0 ? (flexWins.value / total) * 100 : 0
-})
-
-// Match History
-async function loadQueueOptions(pId: string) {
+async function onPeriodChange(next: Period) {
+  period.value = next
+  if (!player.value) return
+  const pId = player.value.id.toString()
+  loadRankHistory(pId)
   try {
-    queueOptions.value = await gameOnApi.getQueuesForPlayer(pId)
+    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(next))
+    if (player.value) player.value.performanceStats = updated.performanceStats
   } catch (e) {
     console.error(e)
   }
 }
 
-async function loadGames(pId: string) {
-  gameHistoryLoading.value = true
+const soloRankHistory = computed(() => rankHistory.value.filter((h) => h.queueType === 'RANKED_SOLO_5x5'))
+const flexRankHistory = computed(() => rankHistory.value.filter((h) => h.queueType === 'RANKED_FLEX_SR'))
+
+// --- Match history ---
+async function loadQueueOptions(pId: string) {
   try {
-    const startIso = startDate.value ? `${startDate.value}T00:00:00` : undefined
-    const endIso = endDate.value ? `${endDate.value}T23:59:59` : undefined
-    
-    const data = await gameOnApi.getLastGamesPlayedByPlayer(
-      pId,
-      currentPage.value,
-      pageSize.value,
-      rankedOnly.value,
-      selectedQueueIds.value,
-      startIso,
-      endIso
-    )
-    
-    gamesPlayed.value = data.results
+    const data = await gameOnApi.getQueuesForPlayer(pId)
+    queueOptions.value = data.map((q) => ({ id: q.id, label: q.description || q.map || `File ${q.id}` }))
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function loadGames(pId: string, append = false) {
+  if (append) {
+    loadingMoreGames.value = true
+  } else {
+    gameHistoryLoading.value = true
+    currentPage.value = 1
+  }
+  try {
+    const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
+    const data = await gameOnApi.getLastGamesPlayedByPlayer(pId, currentPage.value, pageSize, false, queueIds)
+    gamesPlayed.value = append ? [...gamesPlayed.value, ...data.results] : data.results
     totalItems.value = data.total
-    pageSize.value = data.resultsPerPage || pageSize.value
-    totalPages.value = Math.max(1, Math.ceil(totalItems.value / pageSize.value))
-    
-    if (currentPage.value > totalPages.value) {
-      currentPage.value = totalPages.value
-      await loadGames(pId)
-    }
+    totalPages.value = Math.max(1, Math.ceil(totalItems.value / (data.resultsPerPage || pageSize)))
   } catch (e) {
     console.error(e)
   } finally {
     gameHistoryLoading.value = false
+    loadingMoreGames.value = false
   }
 }
 
-const gameGroups = computed(() => {
-  const groups: { key: string, label: string, games: LoLGameDto[] }[] = []
-  for (const game of gamesPlayed.value) {
-    const key = gameDayKey(game.gameStart)
-    const lastGroup = groups[groups.length - 1]
-    
-    if (lastGroup && lastGroup.key === key) {
-      lastGroup.games.push(game)
-    } else {
-      groups.push({ key, label: formatDayLabel(game.gameStart), games: [game] })
-    }
-  }
-  return groups
-})
-
-// Filters
-const dateFilterLabel = computed(() => {
-  if (startDate.value && endDate.value) return `${formatDateLabel(startDate.value)} → ${formatDateLabel(endDate.value)}`
-  if (startDate.value) return `Depuis le ${formatDateLabel(startDate.value)}`
-  if (endDate.value) return `Jusqu'au ${formatDateLabel(endDate.value)}`
-  return 'Toutes les dates'
-})
-
-function formatDateLabel(date: string) {
-  const [year, month, day] = date.split('-')
-  return `${day}/${month}/${year}`
+function loadMoreGames() {
+  if (!player.value || currentPage.value >= totalPages.value) return
+  currentPage.value++
+  loadGames(player.value.id.toString(), true)
 }
 
-function clearDateFilter() {
-  startDate.value = null
-  endDate.value = null
-  currentPage.value = 1
-  if (player.value) loadGames(player.value.id.toString())
-  dateFilterOpen.value = false
-}
-
-const queueFilterLabel = computed(() => {
-  if (selectedQueueIds.value.length === 0) return 'Toutes les files'
-  if (selectedQueueIds.value.length === 1) {
-    const q = queueOptions.value.find(q => q.id === selectedQueueIds.value[0])
-    return q ? (q.description || `${q.map} #${q.id}`) : '1 file sélectionnée'
-  }
-  return `${selectedQueueIds.value.length} files sélectionnées`
-})
-
-function toggleQueue(id: number, event: Event) {
-  const checked = (event.target as HTMLInputElement).checked
+function toggleQueueFilter(id: number, checked: boolean) {
   if (checked) {
-    selectedQueueIds.value.push(id)
+    if (!selectedQueueIds.value.includes(id)) selectedQueueIds.value.push(id)
   } else {
-    selectedQueueIds.value = selectedQueueIds.value.filter(q => q !== id)
+    selectedQueueIds.value = selectedQueueIds.value.filter((q) => q !== id)
   }
-  currentPage.value = 1
   if (player.value) loadGames(player.value.id.toString())
 }
 
 function clearQueueFilter() {
   selectedQueueIds.value = []
-  currentPage.value = 1
   queueFilterOpen.value = false
   if (player.value) loadGames(player.value.id.toString())
 }
 
-// Pagination
-function prevPage() {
-  if (currentPage.value > 1) {
-    currentPage.value--
-    if (player.value) loadGames(player.value.id.toString())
+const queueFilterLabel = computed(() => {
+  if (selectedQueueIds.value.length === 0) return 'Toutes les files'
+  if (selectedQueueIds.value.length === 1) {
+    const q = queueOptions.value.find((q) => q.id === selectedQueueIds.value[0])
+    return q ? q.label : '1 file sélectionnée'
   }
-}
-function nextPage() {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-    if (player.value) loadGames(player.value.id.toString())
-  }
-}
+  return `${selectedQueueIds.value.length} files sélectionnées`
+})
 
-// Refresh
-async function handleRefresh() {
-  if (!player.value) return
-  isRefreshing.value = true
-  try {
-    await gameOnApi.refreshPlayer(player.value.id)
-    await loadPlayer()
-    if (player.value) {
-      await Promise.all([
-        loadRankHistory(player.value.id.toString()),
-        loadGames(player.value.id.toString())
-      ])
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isRefreshing.value = false
-  }
-}
+const historyCountLabel = computed(() => {
+  const shown = gamesPlayed.value.length
+  return `${shown} partie${shown > 1 ? 's' : ''} affichée${shown > 1 ? 's' : ''} · ${totalItems.value} sur l'historique`
+})
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl w-full">
-    <section class="px-4 pt-4">
-      <NuxtLink to="/" class="inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-blue-500 dark:text-gray-300">
-        <Icon name="lucide:chevron-left" class="h-4 w-4" />
-        Classement League of Legends
-      </NuxtLink>
-    </section>
+  <div class="w-full">
+    <NuxtLink to="/" class="inline-flex items-center gap-2 mb-5 text-[13px] font-bold text-text-sec transition-colors hover:text-text-main">
+      <Icon name="lucide:chevron-left" class="h-3.5 w-3.5" />
+      Retour au ladder
+    </NuxtLink>
 
     <!-- Loading Skeleton -->
-    <div v-if="loading" class="px-4 mt-4 animate-pulse">
-      <div class="border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5 shadow-sm">
-        <div class="flex items-center gap-4">
-          <div class="h-16 w-16 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-          <div class="space-y-2">
-            <div class="h-6 w-52 bg-gray-300 dark:bg-gray-700 rounded-md"></div>
-            <div class="h-4 w-36 bg-gray-300 dark:bg-gray-700 rounded-md"></div>
-          </div>
+    <div v-if="loading" class="animate-pulse">
+      <div class="rounded-2xl border border-border-base bg-surface-base p-6 flex items-center gap-5">
+        <div class="w-22 h-22 rounded-full bg-surface-high shrink-0"/>
+        <div class="flex-1 space-y-3">
+          <div class="h-7 w-56 rounded-md bg-surface-high"/>
+          <div class="h-4 w-40 rounded-md bg-surface-high"/>
         </div>
       </div>
     </div>
 
-    <template v-else-if="player">
-      <!-- Header -->
-      <section class="mt-4 px-4">
-        <LolPlayerHeader 
+    <!-- Error state -->
+    <PlayerNotFound v-else-if="hasError || !player" @retry="retryLoadPlayer" />
+
+    <!-- Content -->
+    <template v-else>
+      <div class="flex flex-col gap-4">
+        <LolPlayerHeader
           :player="player"
-          :rank-position="rankPosition"
-          :current-lo-l-patch="patchStore.availablePatches[0] || '14.22.1'"
+          :current-lo-l-patch="patchStore.currentPatch"
           :is-refreshing="isRefreshing"
           @refresh="handleRefresh"
         />
-      </section>
 
-      <!-- Ranks -->
-      <section class="mt-4 px-4">
-        <LolPlayerRanks 
-          :player="player"
-          :solo-wins="soloWins"
-          :solo-losses="soloLosses"
-          :solo-win-rate="soloWinRate"
-          :flex-wins="flexWins"
-          :flex-losses="flexLosses"
-          :flex-win-rate="flexWinRate"
-        />
-      </section>
+        <LolPlayerRanks :player="player" />
 
-      <!-- Rank History -->
-      <section class="mt-6 px-4">
-        <div class="border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-2xl border p-5 shadow-sm">
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <span class="text-gray-900 dark:text-white text-lg font-semibold">Historique des rangs</span>
-            <div class="flex items-center gap-3">
-              <span v-if="!rankHistoryLoading && rankHistory.length > 0" class="text-sm text-gray-500 dark:text-gray-300">
-                {{ rankHistory.length }} points
-              </span>
-              <select
-                class="border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white bg-gray-50/60 dark:bg-gray-800/60 rounded-lg border py-1 pr-7 pl-3 text-sm backdrop-blur-sm focus:ring-blue-500 focus:border-blue-500"
-                v-model="rankHistoryRange"
-                @change="onRankHistoryRangeChange"
-                :disabled="rankHistoryLoading"
-              >
-                <option value="sevenDays">1 semaine</option>
-                <option value="day">3 semaines</option>
-                <option value="week">3 mois</option>
-                <option value="month">1 an</option>
-              </select>
-            </div>
-          </div>
-          
-          <div v-if="rankHistoryLoading" class="animate-pulse space-y-3">
-            <div class="h-14 w-full bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-            <div class="h-14 w-full bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-          </div>
-          <div v-else-if="rankHistory.length === 0" class="text-gray-500 dark:text-gray-400 py-4 text-center text-sm">
-            {{ player.riotGamesNickname }} n'a pas encore joué de partie classée.
-          </div>
-          <div v-else>
-            <LolRankHistory :rank-history="rankHistory" :granularity="rankHistoryGranularity" />
-          </div>
-        </div>
-      </section>
+        <PerformanceKpis :period="period" :stats="player.performanceStats" @update:period="onPeriodChange" />
 
-      <!-- Match History -->
-      <section class="mt-6 px-4 pb-6">
-        <!-- Controls -->
-        <div class="border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 relative z-10 mb-3 flex flex-col gap-3 rounded-2xl border px-4 py-3 shadow-sm backdrop-blur-md backdrop-contrast-100 backdrop-saturate-100 backdrop-filter sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <span class="text-gray-900 dark:text-white text-lg font-semibold">Historique de parties</span>
-            <p v-if="!gameHistoryLoading" class="text-sm text-gray-500 dark:text-gray-300">
-              Page {{ currentPage }} / {{ totalPages }} &middot; {{ totalItems }} partie(s)
-            </p>
-          </div>
-          
-          <div class="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-            <!-- Date Filter -->
-            <div class="relative">
-              <button
-                @click="dateFilterOpen = !dateFilterOpen; queueFilterOpen = false"
-                :disabled="gameHistoryLoading"
-                class="border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white bg-gray-50/60 dark:bg-gray-800/60 flex items-center gap-1.5 rounded-lg border py-1 pl-3 pr-2 text-sm backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Icon name="lucide:calendar" class="h-3.5 w-3.5 shrink-0" />
-                <span class="max-w-44 truncate">{{ dateFilterLabel }}</span>
-                <Icon name="lucide:chevron-down" class="h-3.5 w-3.5 shrink-0" />
-              </button>
-              
-              <div v-if="dateFilterOpen" class="border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 absolute left-0 z-20 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-xl border p-3 shadow-lg sm:left-auto sm:right-0">
-                <label class="block">
-                  <span class="text-gray-900 dark:text-white mb-1 block text-xs font-medium">Du</span>
-                  <input type="date" v-model="startDate" @change="currentPage = 1; loadGames(player!.id.toString())" class="w-full rounded-lg border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-white" />
-                </label>
-                <label class="mt-3 block">
-                  <span class="text-gray-900 dark:text-white mb-1 block text-xs font-medium">Au</span>
-                  <input type="date" v-model="endDate" @change="currentPage = 1; loadGames(player!.id.toString())" class="w-full rounded-lg border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-white" />
-                </label>
-                <button v-if="startDate || endDate" @click="clearDateFilter" class="text-blue-500 mt-3 w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-800">
-                  Réinitialiser
+        <div class="flex flex-col lg:flex-row gap-6">
+          <!-- Historique -->
+          <div class="flex-1 min-w-0 flex flex-col gap-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 min-w-0">
+              <div>
+                <h2 class="m-0 text-lg font-extrabold tracking-tight text-text-main">Historique</h2>
+                <p class="m-0 mt-0.5 font-mono text-[11px] font-bold tracking-widest uppercase text-text-ter">{{ historyCountLabel }}</p>
+              </div>
+
+              <div class="relative inline-flex">
+                <button
+                  type="button"
+                  class="h-8.5 flex items-center gap-1.5 pl-3.5 pr-3 rounded-full bg-surface-high border border-border-subtle text-text-main text-xs font-bold"
+                  @click="queueFilterOpen = !queueFilterOpen"
+                >
+                  <span class="max-w-40 truncate">{{ queueFilterLabel }}</span>
+                  <Icon name="lucide:chevron-down" class="h-3 w-3 shrink-0 text-text-ter" />
                 </button>
+
+                <div v-if="queueFilterOpen" class="absolute right-0 z-20 mt-10 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-border-base bg-surface-base p-2 shadow-lg">
+                  <label
+                    v-for="q in queueOptions"
+                    :key="q.id"
+                    class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface-high"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="selectedQueueIds.includes(q.id)"
+                      class="rounded border-border-subtle text-brand-gold"
+                      @change="toggleQueueFilter(q.id, ($event.target as HTMLInputElement).checked)"
+                    >
+                    <span class="truncate text-text-main">{{ q.label }}</span>
+                  </label>
+                  <button
+                    v-if="selectedQueueIds.length > 0"
+                    type="button"
+                    class="mt-1 w-full rounded-lg px-2 py-1.5 text-left text-xs font-bold text-brand-gold hover:bg-surface-high"
+                    @click="clearQueueFilter"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- Queue Filter -->
-            <div class="relative" v-if="queueOptions.length > 0">
-              <button
-                @click="queueFilterOpen = !queueFilterOpen; dateFilterOpen = false"
-                :disabled="gameHistoryLoading"
-                class="border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white bg-gray-50/60 dark:bg-gray-800/60 flex items-center gap-1.5 rounded-lg border py-1 pl-3 pr-2 text-sm backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span class="max-w-40 truncate">{{ queueFilterLabel }}</span>
-                <Icon name="lucide:chevron-down" class="h-3.5 w-3.5 shrink-0" />
-              </button>
-              
-              <div v-if="queueFilterOpen" class="border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 absolute left-0 z-20 mt-2 max-h-72 w-64 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border p-2 shadow-lg sm:left-auto sm:right-0">
-                <label v-for="q in queueOptions" :key="q.id" class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
-                  <input type="checkbox" :checked="selectedQueueIds.includes(q.id)" @change="toggleQueue(q.id, $event)" class="text-blue-500 rounded border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600" />
-                  <span class="text-gray-900 dark:text-white truncate">{{ q.description || q.map }}</span>
-                </label>
-                <button v-if="selectedQueueIds.length > 0" @click="clearQueueFilter" class="text-blue-500 mt-1 w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-800">
-                  Réinitialiser
-                </button>
+            <div class="flex flex-col gap-2">
+              <div v-if="gameHistoryLoading" class="space-y-2 animate-pulse">
+                <div v-for="i in 6" :key="i" class="h-22 w-full rounded-xl bg-surface-high"/>
               </div>
-            </div>
-
-            <!-- Ranked Only -->
-            <label class="flex cursor-pointer items-center gap-2">
-              <input type="checkbox" v-model="rankedOnly" @change="currentPage = 1; loadGames(player!.id.toString())" :disabled="gameHistoryLoading" class="peer sr-only" />
-              <div class="peer-checked:bg-green-500 relative h-5 w-9 rounded-full bg-gray-300 dark:bg-gray-700 transition-colors after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-4"></div>
-              <span class="text-gray-900 dark:text-white text-sm font-medium">Classées</span>
-            </label>
-            
-            <!-- Page Size -->
-            <select v-model="pageSize" @change="currentPage = 1; loadGames(player!.id.toString())" :disabled="gameHistoryLoading" class="border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white bg-gray-50/60 dark:bg-gray-800/60 rounded-lg border py-1 pr-7 pl-3 text-sm backdrop-blur-sm">
-              <option :value="5">5 / page</option>
-              <option :value="10">10 / page</option>
-              <option :value="20">20 / page</option>
-              <option :value="50">50 / page</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Pagination top -->
-        <div v-if="!gameHistoryLoading" class="border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-2 py-2 shadow-sm backdrop-blur-md backdrop-contrast-100 backdrop-saturate-100 backdrop-filter sm:px-4">
-          <button @click="prevPage" :disabled="currentPage === 1" class="text-gray-900 dark:text-white flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40">
-            <Icon name="lucide:chevron-left" class="h-4 w-4" /> Précédent
-          </button>
-          <button @click="nextPage" :disabled="currentPage >= totalPages" class="text-gray-900 dark:text-white flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40">
-            Suivant <Icon name="lucide:chevron-right" class="h-4 w-4" />
-          </button>
-        </div>
-
-        <div v-if="gameHistoryLoading" class="space-y-3 animate-pulse">
-          <div v-for="i in 5" :key="i" class="h-24 w-full bg-gray-300 dark:bg-gray-700 rounded-xl"></div>
-        </div>
-
-        <div v-else>
-          <div v-if="gamesPlayed.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
-            Aucune partie enregistrée.
-          </div>
-          <div v-else>
-            <div v-for="group in gameGroups" :key="group.key">
-              <div class="mb-2 mt-4 flex items-center gap-3 first:mt-0">
-                <span class="text-gray-900 dark:text-white text-xs font-semibold uppercase tracking-wide">{{ group.label }}</span>
-                <span class="bg-gray-200 dark:bg-gray-800 h-px flex-1"></span>
-              </div>
-              <div class="space-y-2">
-                <LolGameCard 
-                  v-for="game in group.games" 
-                  :key="game.matchId" 
-                  :game="game" 
+              <template v-else>
+                <div v-if="gamesPlayed.length === 0" class="p-12 rounded-xl border border-dashed border-border-base text-center">
+                  <p class="m-0 text-sm font-bold text-text-sec">Aucune partie ne correspond à ces filtres.</p>
+                </div>
+                <LolGameCard
+                  v-for="g in gamesPlayed"
+                  :key="g.matchId"
+                  :game="g"
                   :player-id="player.id"
+                  :show-summoner-name="false"
                 />
-              </div>
+              </template>
             </div>
+
+            <button
+              v-if="!gameHistoryLoading && currentPage < totalPages"
+              :disabled="loadingMoreGames"
+              class="w-full py-3 rounded-xl text-center bg-surface-base border border-border-base text-text-main font-bold text-[13px] transition-colors hover:border-border-accent hover:text-brand-gold disabled:opacity-60 disabled:cursor-wait"
+              @click="loadMoreGames"
+            >
+              {{ loadingMoreGames ? 'Chargement…' : `Charger ${pageSize} parties de plus` }}
+            </button>
           </div>
+
+          <!-- Aside -->
+          <aside class="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
+            <LpProgressionCard
+              :solo-entries="soloRankHistory"
+              :flex-entries="flexRankHistory"
+              :period="period"
+              :loading="rankHistoryLoading"
+            />
+            <ChampionsAside :period="period" />
+            <RolesAside />
+            <DuosAside />
+          </aside>
         </div>
-      </section>
+      </div>
     </template>
   </div>
 </template>

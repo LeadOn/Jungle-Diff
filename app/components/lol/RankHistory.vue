@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { Chart, type ChartDataset } from 'chart.js/auto'
 import type { LeagueOfLegendsRank, LoLRankHistoryGranularity } from '~/lib/types'
-import { tierLabel, APEX_TIERS } from '~/utils/lol-tier'
+import { tierLabel, rankScore } from '~/utils/lol-tier'
 
 const props = defineProps<{
   rankHistory: LeagueOfLegendsRank[]
@@ -20,20 +20,6 @@ const SERIES_COLORS = {
 
 const GRID_COLOR = 'rgba(156, 163, 175, 0.15)'
 const AVERAGE_LINE_COLOR = 'rgba(156, 163, 175, 0.5)'
-
-const TIER_BASE_POINTS: [string, number][] = [
-  ['IRON', 0],
-  ['BRONZE', 400],
-  ['SILVER', 800],
-  ['GOLD', 1200],
-  ['PLATINUM', 1600],
-  ['EMERALD', 2000],
-  ['DIAMOND', 2400],
-  ['MASTER', 2800],
-  ['GRANDMASTER', 3200],
-  ['CHALLENGER', 3600],
-]
-const DIVISION_POINTS: Record<string, number> = { I: 300, II: 200, III: 100, IV: 0 }
 
 interface RankPoint {
   x: number;
@@ -97,19 +83,11 @@ const averageLinePlugin = {
   },
 }
 
-function scoreFor(entry: LeagueOfLegendsRank): number {
-  const tier = entry.tier?.toUpperCase() ?? ''
-  const division = entry.rank?.toUpperCase() ?? ''
-  const base = TIER_BASE_POINTS.find(([name]) => name === tier)?.[1] ?? 0
-  const divisionPoints = APEX_TIERS.has(tier) ? 0 : (DIVISION_POINTS[division] ?? 0)
-  return base + divisionPoints + entry.leaguePoints
-}
-
 function toPoints(entries: LeagueOfLegendsRank[]): RankPoint[] {
   return entries
     .map((entry) => ({
       x: periodStart(new Date(entry.createdOn), props.granularity),
-      y: scoreFor(entry),
+      y: rankScore(entry),
       entry,
     }))
     .sort((a, b) => a.x - b.x)

@@ -2,6 +2,24 @@ import type { LeagueOfLegendsRank } from '~/lib/types'
 
 export const APEX_TIERS = new Set(['MASTER', 'GRANDMASTER', 'CHALLENGER'])
 
+const TIER_BASE_POINTS: Record<string, number> = {
+  IRON: 0, BRONZE: 400, SILVER: 800, GOLD: 1200, PLATINUM: 1600,
+  EMERALD: 2000, DIAMOND: 2400, MASTER: 2800, GRANDMASTER: 3200, CHALLENGER: 3600,
+}
+const DIVISION_POINTS: Record<string, number> = { I: 300, II: 200, III: 100, IV: 0 }
+
+/**
+ * Convertit un rang (palier + division + LP) en un score numérique continu,
+ * utilisé pour tracer une progression (ex: sparkline LP) sur un même axe.
+ */
+export function rankScore(rank: LeagueOfLegendsRank): number {
+  const tier = rank.tier ? rank.tier.toUpperCase() : ''
+  const division = rank.rank ? rank.rank.toUpperCase() : ''
+  const base = TIER_BASE_POINTS[tier] ?? 0
+  const divisionPoints = APEX_TIERS.has(tier) ? 0 : (DIVISION_POINTS[division] ?? 0)
+  return base + divisionPoints + rank.leaguePoints
+}
+
 export function tierLabel(rank?: LeagueOfLegendsRank | null): string {
   if (!rank) return 'Non classé'
   const tierStr = rank.tier ? rank.tier.toLowerCase() : ''

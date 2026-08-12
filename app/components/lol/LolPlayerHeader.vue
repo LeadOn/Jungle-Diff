@@ -7,7 +7,6 @@ import { fr } from 'date-fns/locale'
 
 const props = defineProps<{
   player: LeaguePlayer
-  rankPosition?: number | null
   currentLoLPatch: string
   isRefreshing?: boolean
 }>()
@@ -19,11 +18,6 @@ const emit = defineEmits<{
 const config = useRuntimeConfig()
 const apiUrl = config.public.gameOnApiUrl
 
-const rankPositionLabel = computed(() => {
-  if (props.rankPosition == null) return null
-  return props.rankPosition === 1 ? '1er du classement' : `${props.rankPosition}e du classement`
-})
-
 const syncedAgoLabel = computed(() => {
   if (!props.player.lolRefreshedOn) return 'Jamais synchronisé'
   const date = new Date(props.player.lolRefreshedOn)
@@ -34,44 +28,55 @@ const syncedAgoLabel = computed(() => {
 
 <template>
   <div class="relative">
-    <div class="bg-blue-500/25 pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] blur-3xl"></div>
-    <div class="border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5 shadow-sm backdrop-blur-md backdrop-contrast-100 backdrop-saturate-100 backdrop-filter">
-      
-      <div class="flex items-center gap-4">
-        <div class="relative shrink-0">
-          <img v-if="player.lolIconId != null" :src="`https://ddragon.leagueoflegends.com/cdn/${currentLoLPatch}/img/profileicon/${player.lolIconId}.png`" class="drop-shadow-[0_0_12px_rgba(115,195,233,0.65)] h-16 w-16 rounded-full object-cover" />
-          <img v-else-if="player.profilePictureUrl" :src="`${apiUrl}/player/${player.id}/pp`" class="drop-shadow-[0_0_12px_rgba(115,195,233,0.65)] h-16 w-16 rounded-full object-cover" />
-          <img v-else src="~/assets/img/JungleDiff_Logo.png" class="drop-shadow-[0_0_12px_rgba(115,195,233,0.65)] h-16 w-16 rounded-full object-cover" />
-          <span class="bg-blue-600 text-white absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-2 text-xs font-semibold whitespace-nowrap">{{ player.lolSummonerLevel }}</span>
+    <div class="bg-blue-500/20 pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] blur-3xl"/>
+
+    <div class="rounded-2xl border border-border-base bg-surface-base p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div class="flex items-center gap-5 min-w-0">
+        <div class="relative w-22 h-22 shrink-0">
+          <span class="block w-full h-full rounded-full overflow-hidden border-[3px] border-border-accent bg-surface-high">
+            <img v-if="player.lolIconId != null" :src="`https://ddragon.leagueoflegends.com/cdn/${currentLoLPatch}/img/profileicon/${player.lolIconId}.png`" class="w-full h-full object-cover" >
+            <img v-else-if="player.profilePictureUrl" :src="`${apiUrl}/player/${player.id}/pp`" class="w-full h-full object-cover" >
+            <img v-else src="~/assets/img/JungleDiff_Logo.png" class="w-full h-full object-cover" >
+          </span>
+          <span v-if="player.lolSummonerLevel != null" class="absolute -bottom-0.5 -right-1.5 px-2 py-0.5 rounded-full bg-surface-high border-2 border-surface-base shadow-sm font-mono text-[10px] font-bold text-text-main whitespace-nowrap">
+            {{ player.lolSummonerLevel }}
+          </span>
         </div>
-        
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-baseline gap-1.5">
-            <span class="text-gray-900 dark:text-white truncate text-xl font-semibold">{{ player.riotGamesNickname }}</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">#{{ player.riotGamesTagLine }}</span>
-            <span v-if="player.archived" class="bg-gray-600/80 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white uppercase tracking-wide">Archivé</span>
+
+        <div class="flex flex-col gap-2 min-w-0">
+          <div class="flex items-baseline gap-2 flex-wrap">
+            <h1 class="m-0 text-[26px] md:text-[34px] font-extrabold tracking-[-0.03em] leading-none text-text-main truncate">{{ player.riotGamesNickname || player.nickname }}</h1>
+            <span v-if="player.riotGamesTagLine" class="text-lg font-semibold text-text-ter">#{{ player.riotGamesTagLine }}</span>
+            <span v-if="player.archived" class="font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-surface-high border border-border-subtle text-text-ter">Archivé</span>
           </div>
-          <p class="truncate text-sm text-gray-500 dark:text-gray-300">
-            {{ player.fullName || player.nickname }}
-            <span v-if="rankPositionLabel"> &middot; {{ rankPositionLabel }}</span>
-          </p>
-          <a :href="`https://www.op.gg/summoners/euw/${player.riotGamesNickname}-${player.riotGamesTagLine}`" target="_blank" class="text-blue-500 inline-flex items-center gap-1 text-sm hover:underline">
+          <div class="flex items-center gap-2.5 flex-wrap font-mono text-[10.5px] font-bold tracking-widest uppercase text-text-ter">
+            <span>{{ syncedAgoLabel }}</span>
+          </div>
+          <a
+            v-if="player.riotGamesNickname && player.riotGamesTagLine"
+            :href="`https://www.op.gg/summoners/euw/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
+            target="_blank"
+            class="inline-flex items-center gap-1 text-sm text-blue-500 hover:underline w-fit"
+          >
             Accéder à OP.GG
             <Icon name="lucide:external-link" class="text-xs" />
           </a>
         </div>
       </div>
 
-      <button
-        @click="emit('refresh')"
-        :disabled="isRefreshing"
-        class="border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Rafraîchir le profil"
-      >
-        <Icon name="lucide:refresh-cw" :class="{ 'animate-spin': isRefreshing }" />
-        {{ syncedAgoLabel }}
-      </button>
-
+      <div class="flex items-center gap-2.5 shrink-0">
+        <button
+          :disabled="isRefreshing"
+          class="flex items-center gap-2 h-9.5 px-4.5 rounded-full bg-brand-gold text-brand-gold-text font-bold text-[13px] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="emit('refresh')"
+        >
+          <Icon name="lucide:refresh-cw" :class="{ 'animate-spin': isRefreshing }" />
+          Rafraîchir
+        </button>
+        <span title="Pas encore implémenté" class="flex items-center h-9.5 px-4.5 rounded-full bg-surface-high border border-border-subtle text-text-ter font-bold text-[13px] cursor-default select-none opacity-60">
+          Comparer
+        </span>
+      </div>
     </div>
   </div>
 </template>

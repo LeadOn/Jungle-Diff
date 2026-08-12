@@ -31,6 +31,22 @@ export interface LeaguePlayer {
   recentFormFlex: boolean[];
   lpChange7DaysSolo: number | null;
   lpChange7DaysFlex: number | null;
+  performanceStats: LoLSummonerPerformanceStats | null;
 }
 
 export type LoLRankHistoryGranularity = 'Day' | 'Week' | 'Month';
+
+export type LoLStatsPeriod = 'AllTime' | 'Week' | 'Month' | 'ThreeMonths' | 'SixMonths';
+
+export interface LoLSummonerPerformanceStats {
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  winRatePercent: number;
+  totalPlaytimeSeconds: number;
+  averageGameDurationSeconds: number;
+  averageKda: number;
+  averageCsPerMinute: number;
+  averageDamagePerMinute: number;
+  averageVisionScore: number;
+}

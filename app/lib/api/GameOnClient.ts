@@ -1,5 +1,5 @@
 import { BaseApiService } from './BaseApiService'
-import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity } from '../types'
+import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod } from '../types'
 
 export class GameOnClient extends BaseApiService {
   constructor(baseUrl: string) {
@@ -26,8 +26,9 @@ export class GameOnClient extends BaseApiService {
     return this.get<LeaguePlayer[]>(`/lol/summoner?archived=${archived}`, { signal })
   }
 
-  public getPlayerById(id: string | number, signal?: AbortSignal) {
-    return this.get<LeaguePlayer>(`/lol/summoner/${id}`, { signal })
+  public getPlayerById(id: string | number, period?: LoLStatsPeriod, signal?: AbortSignal) {
+    const url = period ? `/lol/summoner/${id}?period=${period}` : `/lol/summoner/${id}`
+    return this.get<LeaguePlayer>(url, { signal })
   }
 
   public getRankHistory(id: string | number, granularity: LoLRankHistoryGranularity, days?: number, signal?: AbortSignal) {
