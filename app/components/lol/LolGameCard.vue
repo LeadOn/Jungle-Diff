@@ -30,7 +30,11 @@
         
         <div class="flex flex-col justify-center min-w-0">
           <div class="text-[13px] sm:text-[14px] font-extrabold mb-0.5 truncate" :class="getResultTextColor(computedStatus)">
-            {{ getResultText(computedStatus) }}
+            {{ getResultText(computedStatus) }} 
+            <template v-if="summonerName">
+              <span class="text-text-ter font-normal mx-1">·</span> 
+              <span class="text-text-sec font-semibold">{{ summonerName }}</span>
+            </template>
           </div>
           <div class="text-[11px] sm:text-[12px] font-bold text-text-main mb-0.5 truncate">
             {{ queueName }} <span class="text-text-ter font-normal mx-0.5">·</span> {{ duration }}
@@ -132,6 +136,7 @@ const computedStatus = computed(() => {
 // Stats
 const championName = computed(() => participant.value?.championName || '')
 const champLevel = computed(() => participant.value?.champLevel || '??')
+const summonerName = computed(() => participant.value?.riotIdGameName || '')
 
 const kills = computed(() => participant.value?.kills ?? 0)
 const deaths = computed(() => participant.value?.deaths ?? 0)
