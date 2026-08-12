@@ -1,5 +1,5 @@
 export interface LoLQueue {
-  queueId: number
+  id: number
   map: string
   description: string | null
   notes: string | null
