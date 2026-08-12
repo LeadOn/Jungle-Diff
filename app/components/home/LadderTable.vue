@@ -137,8 +137,8 @@ const mappedPlayers = computed(() => {
       id: p.id,
       initial: p.nickname.charAt(0).toUpperCase(),
       iconUrl: p.lolIconId != null ? `https://ddragon.leagueoflegends.com/cdn/${patchStore.currentPatch}/img/profileicon/${p.lolIconId}.png` : null,
-      name: p.nickname,
-      tag: p.riotGamesNickname && p.riotGamesTagLine ? `${p.riotGamesNickname}#${p.riotGamesTagLine}` : '',
+      name: p.riotGamesNickname || p.nickname,
+      tag: p.riotGamesTagLine ? `#${p.riotGamesTagLine}` : '',
       queues: {
         solo: solo ? {
           tier: solo.tier,

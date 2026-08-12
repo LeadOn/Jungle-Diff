@@ -1,5 +1,5 @@
 import { BaseApiService } from './BaseApiService'
-import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer } from '../types'
+import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse } from '../types'
 
 export class GameOnClient extends BaseApiService {
   constructor(baseUrl: string) {
@@ -24,5 +24,9 @@ export class GameOnClient extends BaseApiService {
 
   public getLeaguePlayers(archived: boolean = false, signal?: AbortSignal) {
     return this.get<LeaguePlayer[]>(`/lol/summoner?archived=${archived}`, { signal })
+  }
+
+  public getLastMatches(page: number = 1, size: number = 5, signal?: AbortSignal) {
+    return this.get<PaginatedMatchResponse>(`/lol/Match/last?page=${page}&size=${size}`, { signal })
   }
 }

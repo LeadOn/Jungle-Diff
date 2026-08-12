@@ -17,6 +17,7 @@ const isSearchFocused = ref(false)
 
 await useAsyncData('homeStats', () => store.fetchHomeStats())
 await useAsyncData('players', () => store.fetchPlayers())
+await useAsyncData('lastMatches', () => store.fetchLastMatches())
 
 const hasApiError = computed(() => store.homeStats === null)
 
@@ -180,7 +181,6 @@ const netLpColor = computed(() => {
           <LadderTable :players="store.players" />
         </div>
         <div class="relative">
-          <MockBadge />
           <RecentGames />
         </div>
       </div>
