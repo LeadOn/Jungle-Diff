@@ -44,6 +44,52 @@ const netLpColor = computed(() => {
   if (lp === undefined || lp === null || lp === 0) return ''
   return lp > 0 ? 'text-brand-green' : 'text-brand-red'
 })
+
+// Fact of the week logic
+const fact = computed(() => store.homeStats?.factOfTheWeek)
+
+const factLpFormatted = computed(() => {
+  if (!fact.value) return ''
+  const lp = fact.value.lpChange
+  if (lp > 0) return `+${lp} LP`
+  if (lp < 0) return `${lp} LP`
+  return `0 LP`
+})
+
+const factLpColor = computed(() => {
+  if (!fact.value) return ''
+  const lp = fact.value.lpChange
+  if (lp > 0) return 'text-brand-green'
+  if (lp < 0) return 'text-brand-red'
+  return 'text-text-main'
+})
+
+const factText = computed(() => {
+  if (!fact.value) return ''
+  const f = fact.value
+  let text = `enchaîne ${f.gamesThisWeek} partie${f.gamesThisWeek > 1 ? 's' : ''} à ${f.winRateThisWeek} % de victoires`
+  if (f.longestWinStreakThisWeek > 1) {
+    text += `, dont ${f.longestWinStreakThisWeek} succès d'affilée.`
+  } else {
+    text += `.`
+  }
+  return text
+})
+
+const factPlayerName = computed(() => {
+  if (!fact.value) return ''
+  const p = fact.value.player
+  return p.riotGamesNickname || p.nickname
+})
+
+const factPlayerLink = computed(() => {
+  if (!fact.value) return ''
+  const p = fact.value.player
+  if (p.riotGamesNickname && p.riotGamesTagLine) {
+    return `/summoner/${encodeURIComponent(p.riotGamesNickname + '#' + p.riotGamesTagLine)}`
+  }
+  return `/summoner/${encodeURIComponent(p.nickname)}`
+})
 </script>
 
 <template>
@@ -188,12 +234,13 @@ const netLpColor = computed(() => {
       <!-- Right Column: Highlights -->
       <div class="w-full lg:w-[320px] flex flex-col gap-4 animate-fade-in-up" style="animation-delay: 350ms;">
         <!-- Fait de la semaine -->
-        <div class="relative">
-          <MockBadge />
+        <div v-if="fact" class="relative">
           <SideCard title="FAIT DE LA SEMAINE">
-            <div class="text-[32px] font-black text-brand-gold mb-3 mt-1 leading-none tabular-nums">+112 LP</div>
-            <p class="text-[13px] text-text-sec leading-relaxed font-medium">Meilleure progression du crew depuis février : <span class="font-extrabold text-text-main">Hugo</span> enchaîne 14 parties à 71 % de victoires, dont quatre succès d'affilée.</p>
-            <button disabled class="w-full mt-5 py-2.5 bg-surface-high text-text-main border border-border-subtle font-bold rounded-xl text-[13px] opacity-50 cursor-not-allowed">Voir sa fiche</button>
+            <div class="text-[32px] font-black mb-3 mt-1 leading-none tabular-nums" :class="factLpColor">{{ factLpFormatted }}</div>
+            <p class="text-[13px] text-text-sec leading-relaxed font-medium">Meilleure performance de la semaine : <span class="font-extrabold text-text-main">{{ factPlayerName }}</span> {{ factText }}</p>
+            <NuxtLink :to="factPlayerLink" class="block text-center w-full mt-5 py-2.5 bg-surface-high hover:bg-surface-base hover:text-brand-gold text-text-main border border-border-subtle font-bold rounded-xl text-[13px] transition-colors shadow-sm">
+              Voir sa fiche
+            </NuxtLink>
           </SideCard>
         </div>
         
