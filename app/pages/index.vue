@@ -185,7 +185,7 @@ const topChampions = computed(() => {
 </script>
 
 <template>
-  <div class="w-full pt-6 pb-16">
+  <div class="w-full">
     <!-- Hero Section -->
     <div class="flex flex-col md:flex-row items-center justify-between gap-12 mb-16 animate-fade-in-up relative z-50" style="animation-delay: 50ms;">
       <!-- Left text & search -->
@@ -195,7 +195,7 @@ const topChampions = computed(() => {
           EUW · PATCH {{ patchStore.currentPatch }}
         </div>
         
-        <h1 class="text-6xl md:text-7xl lg:text-[80px] font-extrabold text-text-main leading-[1] mb-6 tracking-[-0.03em]">
+        <h1 class="text-[44px] md:text-7xl lg:text-[80px] font-extrabold text-text-main leading-none mb-6 tracking-[-0.03em]">
           Dominez la Faille,<br />analysez vos résultats.
         </h1>
         
@@ -259,7 +259,7 @@ const topChampions = computed(() => {
           <!-- Soft glow behind character -->
           <div class="absolute inset-0 bg-brand-gold rounded-full blur-[80px] opacity-10"></div>
           <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Hero" class="relative z-10 w-full h-full object-contain drop-shadow-2xl animate-float" />
-          <div class="absolute -bottom-4 w-32 h-4 bg-black/20 dark:bg-black/40 blur-xl rounded-full"></div>
+          <div class="absolute -bottom-4 w-32 h-4 bg-(--color-mascot-shadow) blur-xl rounded-full"></div>
         </div>
       </div>
     </div>

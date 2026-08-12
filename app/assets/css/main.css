@@ -40,6 +40,14 @@
   --color-gold-text: #17150A;
   --color-green: #3FD68F;
   --color-red: #FF6257;
+
+  /* Theme-aware washes/overlays (mirrors the Claude Design tokens) */
+  --color-glow: rgba(255, 255, 255, 0.05);
+  --color-mascot-shadow: rgba(0, 0, 0, 0.4);
+  --color-item-bg: rgba(255, 255, 255, 0.05);
+  --color-item-line: rgba(255, 255, 255, 0.05);
+  --color-win-wash: rgba(63, 214, 143, 0.1);
+  --color-loss-wash: rgba(255, 98, 87, 0.1);
 }
 
 :root.light {
@@ -57,6 +65,13 @@
   --color-gold-text: #FFFFFF;
   --color-green: #258250;
   --color-red: #C73B2C;
+
+  --color-glow: rgba(255, 255, 255, 0.5);
+  --color-mascot-shadow: rgba(45, 40, 36, 0.2);
+  --color-item-bg: rgba(0, 0, 0, 0.1);
+  --color-item-line: rgba(0, 0, 0, 0.05);
+  --color-win-wash: rgba(37, 130, 80, 0.05);
+  --color-loss-wash: rgba(199, 59, 44, 0.05);
 }
 
 @utility tabular-nums {

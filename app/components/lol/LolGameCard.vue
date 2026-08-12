@@ -68,7 +68,7 @@
         <div 
           v-for="(itemId, index) in items" 
           :key="index"
-          class="w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden bg-black/10 dark:bg-white/5 border border-black/5 dark:border-white/5 flex-shrink-0"
+          class="w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden bg-(--color-item-bg) border border-(--color-item-line) flex-shrink-0"
         >
           <img 
             v-if="itemId > 0"
@@ -172,8 +172,8 @@ const getResultColor = (status: string) => {
 }
 
 const cardBgColor = computed(() => {
-  if (computedStatus.value === 'WIN') return 'bg-brand-green/5 dark:bg-brand-green/10'
-  if (computedStatus.value === 'LOSS') return 'bg-brand-red/5 dark:bg-brand-red/10'
+  if (computedStatus.value === 'WIN') return 'bg-(--color-win-wash)'
+  if (computedStatus.value === 'LOSS') return 'bg-(--color-loss-wash)'
   return 'bg-surface-base' // Unknown / Remake
 })
 

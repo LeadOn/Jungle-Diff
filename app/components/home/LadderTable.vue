@@ -142,6 +142,7 @@ const mappedPlayers = computed(() => {
       queues: {
         solo: solo ? {
           tier: solo.tier,
+          rank: solo.rank,
           rankLabel: solo.tier === 'MASTER' || solo.tier === 'GRANDMASTER' || solo.tier === 'CHALLENGER' ? capitalizeTier(solo.tier) : `${capitalizeTier(solo.tier)} ${solo.rank}`,
           lp: solo.leaguePoints,
           form: p.recentFormSolo || [],
@@ -152,6 +153,7 @@ const mappedPlayers = computed(() => {
         } : null,
         flex: flex ? {
           tier: flex.tier,
+          rank: flex.rank,
           rankLabel: flex.tier === 'MASTER' || flex.tier === 'GRANDMASTER' || flex.tier === 'CHALLENGER' ? capitalizeTier(flex.tier) : `${capitalizeTier(flex.tier)} ${flex.rank}`,
           lp: flex.leaguePoints,
           form: p.recentFormFlex || [],
@@ -166,16 +168,23 @@ const mappedPlayers = computed(() => {
 })
 
 const tierValue: Record<string, number> = {
-  'CHALLENGER': 900,
-  'GRANDMASTER': 800,
-  'MASTER': 700,
-  'DIAMOND': 600,
-  'EMERALD': 500,
-  'PLATINUM': 400,
-  'GOLD': 300,
-  'SILVER': 200,
-  'BRONZE': 100,
-  'IRON': 50
+  'CHALLENGER': 90000,
+  'GRANDMASTER': 80000,
+  'MASTER': 70000,
+  'DIAMOND': 60000,
+  'EMERALD': 50000,
+  'PLATINUM': 40000,
+  'GOLD': 30000,
+  'SILVER': 20000,
+  'BRONZE': 10000,
+  'IRON': 0
+}
+
+const rankValue: Record<string, number> = {
+  'I': 4000,
+  'II': 3000,
+  'III': 2000,
+  'IV': 1000
 }
 
 const getTierColor = (tier: string | undefined, opacity: number) => {
@@ -212,9 +221,9 @@ const sortedPlayers = computed(() => {
     if (!qB && qA) return -1
     if (!qA && !qB) return 0
     
-    // If both ranked, sort by tier value + lp
-    const scoreA = (tierValue[qA!.tier] || 0) + (qA!.lp / 100)
-    const scoreB = (tierValue[qB!.tier] || 0) + (qB!.lp / 100)
+    // If both ranked, sort by tier value + rank value + lp
+    const scoreA = (tierValue[qA!.tier] || 0) + (rankValue[qA!.rank] || 0) + (qA!.lp || 0)
+    const scoreB = (tierValue[qB!.tier] || 0) + (rankValue[qB!.rank] || 0) + (qB!.lp || 0)
     
     return scoreB - scoreA
   })
