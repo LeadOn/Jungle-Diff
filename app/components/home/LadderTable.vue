@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
-        <h2 class="text-[16px] font-extrabold text-text-main leading-tight">Ladder du crew</h2>
+        <h2 class="text-[16px] font-extrabold text-text-main leading-tight">Classement général</h2>
         <p class="font-mono text-[11px] text-text-ter font-bold tracking-[0.1em] uppercase mt-0.5">{{ players?.length || 0 }} JOUEURS</p>
       </div>
       
@@ -40,7 +40,7 @@
           </tr>
         </thead>
         <tbody class="text-sm">
-          <tr v-for="(player, i) in sortedPlayers" :key="player.id" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group">
+          <tr v-for="(player, i) in sortedPlayers" :key="player.id" @click="goToPlayer(player.id)" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group cursor-pointer">
             <td class="py-3.5 font-bold" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : 'text-text-ter'">{{ i + 1 }}</td>
             <td class="py-3.5">
               <div class="flex items-center gap-3">
@@ -115,8 +115,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from '#app'
 import type { LeaguePlayer } from '~/lib/types'
 import { usePatchStore } from '~/stores/patch'
+
+const router = useRouter()
+const goToPlayer = (id: string | number) => {
+  router.push(`/summoner/${id}`)
+}
 
 const props = defineProps<{
   players?: LeaguePlayer[]

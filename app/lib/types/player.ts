@@ -21,6 +21,9 @@ export interface LeaguePlayer {
   riotGamesNickname: string | null;
   riotGamesTagLine: string | null;
   lolIconId: number | null;
+  lolSummonerLevel?: number | null;
+  fullName?: string | null;
+  archived?: boolean;
   lolRefreshedOn: string | null;
   leagueOfLegendsSoloRank: LeagueOfLegendsRank | null;
   leagueOfLegendsFlexRank: LeagueOfLegendsRank | null;
@@ -29,3 +32,5 @@ export interface LeaguePlayer {
   lpChange7DaysSolo: number | null;
   lpChange7DaysFlex: number | null;
 }
+
+export type LoLRankHistoryGranularity = 'Day' | 'Week' | 'Month';

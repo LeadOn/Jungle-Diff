@@ -52,4 +52,12 @@ export class BaseApiService {
   public async post<T>(endpoint: string, data?: unknown, options: FetchOptions = {}): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: 'POST', body: data as any })
   }
+
+  public async put<T>(endpoint: string, data?: unknown, options: FetchOptions = {}): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'PUT', body: data as any })
+  }
+
+  public async patch<T>(endpoint: string, data?: unknown, options: FetchOptions = {}): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'PATCH', body: data as any })
+  }
 }

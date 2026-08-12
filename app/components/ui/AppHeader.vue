@@ -46,7 +46,7 @@ const toggleTheme = () => {
 
     <!-- Desktop Navigation -->
     <nav class="hidden md:flex items-center bg-surface-base/70 backdrop-blur-md p-1 rounded-full border border-border-base shadow-sm">
-      <NuxtLink to="/" class="nav-link">Ladder</NuxtLink>
+      <NuxtLink to="/" class="nav-link">Accueil</NuxtLink>
       <span class="nav-link opacity-50 pointer-events-none">Records</span>
       <span class="nav-link opacity-50 pointer-events-none">Duel</span>
       <span class="nav-link opacity-50 pointer-events-none">Champions</span>
@@ -88,7 +88,7 @@ const toggleTheme = () => {
   </header>
 
   <div v-if="isMobileMenuOpen" class="md:hidden fixed inset-0 top-[72px] bg-surface-base z-[55] px-6 py-8 flex flex-col gap-4 border-t border-border-base shadow-xl">
-    <NuxtLink to="/" class="mobile-nav-link" @click="isMobileMenuOpen = false">Ladder</NuxtLink>
+    <NuxtLink to="/" class="mobile-nav-link" @click="isMobileMenuOpen = false">Classement</NuxtLink>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Records</span>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Duel</span>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Champions</span>
