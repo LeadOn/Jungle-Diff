@@ -18,6 +18,8 @@ const isSearchFocused = ref(false)
 await useAsyncData('homeStats', () => store.fetchHomeStats())
 await useAsyncData('players', () => store.fetchPlayers())
 
+const hasApiError = computed(() => store.homeStats === null)
+
 onMounted(async () => {
   // Ensure queues are loaded
   await store.fetchQueues()
@@ -67,8 +69,8 @@ const netLpColor = computed(() => {
             <form @submit.prevent="onSearch" 
                   class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300"
                   :class="isSearchFocused ? 'border-brand-gold ring-4 ring-brand-gold/10' : 'border-border-base hover:border-border-accent'">
-              <div class="pl-4 pr-2 text-text-ter">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <div class="pl-4 pr-2 text-text-ter flex items-center justify-center">
+                <Icon name="lucide:search" class="text-[18px] opacity-80" style="stroke-width: 2.5px;" />
               </div>
               <input 
                 v-model="searchName" 
@@ -122,8 +124,22 @@ const netLpColor = computed(() => {
       </div>
     </div>
     
+    <!-- Error Banner -->
+    <div v-if="hasApiError" class="mb-12 bg-brand-red/10 border border-brand-red/20 rounded-2xl p-6 flex items-start gap-4 animate-fade-in-up">
+      <!-- Icon -->
+      <div class="w-10 h-10 rounded-full bg-brand-red/20 flex items-center justify-center flex-shrink-0 text-brand-red">
+        <Icon name="lucide:triangle-alert" class="text-[20px]" style="stroke-width: 2.5px;" />
+      </div>
+      <div class="flex-1">
+        <h3 class="text-text-main font-bold text-lg mb-1">Erreur de connexion à l'API</h3>
+        <p class="text-text-sec text-sm font-medium leading-relaxed mb-1">
+          Impossible de récupérer les statistiques du crew et l'historique récent. Le serveur API semble indisponible ou rencontre des difficultés techniques.
+        </p>
+      </div>
+    </div>
+
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="animate-fade-in-up relative" style="animation-delay: 100ms;">
         <StatCard 
           title="PARTIES · CETTE SEMAINE" 
@@ -157,7 +173,7 @@ const netLpColor = computed(() => {
     </div>
 
     <!-- Main Content Layout (2 columns) -->
-    <div class="flex flex-col lg:flex-row gap-6">
+    <div v-if="!hasApiError" class="flex flex-col lg:flex-row gap-6">
       <!-- Left Column: Ladder & Recent Games -->
       <div class="flex-1 relative animate-fade-in-up" style="animation-delay: 300ms;">
         <div class="relative mb-6">

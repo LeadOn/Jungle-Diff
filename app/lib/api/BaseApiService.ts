@@ -1,7 +1,7 @@
 import { $fetch } from 'ofetch'
 import type { FetchOptions } from 'ofetch'
 import { AppError } from '../types/error'
-import { useAuth } from '~/composables/useAuth'
+import { useAuthStore } from '~/stores/auth'
 
 export class BaseApiService {
   protected readonly baseUrl: string
@@ -21,7 +21,7 @@ export class BaseApiService {
     }
 
     if (this.requiresAuth && isGameOnApi) {
-      const auth = useAuth()
+      const auth = useAuthStore()
       const token = await auth.getToken()
       if (token) {
         headers['Authorization'] = `Bearer ${token}`

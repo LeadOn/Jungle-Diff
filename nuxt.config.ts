@@ -11,7 +11,8 @@ export default {
   modules: [
     '@pinia/nuxt',
     '@nuxtjs/i18n',
-    '@nuxt/eslint'
+    '@nuxt/eslint',
+    '@nuxt/icon'
   ],
 
   i18n: {
