@@ -13,8 +13,8 @@ const newState = `- Project is scaffolded and successfully building.
 - Homepage fully redesigned (Hero, Ladder, Recent Games) to match a sober, analytical gaming interface.
 - Keycloak authentication flow is wired.
 - API client layers for GameOn API and Riot CDNs are implemented.
-- Base pages set up with mock placeholders for remaining match history integration.
-- LoL patches integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils.`;
+- Recent Games on homepage integrated with dynamic match history logic (LolGameCard) mapping Riot API data, DDragon versions, and timezone rules.
+- LoL patches integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils is fully operational.`;
 
 for (const file of files) {
   if (fs.existsSync(file)) {

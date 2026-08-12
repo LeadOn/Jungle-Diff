@@ -1,15 +1,16 @@
-import { ref, readonly } from 'vue'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 import { useRuntimeConfig } from '#app'
 
 let userManager: UserManager | null = null
 
-const isAuthenticated = ref(false)
-const isInitialized = ref(false)
-const user = ref<unknown>(null)
-
-export const useAuth = () => {
+export const useAuthStore = defineStore('auth', () => {
   const config = useRuntimeConfig()
+  
+  const isAuthenticated = ref(false)
+  const isInitialized = ref(false)
+  const user = ref<unknown>(null)
   
   if (!userManager && import.meta.client) {
     userManager = new UserManager({
@@ -40,25 +41,55 @@ export const useAuth = () => {
     if (!userManager || !import.meta.client || isInitialized.value) return
     
     try {
-      // Check if this is a callback from Keycloak
+      let callbackSuccess = false
+      const router = useRouter()
       if (window.location.search.includes('code=') && window.location.search.includes('state=')) {
-        const loggedInUser = await userManager.signinCallback()
-        user.value = loggedInUser
-        isAuthenticated.value = true
-        
-        // Remove code from URL
-        window.history.replaceState({}, document.title, window.location.pathname)
-      } else {
-        const existingUser = await userManager.getUser()
-        if (existingUser && !existingUser.expired) {
-          user.value = existingUser
+        try {
+          const loggedInUser = await userManager.signinCallback()
+          user.value = loggedInUser
           isAuthenticated.value = true
+          callbackSuccess = true
+          
+          // Use Vue Router to safely remove query params
+          if (router) {
+            router.replace({ query: {} })
+          } else {
+            window.history.replaceState({}, document.title, window.location.pathname)
+          }
+        } catch (err) {
+          console.warn('[Auth] signinCallback failed (already consumed?). Falling back...', err)
+        }
+      }
+      
+      if (!callbackSuccess) {
+        console.log('[Auth] Checking existing user in storage...')
+        const existingUser = await userManager.getUser()
+        console.log('[Auth] Existing user:', existingUser ? `Found (expired: ${existingUser.expired})` : 'Not found')
+        
+        if (existingUser) {
+          if (!existingUser.expired) {
+            user.value = existingUser
+            isAuthenticated.value = true
+            console.log('[Auth] User loaded successfully')
+          } else {
+            console.log('[Auth] User expired, attempting silent renew...')
+            try {
+              const renewed = await userManager.signinSilent()
+              user.value = renewed
+              isAuthenticated.value = true
+              console.log('[Auth] Silent renew successful')
+            } catch (e) {
+              console.error('[Auth] Silent renew failed', e)
+              await userManager.removeUser()
+            }
+          }
         }
       }
     } catch (e) {
-      console.error('Auth Init Error', e)
+      console.error('[Auth] Init Error:', e)
     } finally {
       isInitialized.value = true
+      console.log('[Auth] Initialization complete. isAuthenticated:', isAuthenticated.value)
     }
   }
 
@@ -93,12 +124,12 @@ export const useAuth = () => {
   }
 
   return {
-    isAuthenticated: readonly(isAuthenticated),
-    isInitialized: readonly(isInitialized),
-    user: readonly(user),
+    isAuthenticated,
+    isInitialized,
+    user,
     initAuth,
     login,
     logout,
     getToken
   }
-}
+})

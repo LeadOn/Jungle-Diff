@@ -11,8 +11,18 @@ export default {
   modules: [
     '@pinia/nuxt',
     '@nuxtjs/i18n',
-    '@nuxt/eslint'
+    '@nuxt/eslint',
+    '@nuxt/icon'
   ],
+
+  icon: {
+    clientBundle: {
+      scan: true
+    },
+    serverBundle: {
+      collections: ['lucide']
+    }
+  },
 
   i18n: {
     defaultLocale: 'fr',

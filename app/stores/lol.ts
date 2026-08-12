@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer } from '~/lib/types'
+import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer, LoLGameDto } from '~/lib/types'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 
 export const useLolStore = defineStore('lol', () => {
@@ -9,6 +9,7 @@ export const useLolStore = defineStore('lol', () => {
   const queues = ref<LoLQueue[]>([])
   const homeStats = ref<LoLHomeStatsDto | null>(null)
   const players = ref<LeaguePlayer[]>([])
+  const lastMatches = ref<LoLGameDto[]>([])
 
   const setVersion = (v: string) => {
     version.value = v
@@ -28,6 +29,10 @@ export const useLolStore = defineStore('lol', () => {
 
   const setPlayers = (p: LeaguePlayer[]) => {
     players.value = p
+  }
+
+  const setLastMatches = (matches: LoLGameDto[]) => {
+    lastMatches.value = matches
   }
 
   const fetchQueues = async () => {
@@ -77,19 +82,38 @@ export const useLolStore = defineStore('lol', () => {
     return null
   }
 
+  const fetchLastMatches = async () => {
+    if (lastMatches.value.length > 0) return lastMatches.value
+
+    const gameOnApi = useGameOnLol()
+    try {
+      const data = await gameOnApi.getLastMatches(1, 5)
+      if (data && data.results) {
+        setLastMatches(data.results)
+        return data.results
+      }
+    } catch (e) {
+      console.error('Failed to fetch last matches', e)
+    }
+    return null
+  }
+
   return {
     version,
     versions,
     queues,
     homeStats,
     players,
+    lastMatches,
     setVersion,
     setVersions,
     setQueues,
     setHomeStats,
     setPlayers,
+    setLastMatches,
     fetchQueues,
     fetchHomeStats,
-    fetchPlayers
+    fetchPlayers,
+    fetchLastMatches
   }
 })

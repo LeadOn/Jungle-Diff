@@ -1,6 +1,6 @@
 {
   "name": "junglediff",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,7 +21,9 @@
     "vue": "latest"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.123",
     "@nuxt/eslint": "^0.7.0",
+    "@nuxt/icon": "^2.5.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^26.2.0",
     "eslint": "^9.15.0",

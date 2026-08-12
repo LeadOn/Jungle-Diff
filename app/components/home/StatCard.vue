@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps<{
   title: string
@@ -21,6 +21,7 @@ const props = defineProps<{
 }>()
 
 const displayValue = ref<string | number>(props.value)
+let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   const strVal = String(props.value)
@@ -39,15 +40,21 @@ onMounted(() => {
     
     displayValue.value = `${prefix}0${suffix}`
     
-    const timer = setInterval(() => {
+    timer = setInterval(() => {
       current += increment
       if (current >= target) {
         displayValue.value = props.value
-        clearInterval(timer)
+        if (timer) clearInterval(timer as any)
       } else {
         displayValue.value = `${prefix}${current}${suffix}`
       }
     }, stepTime)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (timer) {
+    clearInterval(timer as any)
   }
 })
 </script>

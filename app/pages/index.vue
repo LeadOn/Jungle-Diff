@@ -3,11 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
+import type { LoLFunStatDto } from '~/lib/types/home'
+import type { LeaguePlayer } from '~/lib/types/player'
 import StatCard from '~/components/home/StatCard.vue'
 import LadderTable from '~/components/home/LadderTable.vue'
 import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
-import MockBadge from '~/components/ui/MockBadge.vue'
+import { getChampionIconUrl } from '~/utils/ddragon'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
@@ -17,6 +19,14 @@ const isSearchFocused = ref(false)
 
 await useAsyncData('homeStats', () => store.fetchHomeStats())
 await useAsyncData('players', () => store.fetchPlayers())
+await useAsyncData('lastMatches', () => store.fetchLastMatches())
+
+useSeoMeta({
+  title: 'Accueil',
+  description: 'Retrouvez les statistiques, le classement et l\'historique récent du Crew JungleDiff.'
+})
+
+const hasApiError = computed(() => store.homeStats === null)
 
 onMounted(async () => {
   // Ensure queues are loaded
@@ -40,6 +50,137 @@ const netLpColor = computed(() => {
   const lp = store.homeStats?.weeklyActivity.netLpChangeThisWeek
   if (lp === undefined || lp === null || lp === 0) return ''
   return lp > 0 ? 'text-brand-green' : 'text-brand-red'
+})
+
+// Fact of the week logic
+const fact = computed(() => store.homeStats?.factOfTheWeek)
+
+const factLpFormatted = computed(() => {
+  if (!fact.value) return ''
+  const lp = fact.value.lpChange
+  if (lp > 0) return `+${lp} LP`
+  if (lp < 0) return `${lp} LP`
+  return `0 LP`
+})
+
+const factLpColor = computed(() => {
+  if (!fact.value) return ''
+  const lp = fact.value.lpChange
+  if (lp > 0) return 'text-brand-green'
+  if (lp < 0) return 'text-brand-red'
+  return 'text-text-main'
+})
+
+const factText = computed(() => {
+  if (!fact.value) return ''
+  const f = fact.value
+  let text = `enchaîne ${f.gamesThisWeek} partie${f.gamesThisWeek > 1 ? 's' : ''} à ${f.winRateThisWeek} % de victoires`
+  if (f.longestWinStreakThisWeek > 1) {
+    text += `, dont ${f.longestWinStreakThisWeek} succès d'affilée.`
+  } else {
+    text += `.`
+  }
+  return text
+})
+
+const factPlayerName = computed(() => {
+  if (!fact.value) return ''
+  const p = fact.value.player
+  return p.riotGamesNickname || p.nickname
+})
+
+const factPlayerLink = computed(() => {
+  if (!fact.value) return ''
+  const p = fact.value.player
+  if (p.riotGamesNickname && p.riotGamesTagLine) {
+    return `/summoner/${encodeURIComponent(p.riotGamesNickname + '#' + p.riotGamesTagLine)}`
+  }
+  return `/summoner/${encodeURIComponent(p.nickname)}`
+})
+
+// Crew Records logic
+const formatShortDate = (isoString: string): string => {
+  const date = new Date(isoString)
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris',
+    day: 'numeric',
+    month: 'short'
+  }).format(date).toUpperCase().replace('.', '')
+}
+
+const getPlayerName = (p: Partial<LeaguePlayer> | null | undefined) => {
+  if (!p) return 'Crew'
+  return p.riotGamesNickname || p.nickname
+}
+
+const AWARD_MAPPINGS: Record<string, { title: string, color: string, unit: string, getSubtitle: (stat: LoLFunStatDto) => string }> = {
+  pingMachine: { title: 'Spam Ping', color: 'text-brand-gold', unit: ' pings', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  biggestInter: { title: 'Énorme Inter', color: 'text-brand-red', unit: ' morts', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  highestBounty: { title: 'Plus grosse prime', color: 'text-brand-gold', unit: ' PO', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  shoppingAddict: { title: 'Acheteur Compulsif', color: 'text-brand-gold', unit: ' objets', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  oneTrickPony: { title: 'One Trick Pony', color: 'text-brand-gold', unit: ' parties', getSubtitle: (s) => `${getPlayerName(s.player)} · Cette semaine` },
+  crowdControlMaster: { title: 'Maître du CC', color: 'text-brand-green', unit: 's', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  punchingBall: { title: 'Punching Ball', color: 'text-brand-red', unit: ' dégâts', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  pacifist: { title: 'Pacifiste', color: 'text-brand-gold', unit: ' dégâts', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  squirrel: { title: 'Le farmer', color: 'text-brand-gold', unit: ' CS', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  jungleThief: { title: 'Voleur de jungle', color: 'text-brand-green', unit: ' camps', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
+  comebackKing: { title: 'Roi du comeback', color: 'text-brand-gold', unit: '', getSubtitle: (s) => `${getPlayerName(s.player)} · Retour incroyable` },
+  nightOwl: { title: 'Oiseau de nuit', color: 'text-text-main', unit: ' parties', getSubtitle: (s) => `${getPlayerName(s.player)} · Après minuit` },
+  longestLossStreak: { title: 'Pire série de défaites', color: 'text-brand-red', unit: ' défaites', getSubtitle: (s) => `${getPlayerName(s.player)} · En série` },
+  emotionalElevator: { title: 'Ascenseur émotionnel', color: 'text-brand-gold', unit: ' yoyos', getSubtitle: (s) => `${getPlayerName(s.player)} · Montagnes russes` },
+  cursedPatch: { title: 'Patch maudit', color: 'text-brand-red', unit: ' défaites', getSubtitle: () => `Maudit cette semaine` },
+}
+
+const topAwards = computed(() => {
+  const records = store.homeStats?.crewRecords
+  if (!records) return []
+  
+  const priorityKeys = [
+    'biggestInter', 'longestLossStreak', 'crowdControlMaster', 'highestBounty', 
+    'nightOwl', 'jungleThief', 'pingMachine', 'punchingBall', 'pacifist', 
+    'squirrel', 'comebackKing', 'emotionalElevator', 'cursedPatch', 
+    'oneTrickPony', 'shoppingAddict'
+  ]
+  
+  const results: Array<{ key: string, stat: LoLFunStatDto, meta: { title: string, color: string, unit: string, getSubtitle: (stat: LoLFunStatDto) => string } }> = []
+  for (const key of priorityKeys) {
+    const stat = (records as any)[key] as LoLFunStatDto | null
+    const meta = AWARD_MAPPINGS[key]
+    if (stat && meta) {
+      results.push({ key, stat, meta })
+    }
+  }
+  
+  return results.slice(0, 3)
+})
+
+const formatChampionName = (name: string): string => {
+  const overrides: Record<string, string> = {
+    'MonkeyKing': 'Wukong',
+    'Chogath': "Cho'Gath",
+    'Kaisa': "Kai'Sa",
+    'Khazix': "Kha'Zix",
+    'Velkoz': "Vel'Koz",
+    'Belveth': "Bel'Veth",
+    'RekSai': "Rek'Sai",
+    'KogMaw': "Kog'Maw",
+    'DrMundo': 'Dr. Mundo',
+    'Nunu': 'Nunu & Willump',
+    'Renata': 'Renata Glasc',
+    'AurelionSol': 'Aurelion Sol',
+    'JarvanIV': 'Jarvan IV',
+    'LeeSin': 'Lee Sin',
+    'MasterYi': 'Master Yi',
+    'MissFortune': 'Miss Fortune',
+    'TahmKench': 'Tahm Kench',
+    'TwistedFate': 'Twisted Fate',
+    'XinZhao': 'Xin Zhao',
+  }
+  return overrides[name] || name.replace(/([A-Z])/g, ' $1').trim()
+}
+
+const topChampions = computed(() => {
+  return store.homeStats?.crewRecords?.topChampions || []
 })
 </script>
 
@@ -67,13 +208,14 @@ const netLpColor = computed(() => {
             <form @submit.prevent="onSearch" 
                   class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300"
                   :class="isSearchFocused ? 'border-brand-gold ring-4 ring-brand-gold/10' : 'border-border-base hover:border-border-accent'">
-              <div class="pl-4 pr-2 text-text-ter">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <div class="pl-4 pr-2 text-text-ter flex items-center justify-center">
+                <Icon name="lucide:search" class="text-[18px] opacity-80" style="stroke-width: 2.5px;" />
               </div>
               <input 
                 v-model="searchName" 
                 type="text" 
                 placeholder="Riot ID (Pseudo#TAG)"
+                aria-label="Rechercher un invocateur par Riot ID"
                 @focus="isSearchFocused = true"
                 @blur="isSearchFocused = false"
                 class="flex-1 bg-transparent border-none outline-none text-text-main placeholder-text-ter px-2 font-bold text-sm w-full"
@@ -122,8 +264,22 @@ const netLpColor = computed(() => {
       </div>
     </div>
     
+    <!-- Error Banner -->
+    <div v-if="hasApiError" class="mb-12 bg-brand-red/10 border border-brand-red/20 rounded-2xl p-6 flex items-start gap-4 animate-fade-in-up">
+      <!-- Icon -->
+      <div class="w-10 h-10 rounded-full bg-brand-red/20 flex items-center justify-center flex-shrink-0 text-brand-red">
+        <Icon name="lucide:triangle-alert" class="text-[20px]" style="stroke-width: 2.5px;" />
+      </div>
+      <div class="flex-1">
+        <h3 class="text-text-main font-bold text-lg mb-1">Erreur de connexion à l'API</h3>
+        <p class="text-text-sec text-sm font-medium leading-relaxed mb-1">
+          Impossible de récupérer les statistiques du crew et l'historique récent. Le serveur API semble indisponible ou rencontre des difficultés techniques.
+        </p>
+      </div>
+    </div>
+
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="animate-fade-in-up relative" style="animation-delay: 100ms;">
         <StatCard 
           title="PARTIES · CETTE SEMAINE" 
@@ -157,14 +313,13 @@ const netLpColor = computed(() => {
     </div>
 
     <!-- Main Content Layout (2 columns) -->
-    <div class="flex flex-col lg:flex-row gap-6">
+    <div v-if="!hasApiError" class="flex flex-col lg:flex-row gap-6">
       <!-- Left Column: Ladder & Recent Games -->
       <div class="flex-1 relative animate-fade-in-up" style="animation-delay: 300ms;">
         <div class="relative mb-6">
           <LadderTable :players="store.players" />
         </div>
         <div class="relative">
-          <MockBadge />
           <RecentGames />
         </div>
       </div>
@@ -172,81 +327,51 @@ const netLpColor = computed(() => {
       <!-- Right Column: Highlights -->
       <div class="w-full lg:w-[320px] flex flex-col gap-4 animate-fade-in-up" style="animation-delay: 350ms;">
         <!-- Fait de la semaine -->
-        <div class="relative">
-          <MockBadge />
+        <div v-if="fact" class="relative">
           <SideCard title="FAIT DE LA SEMAINE">
-            <div class="text-[32px] font-black text-brand-gold mb-3 mt-1 leading-none tabular-nums">+112 LP</div>
-            <p class="text-[13px] text-text-sec leading-relaxed font-medium">Meilleure progression du crew depuis février : <span class="font-extrabold text-text-main">Hugo</span> enchaîne 14 parties à 71 % de victoires, dont quatre succès d'affilée.</p>
-            <button disabled class="w-full mt-5 py-2.5 bg-surface-high text-text-main border border-border-subtle font-bold rounded-xl text-[13px] opacity-50 cursor-not-allowed">Voir sa fiche</button>
+            <div class="text-[32px] font-black mb-3 mt-1 leading-none tabular-nums" :class="factLpColor">{{ factLpFormatted }}</div>
+            <p class="text-[13px] text-text-sec leading-relaxed font-medium">Meilleure performance de la semaine : <span class="font-extrabold text-text-main">{{ factPlayerName }}</span> {{ factText }}</p>
+            <NuxtLink :to="factPlayerLink" class="block text-center w-full mt-5 py-2.5 bg-surface-high hover:bg-surface-base hover:text-brand-gold text-text-main border border-border-subtle font-bold rounded-xl text-[13px] transition-colors shadow-sm">
+              Voir sa fiche
+            </NuxtLink>
           </SideCard>
         </div>
         
         <!-- Records du crew -->
-        <div class="relative">
-          <MockBadge />
-          <SideCard title="Records du crew" badge="Tous">
+        <div v-if="topAwards.length > 0" class="relative">
+          <SideCard title="Records de la semaine" badge="Tous">
             <div class="flex flex-col gap-4 mt-4">
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="font-extrabold text-text-main text-[13px]">Biggest Inter</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">Antoine · Yasuo · 14 MARS</div>
+              <template v-for="(award, index) in topAwards" :key="award.key">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-extrabold text-text-main text-[13px]">{{ award.meta.title }}</div>
+                    <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">{{ award.meta.getSubtitle(award.stat) }}</div>
+                  </div>
+                  <div class="text-[16px] font-black tabular-nums" :class="award.meta.color">{{ award.stat.value }}{{ award.meta.unit }}</div>
                 </div>
-                <div class="text-[16px] font-black text-brand-red tabular-nums">17</div>
-              </div>
-              <div class="w-full h-px bg-border-subtle"></div>
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="font-extrabold text-text-main text-[13px]">Crowd Control Master</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">Valentin · Leona · 2 FÉVR.</div>
-                </div>
-                <div class="text-[16px] font-black text-brand-gold tabular-nums">94s</div>
-              </div>
-              <div class="w-full h-px bg-border-subtle"></div>
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="font-extrabold text-text-main text-[13px]">Night Owl</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">Hugo · Parties après minuit</div>
-                </div>
-                <div class="text-[16px] font-black text-text-main tabular-nums">23</div>
-              </div>
+                <div v-if="index < topAwards.length - 1" class="w-full h-px bg-border-subtle"></div>
+              </template>
             </div>
           </SideCard>
         </div>
 
         <!-- Champions du crew -->
-        <div class="relative">
-          <MockBadge />
-          <SideCard title="Champions du crew">
+        <div v-if="topChampions.length > 0" class="relative">
+          <SideCard title="Champions - 7 jours">
             <div class="flex flex-col gap-3 mt-4">
-              <div class="flex items-center gap-3">
+              <div v-for="champ in topChampions" :key="champ.championName" class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-surface-high overflow-hidden flex-shrink-0 border border-border-accent">
-                  <img src="https://ddragon.leagueoflegends.com/cdn/14.13.1/img/champion/Leona.png" alt="Leona" class="w-full h-full object-cover">
+                  <img :src="getChampionIconUrl(champ.championName, patchStore.currentPatch)" :alt="formatChampionName(champ.championName)" class="w-full h-full object-cover">
                 </div>
                 <div class="flex-grow">
-                  <div class="font-extrabold text-[13px] text-text-main">Leona</div>
+                  <div class="font-extrabold text-[13px] text-text-main">{{ formatChampionName(champ.championName) }}</div>
                   <div class="w-full bg-border-subtle rounded-full h-1 mt-1.5 overflow-hidden">
-                    <div class="h-1 rounded-full bg-brand-green" style="width: 58%"></div>
+                    <div class="h-1 rounded-full" :class="champ.winRate >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: champ.winRate + '%' }"></div>
                   </div>
                 </div>
                 <div class="text-right flex flex-col justify-end h-full">
-                  <div class="text-[13px] font-black text-brand-green leading-none tabular-nums">58%</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">54 PARTIES</div>
-                </div>
-              </div>
-              
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-surface-high overflow-hidden flex-shrink-0 border border-border-accent">
-                  <img src="https://ddragon.leagueoflegends.com/cdn/14.13.1/img/champion/LeeSin.png" alt="Lee Sin" class="w-full h-full object-cover">
-                </div>
-                <div class="flex-grow">
-                  <div class="font-extrabold text-[13px] text-text-main">Lee Sin</div>
-                  <div class="w-full bg-border-subtle rounded-full h-1 mt-1.5 overflow-hidden">
-                    <div class="h-1 rounded-full bg-brand-green" style="width: 52%"></div>
-                  </div>
-                </div>
-                <div class="text-right flex flex-col justify-end h-full">
-                  <div class="text-[13px] font-black text-brand-green leading-none tabular-nums">52%</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">42 PARTIES</div>
+                  <div class="text-[13px] font-black leading-none tabular-nums" :class="champ.winRate >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ champ.winRate }}%</div>
+                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">{{ champ.gamesPlayed }} PARTIE{{ champ.gamesPlayed > 1 ? 'S' : '' }}</div>
                 </div>
               </div>
             </div>
