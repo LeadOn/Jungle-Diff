@@ -7,6 +7,10 @@ const patchStore = usePatchStore()
 await useAsyncData('init-lol-patches', () => patchStore.loadPatches())
 
 useHead({
+  htmlAttrs: {
+    lang: 'fr'
+  },
+  titleTemplate: '%s - JungleDiff',
   script: [
     {
       innerHTML: `
@@ -26,7 +30,8 @@ useHead({
     { rel: 'manifest', href: '/site.webmanifest' }
   ],
   meta: [
-    { name: 'apple-mobile-web-app-title', content: 'JungleDiff' }
+    { name: 'apple-mobile-web-app-title', content: 'JungleDiff' },
+    { name: 'description', content: 'JungleDiff - League of Legends stats tracker' }
   ]
 })
 </script>

@@ -15,6 +15,15 @@ export default {
     '@nuxt/icon'
   ],
 
+  icon: {
+    clientBundle: {
+      scan: true
+    },
+    serverBundle: {
+      collections: ['lucide']
+    }
+  },
+
   i18n: {
     defaultLocale: 'fr',
     locales: [

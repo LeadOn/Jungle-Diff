@@ -3,12 +3,12 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
+import type { LoLFunStatDto } from '~/lib/types/home'
+import type { LeaguePlayer } from '~/lib/types/player'
 import StatCard from '~/components/home/StatCard.vue'
 import LadderTable from '~/components/home/LadderTable.vue'
 import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
-import MockBadge from '~/components/ui/MockBadge.vue'
-import type { LoLFunStatDto } from '~/lib/types/home'
 import { getChampionIconUrl } from '~/utils/ddragon'
 
 const store = useLolStore()
@@ -20,6 +20,11 @@ const isSearchFocused = ref(false)
 await useAsyncData('homeStats', () => store.fetchHomeStats())
 await useAsyncData('players', () => store.fetchPlayers())
 await useAsyncData('lastMatches', () => store.fetchLastMatches())
+
+useSeoMeta({
+  title: 'Accueil',
+  description: 'Retrouvez les statistiques, le classement et l\'historique récent du Crew JungleDiff.'
+})
 
 const hasApiError = computed(() => store.homeStats === null)
 
@@ -103,7 +108,7 @@ const formatShortDate = (isoString: string): string => {
   }).format(date).toUpperCase().replace('.', '')
 }
 
-const getPlayerName = (p: any) => {
+const getPlayerName = (p: Partial<LeaguePlayer> | null | undefined) => {
   if (!p) return 'Crew'
   return p.riotGamesNickname || p.nickname
 }
@@ -210,6 +215,7 @@ const topChampions = computed(() => {
                 v-model="searchName" 
                 type="text" 
                 placeholder="Riot ID (Pseudo#TAG)"
+                aria-label="Rechercher un invocateur par Riot ID"
                 @focus="isSearchFocused = true"
                 @blur="isSearchFocused = false"
                 class="flex-1 bg-transparent border-none outline-none text-text-main placeholder-text-ter px-2 font-bold text-sm w-full"

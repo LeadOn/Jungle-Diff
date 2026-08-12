@@ -39,10 +39,10 @@ const toggleTheme = () => {
     <!-- Desktop Navigation -->
     <nav class="hidden md:flex items-center bg-surface-base/70 backdrop-blur-md p-1 rounded-full border border-border-base shadow-sm">
       <NuxtLink to="/" class="nav-link">Ladder</NuxtLink>
-      <NuxtLink to="/records" class="nav-link opacity-50 pointer-events-none">Records</NuxtLink>
-      <NuxtLink to="/duel" class="nav-link opacity-50 pointer-events-none">Duel</NuxtLink>
-      <NuxtLink to="/champions" class="nav-link opacity-50 pointer-events-none">Champions</NuxtLink>
-      <NuxtLink to="/recap" class="nav-link opacity-50 pointer-events-none">Récap</NuxtLink>
+      <span class="nav-link opacity-50 pointer-events-none">Records</span>
+      <span class="nav-link opacity-50 pointer-events-none">Duel</span>
+      <span class="nav-link opacity-50 pointer-events-none">Champions</span>
+      <span class="nav-link opacity-50 pointer-events-none">Récap</span>
     </nav>
 
     <!-- Right Actions -->
@@ -81,10 +81,10 @@ const toggleTheme = () => {
 
   <div v-if="isMobileMenuOpen" class="md:hidden fixed inset-0 top-[72px] bg-bg-base/95 backdrop-blur-md z-40 px-6 py-8 flex flex-col gap-4 border-t border-border-base">
     <NuxtLink to="/" class="mobile-nav-link" @click="isMobileMenuOpen = false">Ladder</NuxtLink>
-    <NuxtLink to="/records" class="mobile-nav-link opacity-50 pointer-events-none" @click="isMobileMenuOpen = false">Records</NuxtLink>
-    <NuxtLink to="/duel" class="mobile-nav-link opacity-50 pointer-events-none" @click="isMobileMenuOpen = false">Duel</NuxtLink>
-    <NuxtLink to="/champions" class="mobile-nav-link opacity-50 pointer-events-none" @click="isMobileMenuOpen = false">Champions</NuxtLink>
-    <NuxtLink to="/recap" class="mobile-nav-link opacity-50 pointer-events-none" @click="isMobileMenuOpen = false">Récap</NuxtLink>
+    <span class="mobile-nav-link opacity-50 pointer-events-none">Records</span>
+    <span class="mobile-nav-link opacity-50 pointer-events-none">Duel</span>
+    <span class="mobile-nav-link opacity-50 pointer-events-none">Champions</span>
+    <span class="mobile-nav-link opacity-50 pointer-events-none">Récap</span>
   </div>
 </template>
 
