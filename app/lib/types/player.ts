@@ -1,3 +1,5 @@
+import type { LoLChampionStatDto, PlayerDto } from './home'
+
 export interface LeagueOfLegendsRank {
   id: number;
   playerId: number;
@@ -38,7 +40,25 @@ export type LoLRankHistoryGranularity = 'Day' | 'Week' | 'Month';
 
 export type LoLStatsPeriod = 'AllTime' | 'Week' | 'Month' | 'ThreeMonths' | 'SixMonths';
 
+export interface LoLRoleStatDto {
+  teamPosition: string;
+  gamesPlayed: number;
+  wins: number;
+  playRate: number;
+  winRate: number;
+}
+
+export interface LoLDuoStatDto {
+  player: PlayerDto;
+  gamesPlayed: number;
+  wins: number;
+  winRate: number;
+}
+
 export interface LoLSummonerPerformanceStats {
+  championStats: LoLChampionStatDto[];
+  roleStats: LoLRoleStatDto[];
+  duoStats: LoLDuoStatDto[];
   gamesPlayed: number;
   wins: number;
   losses: number;

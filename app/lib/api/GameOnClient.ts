@@ -26,9 +26,12 @@ export class GameOnClient extends BaseApiService {
     return this.get<LeaguePlayer[]>(`/lol/summoner?archived=${archived}`, { signal })
   }
 
-  public getPlayerById(id: string | number, period?: LoLStatsPeriod, signal?: AbortSignal) {
-    const url = period ? `/lol/summoner/${id}?period=${period}` : `/lol/summoner/${id}`
-    return this.get<LeaguePlayer>(url, { signal })
+  public getPlayerById(id: string | number, period?: LoLStatsPeriod, queueIds?: number[] | null, signal?: AbortSignal) {
+    const params = new URLSearchParams()
+    if (period) params.set('period', period)
+    if (queueIds && queueIds.length > 0) params.set('queues', queueIds.join(','))
+    const query = params.toString()
+    return this.get<LeaguePlayer>(`/lol/summoner/${id}${query ? `?${query}` : ''}`, { signal })
   }
 
   public getRankHistory(id: string | number, granularity: LoLRankHistoryGranularity, days?: number, signal?: AbortSignal) {

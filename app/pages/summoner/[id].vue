@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from '#app'
+import { useRoute, useRouter } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
@@ -15,13 +15,14 @@ import DuosAside from '~/components/lol/DuosAside.vue'
 import PlayerNotFound from '~/components/lol/PlayerNotFound.vue'
 import LolGameCard from '~/components/lol/LolGameCard.vue'
 
-type Period = '7j' | '30j' | 'saison'
+type Period = '7j' | '30j' | 'all-time'
 
 function toApiPeriod(p: Period): LoLStatsPeriod {
   return p === '7j' ? 'Week' : p === '30j' ? 'Month' : 'AllTime'
 }
 
 const route = useRoute()
+const router = useRouter()
 const gameOnApi = useGameOnLol()
 const patchStore = usePatchStore()
 const lolStore = useLolStore()
@@ -35,7 +36,8 @@ const player = ref<LeaguePlayer | null>(null)
 const isRefreshing = ref(false)
 
 // Performances / LP progression period (partagé entre le panneau KPI et le sparkline LP)
-const period = ref<Period>('30j')
+const initialPeriod = route.query.period as Period
+const period = ref<Period>(['7j', '30j', 'all-time'].includes(initialPeriod) ? initialPeriod : '30j')
 
 // Rank history (alimente uniquement le sparkline LP, données réelles)
 const rankHistoryLoading = ref(false)
@@ -52,7 +54,20 @@ const totalPages = ref(1)
 
 const queueOptions = ref<{ id: number, label: string }[]>([])
 const queueFilterOpen = ref(false)
-const selectedQueueIds = ref<number[]>([])
+const initialQueues = route.query.queues ? String(route.query.queues).split(',').map(Number).filter(Boolean) : []
+const selectedQueueIds = ref<number[]>(initialQueues)
+
+function updateQueryParams() {
+  const query = { ...route.query }
+  
+  if (period.value !== '30j') query.period = period.value
+  else delete query.period
+
+  if (selectedQueueIds.value.length > 0) query.queues = selectedQueueIds.value.join(',')
+  else delete query.queues
+
+  router.replace({ query })
+}
 
 useSeoMeta({
   title: computed(() => player.value ? `${player.value.riotGamesNickname || player.value.nickname} · Profil` : 'Profil joueur'),
@@ -76,7 +91,8 @@ async function loadPlayer() {
   loading.value = true
   hasError.value = false
   try {
-    player.value = await gameOnApi.getPlayerById(playerId, toApiPeriod(period.value))
+    const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
+    player.value = await gameOnApi.getPlayerById(playerId, toApiPeriod(period.value), queueIds)
   } catch (e) {
     console.error(e)
     hasError.value = true
@@ -115,7 +131,7 @@ async function handleRefresh() {
 }
 
 // --- LP progression (réel, via l'historique de rangs) ---
-const rankHistoryGranularity = computed<LoLRankHistoryGranularity>(() => (period.value === 'saison' ? 'Month' : 'Day'))
+const rankHistoryGranularity = computed<LoLRankHistoryGranularity>(() => (period.value === 'all-time' ? 'Month' : 'Day'))
 const rankHistoryDays = computed(() => (period.value === '7j' ? 7 : period.value === '30j' ? 30 : undefined))
 
 async function loadRankHistory(pId: string) {
@@ -129,17 +145,25 @@ async function loadRankHistory(pId: string) {
   }
 }
 
-async function onPeriodChange(next: Period) {
-  period.value = next
+async function refreshPerformanceStats() {
   if (!player.value) return
   const pId = player.value.id.toString()
-  loadRankHistory(pId)
   try {
-    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(next))
+    const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
+    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(period.value), queueIds)
     if (player.value) player.value.performanceStats = updated.performanceStats
   } catch (e) {
     console.error(e)
   }
+}
+
+async function onPeriodChange(next: Period) {
+  period.value = next
+  updateQueryParams()
+  if (!player.value) return
+  const pId = player.value.id.toString()
+  loadRankHistory(pId)
+  refreshPerformanceStats()
 }
 
 const soloRankHistory = computed(() => rankHistory.value.filter((h) => h.queueType === 'RANKED_SOLO_5x5'))
@@ -188,13 +212,21 @@ function toggleQueueFilter(id: number, checked: boolean) {
   } else {
     selectedQueueIds.value = selectedQueueIds.value.filter((q) => q !== id)
   }
-  if (player.value) loadGames(player.value.id.toString())
+  updateQueryParams()
+  if (player.value) {
+    loadGames(player.value.id.toString())
+    refreshPerformanceStats()
+  }
 }
 
 function clearQueueFilter() {
   selectedQueueIds.value = []
   queueFilterOpen.value = false
-  if (player.value) loadGames(player.value.id.toString())
+  updateQueryParams()
+  if (player.value) {
+    loadGames(player.value.id.toString())
+    refreshPerformanceStats()
+  }
 }
 
 const queueFilterLabel = computed(() => {
@@ -328,9 +360,9 @@ const historyCountLabel = computed(() => {
               :period="period"
               :loading="rankHistoryLoading"
             />
-            <ChampionsAside :period="period" />
-            <RolesAside />
-            <DuosAside />
+            <ChampionsAside :period="period" :stats="player.performanceStats" />
+            <RolesAside :stats="player.performanceStats" />
+            <DuosAside :period="period" :stats="player.performanceStats" />
           </aside>
         </div>
       </div>

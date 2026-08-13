@@ -8,14 +8,14 @@ type Queue = "solo" | "flex";
 const props = defineProps<{
   soloEntries: LeagueOfLegendsRank[];
   flexEntries: LeagueOfLegendsRank[];
-  period: "7j" | "30j" | "saison";
+  period: "7j" | "30j" | "all-time";
   loading?: boolean;
 }>();
 
 const PERIOD_CAPTION: Record<string, string> = {
   "7j": "7 JOURS",
   "30j": "30 JOURS",
-  saison: "Depuis toujours",
+  'all-time': "Depuis toujours",
 };
 
 // L'utilisateur peut choisir sa file manuellement ; tant qu'il ne l'a pas fait,

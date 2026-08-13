@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { LoLSummonerPerformanceStats } from '~/lib/types'
 
-type Period = '7j' | '30j' | 'saison'
+type Period = '7j' | '30j' | 'all-time'
 
 const props = defineProps<{
   period: Period
@@ -16,13 +16,13 @@ const emit = defineEmits<{
 const PERIODS: { value: Period, label: string }[] = [
   { value: '7j', label: '7 j' },
   { value: '30j', label: '30 j' },
-  { value: 'saison', label: 'Toujours' },
+  { value: 'all-time', label: 'Toujours' },
 ]
 
 const PERIOD_HINTS: Record<Period, string> = {
   '7j': '7 DERNIERS JOURS · TOUTES FILES',
   '30j': '30 DERNIERS JOURS · TOUTES FILES',
-  saison: 'TOUT L\'HISTORIQUE · TOUTES FILES',
+  'all-time': 'TOUT L\'HISTORIQUE · TOUTES FILES',
 }
 
 const headerHint = computed(() => PERIOD_HINTS[props.period])

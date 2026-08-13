@@ -28,7 +28,6 @@ const syncedAgoLabel = computed(() => {
 
 <template>
   <div class="relative">
-    <div class="bg-blue-500/20 pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] blur-3xl"/>
 
     <div class="rounded-2xl border border-border-base bg-surface-base p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div class="flex items-center gap-5 min-w-0">
