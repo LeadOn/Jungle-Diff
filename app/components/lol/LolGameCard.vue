@@ -5,7 +5,7 @@
     :class="cardBgColor"
   >
     <!-- Liseré gauche -->
-    <div class="absolute -left-[1px] top-0 bottom-0 w-1.5" :class="getResultColor(computedStatus)"></div>
+    <div class="absolute -left-[1px] top-0 bottom-0 w-1.5" :class="getResultColor(computedStatus)"/>
     
     <div class="flex items-center justify-between w-full sm:w-auto pl-2">
       <div class="flex items-center gap-3 sm:gap-4">
@@ -18,10 +18,18 @@
               :alt="championName" 
               class="w-full h-full object-cover scale-[1.15]"
               @error="(e) => (e.target as HTMLImageElement).src = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/29.png`"
-            />
+            >
             <Icon v-else name="lucide:circle-dashed" class="text-text-ter text-xl sm:text-2xl m-auto h-full w-full opacity-50" />
           </div>
           
+          <!-- Badge Rôle -->
+          <div
+            v-if="roleIconUrl"
+            class="absolute -top-1 -left-1 w-5 h-5 flex items-center justify-center rounded-full bg-surface-high border border-border-subtle shadow-sm"
+          >
+            <img :src="roleIconUrl" :alt="roleAlt" class="w-3 h-3">
+          </div>
+
           <!-- Badge Niveau -->
           <div class="absolute bottom-0 right-0 bg-surface-high text-text-main text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border border-border-subtle shadow-sm">
             {{ champLevel }}
@@ -30,9 +38,9 @@
         
         <div class="flex flex-col justify-center min-w-0">
           <div class="text-[13px] sm:text-[14px] font-extrabold mb-0.5 truncate" :class="getResultTextColor(computedStatus)">
-            {{ getResultText(computedStatus) }} 
-            <template v-if="summonerName">
-              <span class="text-text-ter font-normal mx-1">·</span> 
+            {{ getResultText(computedStatus) }}
+            <template v-if="summonerName && showSummonerName">
+              <span class="text-text-ter font-normal mx-1">·</span>
               <span class="text-text-sec font-semibold">{{ summonerName }}</span>
             </template>
           </div>
@@ -62,20 +70,20 @@
         </span>
         <span class="font-mono text-[11px] font-medium text-text-sec mt-0.5">{{ kdaText }} <span class="text-text-ter opacity-60">KDA</span></span>
       </div>
-      
+
       <!-- Items Slots (7) -->
       <div class="flex items-center gap-1">
         <div 
           v-for="(itemId, index) in items" 
           :key="index"
-          class="w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden bg-black/10 dark:bg-white/5 border border-black/5 dark:border-white/5 flex-shrink-0"
+          class="w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden bg-(--color-item-bg) border border-(--color-item-line) flex-shrink-0"
         >
           <img 
             v-if="itemId > 0"
             :src="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${itemId}.png`" 
             :alt="`Item ${itemId}`"
             class="w-full h-full object-cover"
-          />
+          >
         </div>
       </div>
     </div>
@@ -96,10 +104,14 @@ import {
 } from '~/lib/utils/lol'
 import type { LoLGameDto } from '~/lib/types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   game: LoLGameDto
   playerId?: number
-}>()
+  showSummonerName?: boolean
+}>(), {
+  playerId: undefined,
+  showSummonerName: true,
+})
 
 const store = useLolStore()
 const patchStore = usePatchStore()
@@ -138,6 +150,30 @@ const championName = computed(() => participant.value?.championName || '')
 const champLevel = computed(() => participant.value?.champLevel || '??')
 const summonerName = computed(() => participant.value?.riotIdGameName || '')
 
+// Rôle du joueur suivi (absent sur les modes sans lane assignée : ARAM, Arena, ...)
+const ROLE_ICON_KEYS: Record<string, string> = {
+  TOP: 'top',
+  JUNGLE: 'jungle',
+  MIDDLE: 'middle',
+  BOTTOM: 'bottom',
+  UTILITY: 'utility',
+}
+const ROLE_LABELS: Record<string, string> = {
+  TOP: 'Top',
+  JUNGLE: 'Jungle',
+  MIDDLE: 'Milieu',
+  BOTTOM: 'ADC',
+  UTILITY: 'Support',
+}
+const roleIconUrl = computed(() => {
+  const key = participant.value?.teamPosition ? ROLE_ICON_KEYS[participant.value.teamPosition] : null
+  return key ? `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg/position-${key}.svg` : null
+})
+const roleAlt = computed(() => {
+  const position = participant.value?.teamPosition
+  return position ? ROLE_LABELS[position] ?? position : 'Rôle'
+})
+
 const kills = computed(() => participant.value?.kills ?? 0)
 const deaths = computed(() => participant.value?.deaths ?? 0)
 const assists = computed(() => participant.value?.assists ?? 0)
@@ -172,8 +208,8 @@ const getResultColor = (status: string) => {
 }
 
 const cardBgColor = computed(() => {
-  if (computedStatus.value === 'WIN') return 'bg-brand-green/5 dark:bg-brand-green/10'
-  if (computedStatus.value === 'LOSS') return 'bg-brand-red/5 dark:bg-brand-red/10'
+  if (computedStatus.value === 'WIN') return 'bg-(--color-win-wash)'
+  if (computedStatus.value === 'LOSS') return 'bg-(--color-loss-wash)'
   return 'bg-surface-base' // Unknown / Remake
 })
 

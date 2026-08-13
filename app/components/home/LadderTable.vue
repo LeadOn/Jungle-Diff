@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
-        <h2 class="text-[16px] font-extrabold text-text-main leading-tight">Ladder du crew</h2>
+        <h2 class="text-[16px] font-extrabold text-text-main leading-tight">Classement général</h2>
         <p class="font-mono text-[11px] text-text-ter font-bold tracking-[0.1em] uppercase mt-0.5">{{ players?.length || 0 }} JOUEURS</p>
       </div>
       
@@ -40,7 +40,7 @@
           </tr>
         </thead>
         <tbody class="text-sm">
-          <tr v-for="(player, i) in sortedPlayers" :key="player.id" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group">
+          <tr v-for="(player, i) in sortedPlayers" :key="player.id" @click="goToPlayer(player.id)" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group cursor-pointer">
             <td class="py-3.5 font-bold" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : 'text-text-ter'">{{ i + 1 }}</td>
             <td class="py-3.5">
               <div class="flex items-center gap-3">
@@ -115,8 +115,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from '#app'
 import type { LeaguePlayer } from '~/lib/types'
 import { usePatchStore } from '~/stores/patch'
+
+const router = useRouter()
+const goToPlayer = (id: string | number) => {
+  router.push(`/summoner/${id}`)
+}
 
 const props = defineProps<{
   players?: LeaguePlayer[]
@@ -142,6 +148,7 @@ const mappedPlayers = computed(() => {
       queues: {
         solo: solo ? {
           tier: solo.tier,
+          rank: solo.rank,
           rankLabel: solo.tier === 'MASTER' || solo.tier === 'GRANDMASTER' || solo.tier === 'CHALLENGER' ? capitalizeTier(solo.tier) : `${capitalizeTier(solo.tier)} ${solo.rank}`,
           lp: solo.leaguePoints,
           form: p.recentFormSolo || [],
@@ -152,6 +159,7 @@ const mappedPlayers = computed(() => {
         } : null,
         flex: flex ? {
           tier: flex.tier,
+          rank: flex.rank,
           rankLabel: flex.tier === 'MASTER' || flex.tier === 'GRANDMASTER' || flex.tier === 'CHALLENGER' ? capitalizeTier(flex.tier) : `${capitalizeTier(flex.tier)} ${flex.rank}`,
           lp: flex.leaguePoints,
           form: p.recentFormFlex || [],
@@ -166,16 +174,23 @@ const mappedPlayers = computed(() => {
 })
 
 const tierValue: Record<string, number> = {
-  'CHALLENGER': 900,
-  'GRANDMASTER': 800,
-  'MASTER': 700,
-  'DIAMOND': 600,
-  'EMERALD': 500,
-  'PLATINUM': 400,
-  'GOLD': 300,
-  'SILVER': 200,
-  'BRONZE': 100,
-  'IRON': 50
+  'CHALLENGER': 90000,
+  'GRANDMASTER': 80000,
+  'MASTER': 70000,
+  'DIAMOND': 60000,
+  'EMERALD': 50000,
+  'PLATINUM': 40000,
+  'GOLD': 30000,
+  'SILVER': 20000,
+  'BRONZE': 10000,
+  'IRON': 0
+}
+
+const rankValue: Record<string, number> = {
+  'I': 4000,
+  'II': 3000,
+  'III': 2000,
+  'IV': 1000
 }
 
 const getTierColor = (tier: string | undefined, opacity: number) => {
@@ -212,9 +227,9 @@ const sortedPlayers = computed(() => {
     if (!qB && qA) return -1
     if (!qA && !qB) return 0
     
-    // If both ranked, sort by tier value + lp
-    const scoreA = (tierValue[qA!.tier] || 0) + (qA!.lp / 100)
-    const scoreB = (tierValue[qB!.tier] || 0) + (qB!.lp / 100)
+    // If both ranked, sort by tier value + rank value + lp
+    const scoreA = (tierValue[qA!.tier] || 0) + (rankValue[qA!.rank] || 0) + (qA!.lp || 0)
+    const scoreB = (tierValue[qB!.tier] || 0) + (rankValue[qB!.rank] || 0) + (qB!.lp || 0)
     
     return scoreB - scoreA
   })

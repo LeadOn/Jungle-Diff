@@ -36,6 +36,7 @@ export interface LoLChampionStatDto {
   gamesPlayed: number;
   wins: number;
   winRate: number;
+  kda: number;
 }
 
 export interface LoLGlobalStatsDto {

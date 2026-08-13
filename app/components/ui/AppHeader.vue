@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
@@ -11,6 +11,14 @@ onMounted(() => {
   if (saved === 'light') {
     isLight.value = true
     document.documentElement.classList.add('light')
+  }
+})
+
+watch(isMobileMenuOpen, (isOpen) => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
   }
 })
 
@@ -27,7 +35,7 @@ const toggleTheme = () => {
 </script>
 
 <template>
-  <header class="w-full flex items-center justify-between px-6 py-4 md:px-8 md:py-5 max-w-[1400px] mx-auto relative z-50 animate-fade-in-up" style="animation-delay: 0ms;">
+  <header class="w-full flex items-center justify-between px-6 py-4 md:px-8 md:py-5 max-w-[1400px] mx-auto relative z-[60] animate-fade-in-up" style="animation-delay: 0ms;">
     <!-- Logo -->
     <NuxtLink to="/" class="flex items-center gap-2 w-auto md:w-[200px]" @click="isMobileMenuOpen = false">
       <div class="w-8 h-8 flex items-center justify-center">
@@ -38,7 +46,7 @@ const toggleTheme = () => {
 
     <!-- Desktop Navigation -->
     <nav class="hidden md:flex items-center bg-surface-base/70 backdrop-blur-md p-1 rounded-full border border-border-base shadow-sm">
-      <NuxtLink to="/" class="nav-link">Ladder</NuxtLink>
+      <NuxtLink to="/" class="nav-link">Accueil</NuxtLink>
       <span class="nav-link opacity-50 pointer-events-none">Records</span>
       <span class="nav-link opacity-50 pointer-events-none">Duel</span>
       <span class="nav-link opacity-50 pointer-events-none">Champions</span>
@@ -55,7 +63,7 @@ const toggleTheme = () => {
 
       <!-- User Profile Pill -->
       <ClientOnly>
-        <button v-if="authStore.isAuthenticated" class="flex items-center gap-2 pl-1 pr-3 py-1 bg-surface-base shadow-sm border border-border-base rounded-full cursor-pointer hover:bg-surface-high transition-colors h-9" @click="authStore.logout()">
+        <button v-if="authStore.isAuthenticated" class="flex items-center gap-2 pl-1 pr-1 sm:pr-3 py-1 bg-surface-base shadow-sm border border-border-base rounded-full cursor-pointer hover:bg-surface-high transition-colors h-9" @click="authStore.logout()">
           <div class="w-7 h-7 rounded-full bg-brand-gold text-brand-gold-text flex items-center justify-center text-xs font-bold">
             {{ (authStore.user as any)?.profile?.preferred_username?.charAt(0).toUpperCase() || 'V' }}
           </div>
@@ -79,12 +87,20 @@ const toggleTheme = () => {
     </div>
   </header>
 
-  <div v-if="isMobileMenuOpen" class="md:hidden fixed inset-0 top-[72px] bg-bg-base/95 backdrop-blur-md z-40 px-6 py-8 flex flex-col gap-4 border-t border-border-base">
-    <NuxtLink to="/" class="mobile-nav-link" @click="isMobileMenuOpen = false">Ladder</NuxtLink>
+  <div v-if="isMobileMenuOpen" class="md:hidden fixed inset-0 top-[72px] bg-surface-base z-[55] px-6 py-8 flex flex-col gap-4 border-t border-border-base shadow-xl">
+    <NuxtLink to="/" class="mobile-nav-link" @click="isMobileMenuOpen = false">Classement</NuxtLink>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Records</span>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Duel</span>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Champions</span>
     <span class="mobile-nav-link opacity-50 pointer-events-none">Récap</span>
+    
+    <div class="mt-auto pt-6 border-t border-border-base flex items-center justify-between">
+      <span class="text-sm font-bold text-text-sec">Thème (Clair / Sombre)</span>
+      <button @click="toggleTheme" class="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-high shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer">
+        <Icon v-if="isLight" name="lucide:moon" class="text-[20px]" style="stroke-width: 2.5px;" />
+        <Icon v-else name="lucide:sun" class="text-[20px]" style="stroke-width: 2.5px;" />
+      </button>
+    </div>
   </div>
 </template>
 
