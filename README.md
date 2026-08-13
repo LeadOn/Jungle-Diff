@@ -28,10 +28,25 @@ The app connects to Keycloak (`gameon` realm). The global auth middleware (`app/
 - **Pages:** Home, Summoner Profile, and Match Details skeletons are set up.
 - **LoL Patches:** Integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils is fully operational.
 - **Homepage:** Recent Games logic mapped to Riot API with dynamic DDragon versioning.
+- **Summoner Profile:** Rebuilt to match the "JungleDiff Profil v3" design — identity card, Solo/Duo & Flex rank cards, filterable/paginated match history (with per-game CS/min, dmg/min and vision stats), a real LP progression sparkline, and a real, period-filterable Performance KPI panel, all wired to the GameOn API.
 
 ## 🛠️ Ongoing Modifications
 - Implementation of a custom Dark/Light Design System based on CSS variables mapped to Tailwind v4.
 - Complete redesign of the Homepage (Hero, Ladder, Recent Games) to match a sober, analytical gaming interface.
+- Complete redesign of the Summoner Profile page. The Performance KPI grid is now wired to real data via `GET /lol/summoner/{id}?period=...` (`performanceStats` on `LeaguePlayer`). The Champions, Rôles and Duos side panels still have no backing aggregate endpoint on the GameOn API, so they currently render representative data flagged with a purple "Mock" badge (`app/components/ui/MockBadge.vue`) until that endpoint exists — see "Backend Gaps" below.
+
+## 🧩 Backend Gaps (blocking a fully real Summoner Profile)
+
+`GameOnClient.getPlayerById(id, period?)` now calls `GET /lol/summoner/{id}?period=AllTime|Week|Month|ThreeMonths|SixMonths` (default `AllTime`), which returns a `performanceStats` aggregate (games/wins/losses, win rate, playtime, avg KDA, avg CS/min, avg dmg/min, avg vision score per game — `null` if no games in the window) on `LeaguePlayer`. This powers `PerformanceKpis.vue` with real data, no more `MockBadge` there.
+
+Three panels on the Summoner Profile page (`ChampionsAside.vue`, `RolesAside.vue`, `DuosAside.vue`) still need per-player, per-period **aggregates** that don't exist yet, so they render as Mock. Raw fields these aggregates would be computed from already exist per match participant (`teamPosition`, `playerId`, `teamId`, `stats.{csPerMinute,damagePerMinute}`, `visionScore`), so a backend endpoint shaped roughly like:
+
+```
+GET /lol/summoner/{id}/stats?period=7d|30d|season
+```
+returning `{ topChampions[], roleShare[], topDuos[] }`
+
+would let the front-end remove the remaining three `MockBadge` panels. Until then, `Rôles` and `Duos` could alternatively be computed client-side from an already-loaded batch of matches (the raw fields are present) if a stopgap is preferred over waiting on the backend.
 
 ## 🤖 AI Instructions Synchronization
 > **Rule:** Any major change to the architecture, tech stack, or feature set must be reflected in `README.md` and all `.rules`/instruction files simultaneously.

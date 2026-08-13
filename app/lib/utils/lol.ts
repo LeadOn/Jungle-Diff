@@ -104,3 +104,28 @@ export const getParticipantByPlayerId = (game: LoLGameDto, playerId?: number): L
   
   return null
 }
+
+export const formatDayLabel = (isoString: string): string => {
+  const date = new Date(isoString)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  if (date.toDateString() === today.toDateString()) {
+    return 'Aujourd\'hui'
+  }
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Hier'
+  }
+  
+  return new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(date)
+}
+
+export const gameDayKey = (isoString: string): string => {
+  return isoString.split('T')[0] || isoString
+}

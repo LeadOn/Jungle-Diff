@@ -91,11 +91,7 @@ const factPlayerName = computed(() => {
 
 const factPlayerLink = computed(() => {
   if (!fact.value) return ''
-  const p = fact.value.player
-  if (p.riotGamesNickname && p.riotGamesTagLine) {
-    return `/summoner/${encodeURIComponent(p.riotGamesNickname + '#' + p.riotGamesTagLine)}`
-  }
-  return `/summoner/${encodeURIComponent(p.nickname)}`
+  return `/summoner/${fact.value.player.id}`
 })
 
 // Crew Records logic

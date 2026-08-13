@@ -28,6 +28,7 @@ At every major modification (adding a feature, technical change, etc.), you MUST
 - Vue components should prioritize Tailwind utility classes over inline styles.
 - Avoid heavy transformations in templates; use computed properties or composables.
 - Errors must be mapped to the standardized `AppError` model.
+- Any section/value rendered without a backing API field or endpoint MUST be visually flagged with `app/components/ui/MockBadge.vue` (place it inside a `relative` parent; it self-positions top-right). Never present fabricated data as if it were live.
 
 ## Current Project State
 - Project is scaffolded and successfully building.
@@ -37,3 +38,5 @@ At every major modification (adding a feature, technical change, etc.), you MUST
 - API client layers for GameOn API and Riot CDNs are implemented.
 - Recent Games on homepage integrated with dynamic match history logic (LolGameCard) mapping Riot API data, DDragon versions, and timezone rules.
 - LoL patches integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils is fully operational.
+- Summoner Profile page (`app/pages/summoner/[id].vue`) rebuilt to match the "JungleDiff Profil v3" Claude Design import (identity card, Solo/Duo & Flex rank cards, filterable/paginated match history with per-game CS/min-dmg/min-vision stats, an LP progression sparkline, and a real Performance KPI panel) — all wired to real GameOn API data (`LeaguePlayer`, rank history, paginated match history, `GET /lol/summoner/{id}?period=...` performanceStats). The Champions, Rôles and Duos side panels still have no backing aggregate endpoint on the GameOn API, so they render representative data wrapped in `MockBadge` until that endpoint exists — desired endpoint shape documented in `README.md` under "Backend Gaps".
+- `app/utils/lol-tier.ts` exposes a shared `rankScore()` helper (tier+division+LP → numeric score) used by both the rank-history chart (`RankHistory.vue`) and the new LP sparkline (`LpProgressionCard.vue`).
