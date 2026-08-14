@@ -71,6 +71,9 @@ function updateQueryParams() {
 
 useSeoMeta({
   title: computed(() => player.value ? `${player.value.riotGamesNickname || player.value.nickname} · Profil` : 'Profil joueur'),
+  description: computed(() => player.value
+    ? `Statistiques, rangs et historique de parties de ${player.value.riotGamesNickname || player.value.nickname} sur JungleDiff.`
+    : 'Statistiques, rangs et historique de parties League of Legends sur JungleDiff.'),
 })
 
 onMounted(async () => {

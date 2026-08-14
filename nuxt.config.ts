@@ -29,7 +29,15 @@ export default {
     locales: [
       { code: 'fr', iso: 'fr-FR', name: 'Français' },
       { code: 'en', iso: 'en-US', name: 'English' }
-    ]
+    ],
+    // Disabled: the null-prototype objects this optimization produces break
+    // the SSR payload serialization (crashes @pinia/nuxt's payload reducer
+    // with "obj.hasOwnProperty is not a function") on routes that hit the
+    // error page. Also recommended by the module itself, which deprecates
+    // this flag in v10.
+    bundle: {
+      optimizeTranslationDirective: false
+    }
   },
 
   vite: {

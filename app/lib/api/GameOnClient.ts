@@ -1,5 +1,5 @@
 import { BaseApiService } from './BaseApiService'
-import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod } from '../types'
+import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto } from '../types'
 
 export class GameOnClient extends BaseApiService {
   constructor(baseUrl: string) {
@@ -19,7 +19,7 @@ export class GameOnClient extends BaseApiService {
   }
 
   public getMatch(matchId: string, signal?: AbortSignal) {
-    return this.get<Match>(`/lol/match/${matchId}`, { signal })
+    return this.get<LoLGameDto>(`/lol/match/${matchId}`, { signal })
   }
 
   public getLeaguePlayers(archived: boolean = false, signal?: AbortSignal) {
@@ -76,6 +76,10 @@ export class GameOnClient extends BaseApiService {
 
   public getQueuesForPlayer(playerId: string | number, signal?: AbortSignal) {
     return this.get<LoLQueue[]>(`/lol/queue/player/${playerId}`, { signal })
+  }
+
+  public getGameTimeline(matchId: string, signal?: AbortSignal) {
+    return this.get<LoLGameTimelineFrame[]>(`/lol/match/${matchId}/timeline`, { signal })
   }
 
   public refreshGame(matchId: string, signal?: AbortSignal) {

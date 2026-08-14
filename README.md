@@ -25,15 +25,17 @@ The app connects to Keycloak (`gameon` realm). The global auth middleware (`app/
 - **Scaffolding:** Complete.
 - **Dependencies:** Installed and audited (overrides configured for `nanoid` and `esbuild` vulnerabilities).
 - **Authentication:** Operational.
-- **Pages:** Home, Summoner Profile, and Match Details skeletons are set up.
+- **Pages:** Home, Summoner Profile, and Match Details are built out.
 - **LoL Patches:** Integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils is fully operational.
 - **Homepage:** Recent Games logic mapped to Riot API with dynamic DDragon versioning.
 - **Summoner Profile:** Rebuilt to match the "JungleDiff Profil v3" design — identity card, Solo/Duo & Flex rank cards, filterable/paginated match history (with per-game CS/min, dmg/min and vision stats), a real LP progression sparkline, and a real, period-filterable Performance KPI panel, all wired to the GameOn API.
+- **Match Details** (`app/pages/game/[id]/[playerId].vue`): Rebuilt to match the "JungleDiff Partie (features-game)" design — win/loss-tinted header with rating & MVP/ACE accolade, per-team objectives row, key-moments strip, and four tabs (Vue d'ensemble, Film de la partie, Performance, Données brutes), all wired to real GameOn API match + timeline data. No `MockBadge` needed on this page.
 
 ## 🛠️ Ongoing Modifications
 - Implementation of a custom Dark/Light Design System based on CSS variables mapped to Tailwind v4.
 - Complete redesign of the Homepage (Hero, Ladder, Recent Games) to match a sober, analytical gaming interface.
 - Complete redesign of the Summoner Profile page. The Performance KPI grid is now wired to real data via `GET /lol/summoner/{id}?period=...` (`performanceStats` on `LeaguePlayer`). The Champions, Rôles and Duos side panels still have no backing aggregate endpoint on the GameOn API, so they currently render representative data flagged with a purple "Mock" badge (`app/components/ui/MockBadge.vue`) until that endpoint exists — see "Backend Gaps" below.
+- Complete redesign of the Match Details page: header, objectives, key moments, and all four tabs (overview scoreboards + highlights; film timeline driving minimap/gold-race/kill-feed/gold-diff/stat charts; performance KPIs/radar/damage-profile/ranking charts; collapsible raw stats table) now match the "JungleDiff Partie (features-game)" Claude Design import, including its per-column responsive breakpoints. The film scrubber shows a live current-frame time readout (00:00 / current / end) alongside the track, matching the mockup.
 
 ## 🧩 Backend Gaps (blocking a fully real Summoner Profile)
 

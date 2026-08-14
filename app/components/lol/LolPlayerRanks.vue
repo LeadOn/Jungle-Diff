@@ -34,13 +34,13 @@ const winRate = (rank: LeagueOfLegendsRank) => {
       </div>
 
       <div v-if="!card.rank" class="flex items-center gap-4">
-        <img :src="tierEmblemUrl(null)" class="w-14 h-14 shrink-0 opacity-60" >
+        <img :src="tierEmblemUrl(null)" alt="" class="w-14 h-14 shrink-0 opacity-60" >
         <p class="text-sm font-bold text-text-sec">Non classé</p>
       </div>
 
       <template v-else>
         <div class="flex items-center gap-4">
-          <img :src="tierEmblemUrl(card.rank)" class="w-14 h-14 shrink-0" >
+          <img :src="tierEmblemUrl(card.rank)" alt="" class="w-14 h-14 shrink-0" >
           <div class="min-w-0">
             <div class="text-xl font-extrabold tracking-tight leading-tight text-text-main">{{ tierLabel(card.rank) }}</div>
             <div class="mt-1 font-mono text-xs font-bold text-text-sec">
