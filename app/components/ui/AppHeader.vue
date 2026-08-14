@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { usePlayerStore } from '~/stores/player'
+import { useRuntimeConfig } from '#app'
 
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
+const config = useRuntimeConfig()
 const isMobileMenuOpen = ref(false)
 const isLight = ref(false)
 
@@ -11,6 +15,18 @@ onMounted(() => {
   if (saved === 'light') {
     isLight.value = true
     document.documentElement.classList.add('light')
+  }
+  
+  if (authStore.isAuthenticated) {
+    playerStore.fetchCurrentPlayer()
+  }
+})
+
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    playerStore.fetchCurrentPlayer()
+  } else {
+    playerStore.setCurrentPlayer(null as any) // Clear on logout
   }
 })
 
@@ -60,14 +76,15 @@ const toggleTheme = () => {
 
       <!-- User Profile Pill -->
       <ClientOnly>
-        <button v-if="authStore.isAuthenticated" class="flex items-center gap-2 pl-1 pr-1 sm:pr-3 py-1 bg-surface-base shadow-sm border border-border-base rounded-full cursor-pointer hover:bg-surface-high transition-colors h-9" @click="authStore.logout()">
-          <div class="w-7 h-7 rounded-full bg-brand-gold text-brand-gold-text flex items-center justify-center text-xs font-bold">
-            {{ (authStore.user as any)?.profile?.preferred_username?.charAt(0).toUpperCase() || 'V' }}
+        <NuxtLink v-if="authStore.isAuthenticated" to="/settings" class="flex items-center gap-2 pl-1 pr-1 sm:pr-3 py-1 bg-surface-base shadow-sm border border-border-base rounded-full cursor-pointer hover:bg-surface-high transition-colors h-9">
+          <div class="w-7 h-7 rounded-full bg-brand-gold text-brand-gold-text flex items-center justify-center text-xs font-bold overflow-hidden border border-border-subtle shadow-inner">
+            <img v-if="playerStore.currentPlayer?.profilePictureUrl" :src="`${config.public.gameOnApiUrl}/player/${playerStore.currentPlayer.id}/pp`" alt="Avatar" class="w-full h-full object-cover" />
+            <span v-else>{{ playerStore.currentPlayer?.nickname?.charAt(0).toUpperCase() || (authStore.user as any)?.profile?.preferred_username?.charAt(0).toUpperCase() || 'V' }}</span>
           </div>
-          <span class="text-[13px] font-bold text-text-main hidden sm:block">
-            {{ (authStore.user as any)?.profile?.preferred_username || 'Valentin' }}
+          <span class="text-[13px] font-bold text-text-main hidden sm:block truncate max-w-[150px]">
+            {{ playerStore.currentPlayer?.fullName || playerStore.currentPlayer?.nickname || (authStore.user as any)?.profile?.preferred_username || 'Valentin' }}
           </span>
-        </button>
+        </NuxtLink>
         <button v-else class="flex items-center gap-2 px-4 py-1.5 bg-brand-gold text-brand-gold-text shadow-sm rounded-full cursor-pointer hover:opacity-90 transition-opacity h-9" @click="authStore.login()">
           <span class="text-[13px] font-bold">Se connecter</span>
         </button>

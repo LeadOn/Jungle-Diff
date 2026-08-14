@@ -94,4 +94,18 @@ export class GameOnClient extends BaseApiService {
     const query = params.toString()
     return this.get<LoLGlobalStatsDto>(`/lol/Stats/global${query ? `?${query}` : ''}`, { signal })
   }
+
+  public getCurrentPlayer(signal?: AbortSignal) {
+    return this.get<LeaguePlayer>('/player/me', { signal })
+  }
+
+  public updateCurrentPlayer(data: { FullName: string; Nickname: string; RiotGamesNickname?: string; RiotGamesTagLine?: string }, signal?: AbortSignal) {
+    return this.patch<LeaguePlayer>('/player/me', data, { signal })
+  }
+
+  public uploadProfilePicture(file: File, signal?: AbortSignal) {
+    const formData = new FormData()
+    formData.append('profilePicture', file)
+    return this.post<any>('/player/pp', formData, { signal })
+  }
 }
