@@ -71,6 +71,9 @@ function updateQueryParams() {
 
 useSeoMeta({
   title: computed(() => player.value ? `${player.value.riotGamesNickname || player.value.nickname} · Profil` : 'Profil joueur'),
+  description: computed(() => player.value
+    ? `Statistiques, rangs et historique de parties de ${player.value.riotGamesNickname || player.value.nickname} sur JungleDiff.`
+    : 'Statistiques, rangs et historique de parties League of Legends sur JungleDiff.'),
 })
 
 onMounted(async () => {
@@ -242,6 +245,48 @@ const historyCountLabel = computed(() => {
   const shown = gamesPlayed.value.length
   return `${shown} partie${shown > 1 ? 's' : ''} affichée${shown > 1 ? 's' : ''} · ${totalItems.value} sur l'historique`
 })
+
+const groupedGames = computed(() => {
+  const groups: { key: string; label: string; games: LoLGameDto[] }[] = []
+  let currentGroup: typeof groups[0] | null = null
+
+  const getDayLabel = (d: Date) => {
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    const isSameDay = (d1: Date, d2: Date) => 
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear()
+
+    if (isSameDay(d, today)) return "Aujourd'hui"
+    if (isSameDay(d, yesterday)) return 'Hier'
+    
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(d)
+  }
+
+  for (const g of gamesPlayed.value) {
+    if (!g.gameStart) continue
+    const d = new Date(g.gameStart)
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+    
+    if (!currentGroup || currentGroup.key !== key) {
+      currentGroup = {
+        key,
+        label: getDayLabel(d),
+        games: []
+      }
+      groups.push(currentGroup)
+    }
+    currentGroup.games.push(g)
+  }
+  return groups
+})
 </script>
 
 <template>
@@ -332,13 +377,19 @@ const historyCountLabel = computed(() => {
                 <div v-if="gamesPlayed.length === 0" class="p-12 rounded-xl border border-dashed border-border-base text-center">
                   <p class="m-0 text-sm font-bold text-text-sec">Aucune partie ne correspond à ces filtres.</p>
                 </div>
-                <LolGameCard
-                  v-for="g in gamesPlayed"
-                  :key="g.matchId"
-                  :game="g"
-                  :player-id="player.id"
-                  :show-summoner-name="false"
-                />
+                
+                <div v-for="group in groupedGames" :key="group.key" class="flex flex-col gap-2">
+                  <div class="px-2 pt-4 pb-1 font-mono text-[10.5px] font-bold tracking-widest uppercase text-text-ter">
+                    {{ group.label }}
+                  </div>
+                  <LolGameCard
+                    v-for="g in group.games"
+                    :key="g.matchId"
+                    :game="g"
+                    :player-id="player.id"
+                    :show-summoner-name="false"
+                  />
+                </div>
               </template>
             </div>
 

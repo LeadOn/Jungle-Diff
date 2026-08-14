@@ -1,5 +1,5 @@
 import { BaseApiService } from './BaseApiService'
-import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod } from '../types'
+import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto } from '../types'
 
 export class GameOnClient extends BaseApiService {
   constructor(baseUrl: string) {
@@ -19,7 +19,7 @@ export class GameOnClient extends BaseApiService {
   }
 
   public getMatch(matchId: string, signal?: AbortSignal) {
-    return this.get<Match>(`/lol/match/${matchId}`, { signal })
+    return this.get<LoLGameDto>(`/lol/match/${matchId}`, { signal })
   }
 
   public getLeaguePlayers(archived: boolean = false, signal?: AbortSignal) {
@@ -78,7 +78,34 @@ export class GameOnClient extends BaseApiService {
     return this.get<LoLQueue[]>(`/lol/queue/player/${playerId}`, { signal })
   }
 
+  public getGameTimeline(matchId: string, signal?: AbortSignal) {
+    return this.get<LoLGameTimelineFrame[]>(`/lol/match/${matchId}/timeline`, { signal })
+  }
+
   public refreshGame(matchId: string, signal?: AbortSignal) {
     return this.post(`/lol/match/${matchId}/update`, null, { signal })
+  }
+
+  public getGlobalStats(queue?: string, period?: string, rankedOnly?: boolean, signal?: AbortSignal) {
+    const params = new URLSearchParams()
+    if (queue && queue !== 'All') params.set('queue', queue)
+    if (period && period !== 'AllTime') params.set('period', period)
+    if (rankedOnly) params.set('rankedOnly', 'true')
+    const query = params.toString()
+    return this.get<LoLGlobalStatsDto>(`/lol/Stats/global${query ? `?${query}` : ''}`, { signal })
+  }
+
+  public getCurrentPlayer(signal?: AbortSignal) {
+    return this.get<LeaguePlayer>('/player/me', { signal })
+  }
+
+  public updateCurrentPlayer(data: { FullName: string; Nickname: string; RiotGamesNickname?: string; RiotGamesTagLine?: string }, signal?: AbortSignal) {
+    return this.patch<LeaguePlayer>('/player/me', data, { signal })
+  }
+
+  public uploadProfilePicture(file: File, signal?: AbortSignal) {
+    const formData = new FormData()
+    formData.append('profilePicture', file)
+    return this.post<any>('/player/pp', formData, { signal })
   }
 }

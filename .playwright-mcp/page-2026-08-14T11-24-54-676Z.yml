@@ -1,0 +1,224 @@
+- generic [active] [ref=f20e1]:
+  - generic [ref=f20e2]:
+    - heading "500" [level=1] [ref=f20e3]
+    - heading "undefined" [level=2] [ref=f20e4]
+    - paragraph [ref=f20e5]: obj.hasOwnProperty is not a function
+  - status [ref=f20e6]
+  - iframe [ref=f20e7]:
+    - generic [ref=f21e2]:
+      - banner [ref=f21e3]:
+        - generic [ref=f21e5]:
+          - checkbox [ref=f21e6]
+          - generic "Light mode" [ref=f21e8] [cursor=pointer]
+      - generic [ref=f21e13]:
+        - heading "Error" [level=4] [ref=f21e14]
+        - heading "An error has occurred" [level=1] [ref=f21e15]
+      - 'heading "Page not found: /this-page-does-not-exist-xyz Copy error with stack trace to clipboard" [level=2] [ref=f21e19]':
+        - generic [ref=f21e23]: "Page not found: /this-page-does-not-exist-xyz"
+        - button "Copy error with stack trace to clipboard" [ref=f21e24] [cursor=pointer]
+      - generic [ref=f21e30]:
+        - heading "Stack Trace" [level=3] [ref=f21e33]
+        - generic [ref=f21e35]:
+          - generic [ref=f21e36]:
+            - generic [ref=f21e38]:
+              - checkbox "View All Frames" [ref=f21e39]
+              - generic [ref=f21e40]: View All Frames
+            - generic [ref=f21e42]:
+              - button "Pretty" [ref=f21e43]
+              - button "Raw" [ref=f21e44]
+          - list [ref=f21e47]:
+            - listitem [ref=f21e48]:
+              - generic [ref=f21e49]:
+                - button [ref=f21e50]:
+                  - link "node_modules/h3/dist/index.mjs" [ref=f21e51] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/h3/dist/index.mjs:71
+                  - generic [ref=f21e52]:
+                    - text: in
+                    - code [ref=f21e53]: createError
+                  - generic [ref=f21e54]:
+                    - text: at line
+                    - code [ref=f21e55]: 71:15
+                - button [ref=f21e57]
+              - code [ref=f21e62]:
+                - generic [ref=f21e63]: "return new H3Error(input); } if (isError(input)) { return input; } const err = new H3Error(input.message ?? input.statusMessage ?? \"\", { cause: input.cause || input }); if (hasProp(input, \"stack\")) { try { Object.defineProperty(err, \"stack\", {"
+            - listitem [ref=f21e77]:
+              - generic [ref=f21e78]:
+                - button [ref=f21e79]:
+                  - link "node_modules/nuxt/dist/app/composables/error.js" [ref=f21e80] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/nuxt/dist/app/composables/error.js:78
+                  - generic [ref=f21e81]:
+                    - text: in
+                    - code [ref=f21e82]: createError
+                  - generic [ref=f21e83]:
+                    - text: at line
+                    - code [ref=f21e84]: 78:57
+                - button [ref=f21e86]
+            - listitem [ref=f21e89]:
+              - generic [ref=f21e90]:
+                - button [ref=f21e91]:
+                  - link "node_modules/nuxt/dist/pages/runtime/plugins/router.js" [ref=f21e92] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/nuxt/dist/pages/runtime/plugins/router.js:209
+                  - generic [ref=f21e93]:
+                    - text: at line
+                    - code [ref=f21e94]: 209:160
+                - button [ref=f21e96]
+            - listitem [ref=f21e99]:
+              - generic [ref=f21e100]:
+                - button [ref=f21e101]:
+                  - link "node_modules/nuxt/dist/app/nuxt.js" [ref=f21e102] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/nuxt/dist/app/nuxt.js:240
+                  - generic [ref=f21e103]:
+                    - text: in
+                    - code [ref=f21e104]: fn
+                  - generic [ref=f21e105]:
+                    - text: at line
+                    - code [ref=f21e106]: 240:43
+                - button [ref=f21e108]
+            - listitem [ref=f21e111]:
+              - generic [ref=f21e112]:
+                - button [ref=f21e113]:
+                  - link "node_modules/unctx/dist/index.mjs" [ref=f21e114] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/unctx/dist/index.mjs:68
+                  - generic [ref=f21e115]:
+                    - text: in
+                    - code [ref=f21e116]: Object.callAsync
+                  - generic [ref=f21e117]:
+                    - text: at line
+                    - code [ref=f21e118]: 68:55
+                - button [ref=f21e120]
+            - listitem [ref=f21e123]:
+              - generic [ref=f21e124]:
+                - button [ref=f21e125]:
+                  - link "node_modules/nuxt/dist/app/nuxt.js" [ref=f21e126] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/nuxt/dist/app/nuxt.js:242
+                  - generic [ref=f21e127]:
+                    - text: at line
+                    - code [ref=f21e128]: 242:63
+                - button [ref=f21e130]
+            - listitem [ref=f21e133]:
+              - generic [ref=f21e134]:
+                - button [ref=f21e135]:
+                  - link "node_modules/@vue/runtime-core/dist/runtime-core.cjs.js" [ref=f21e136] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:4364
+                  - generic [ref=f21e137]:
+                    - text: in
+                    - code [ref=f21e138]: Object.runWithContext
+                  - generic [ref=f21e139]:
+                    - text: at line
+                    - code [ref=f21e140]: 4364:18
+                - button [ref=f21e142]
+            - listitem [ref=f21e145]:
+              - generic [ref=f21e146]:
+                - button [ref=f21e147]:
+                  - link "node_modules/nuxt/dist/app/nuxt.js" [ref=f21e148] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/nuxt/dist/app/nuxt.js:242
+                  - generic [ref=f21e149]:
+                    - text: in
+                    - code [ref=f21e150]: callWithNuxt
+                  - generic [ref=f21e151]:
+                    - text: at line
+                    - code [ref=f21e152]: 242:31
+                - button [ref=f21e154]
+            - listitem [ref=f21e157]:
+              - generic [ref=f21e158]:
+                - button [ref=f21e159]:
+                  - link "node_modules/nuxt/dist/app/nuxt.js" [ref=f21e160] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/nuxt/dist/app/nuxt.js:58
+                  - generic [ref=f21e161]:
+                    - text: at line
+                    - code [ref=f21e162]: 58:111
+                - button [ref=f21e164]
+            - listitem [ref=f21e167]:
+              - generic [ref=f21e168]:
+                - button [ref=f21e169]:
+                  - link "node_modules/@vue/reactivity/dist/reactivity.cjs.js" [ref=f21e170] [cursor=pointer]:
+                    - /url: vscode://file//Users/leadon/Documents/Git/Jungle-Diff/node_modules/@vue/reactivity/dist/reactivity.cjs.js:96
+                  - generic [ref=f21e171]:
+                    - text: in
+                    - code [ref=f21e172]: EffectScope.run
+                  - generic [ref=f21e173]:
+                    - text: at line
+                    - code [ref=f21e174]: 96:16
+                - button [ref=f21e176]
+      - generic [ref=f21e180]:
+        - heading "Error Cause" [level=3] [ref=f21e183]
+        - code [ref=f21e188]:
+          - generic [ref=f21e189]:
+            - text: "Object {"
+            - button "▼" [ref=f21e190]
+            - text: "}"
+      - generic [ref=f21e193]:
+        - heading "Request" [level=3] [ref=f21e195]
+        - generic [ref=f21e196]:
+          - generic [ref=f21e197]:
+            - heading "url" [level=4] [ref=f21e198]
+            - text: http://localhost:3000/this-page-does-not-exist-xyz
+          - generic [ref=f21e199]:
+            - heading "method" [level=4] [ref=f21e200]
+            - text: GET
+          - generic [ref=f21e201]:
+            - heading "headers" [level=4] [ref=f21e202]
+            - table [ref=f21e203]:
+              - rowgroup [ref=f21e204]:
+                - row [ref=f21e205]:
+                  - cell "host" [ref=f21e206]
+                  - cell "localhost:3000" [ref=f21e207]
+                - row [ref=f21e208]:
+                  - cell "connection" [ref=f21e209]
+                  - cell "keep-alive" [ref=f21e210]
+                - row [ref=f21e211]:
+                  - cell "sec-ch-ua" [ref=f21e212]
+                  - cell "\"Not=A?Brand\";v=\"99\", \"Google Chrome\";v=\"151\", \"Chromium\";v=\"151\"" [ref=f21e213]
+                - row [ref=f21e214]:
+                  - cell "sec-ch-ua-mobile" [ref=f21e215]
+                  - cell "?0" [ref=f21e216]
+                - row [ref=f21e217]:
+                  - cell "sec-ch-ua-platform" [ref=f21e218]
+                  - cell "\"macOS\"" [ref=f21e219]
+                - row [ref=f21e220]:
+                  - cell "upgrade-insecure-requests" [ref=f21e221]
+                  - cell "1" [ref=f21e222]
+                - row [ref=f21e223]:
+                  - cell "user-agent" [ref=f21e224]
+                  - cell "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36" [ref=f21e225]
+                - row [ref=f21e226]:
+                  - cell "accept" [ref=f21e227]
+                  - cell "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7" [ref=f21e228]
+                - row [ref=f21e229]:
+                  - cell "sec-fetch-site" [ref=f21e230]
+                  - cell "none" [ref=f21e231]
+                - row [ref=f21e232]:
+                  - cell "sec-fetch-mode" [ref=f21e233]
+                  - cell "navigate" [ref=f21e234]
+                - row [ref=f21e235]:
+                  - cell "sec-fetch-user" [ref=f21e236]
+                  - cell "?1" [ref=f21e237]
+                - row [ref=f21e238]:
+                  - cell "sec-fetch-dest" [ref=f21e239]
+                  - cell "document" [ref=f21e240]
+                - row [ref=f21e241]:
+                  - cell "accept-encoding" [ref=f21e242]
+                  - cell "gzip, deflate, br, zstd" [ref=f21e243]
+                - row [ref=f21e244]:
+                  - cell "accept-language" [ref=f21e245]
+                  - cell "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7" [ref=f21e246]
+                - row [ref=f21e247]:
+                  - cell "cookie" [ref=f21e248]
+                  - cell [ref=f21e249]:
+                    - code [ref=f21e252]:
+                      - generic [ref=f21e253]:
+                        - text: "Object {"
+                        - button "▼" [ref=f21e254]
+                        - text: "}"
+                - row [ref=f21e256]:
+                  - cell "x-forwarded-for" [ref=f21e257]
+                  - cell "::1" [ref=f21e258]
+                - row [ref=f21e259]:
+                  - cell "x-forwarded-port" [ref=f21e260]
+                  - cell "3000" [ref=f21e261]
+                - row [ref=f21e262]:
+                  - cell "x-forwarded-proto" [ref=f21e263]
+                  - cell "http" [ref=f21e264]
+  - button "Toggle detailed error view Hide error overlay" [ref=f20e8]:
+    - generic [ref=f20e9]: Toggle detailed error view
+    - button "Hide error overlay" [ref=f20e10] [cursor=pointer]: ×

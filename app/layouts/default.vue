@@ -12,13 +12,30 @@
       <AppHeader />
 
       <!-- Main Content Container -->
-      <main class="flex-grow w-full max-w-[1200px] mx-auto px-6 pt-6 pb-16 md:py-12">
+      <main class="flex-grow w-full max-w-[1200px] mx-auto px-6 pt-6 pb-8 md:pt-12">
         <slot />
       </main>
+
+      <!-- Footer with Version & Credits -->
+      <footer class="w-full max-w-[1400px] mx-auto px-6 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-6 mt-4 border-t border-border-subtle/50">
+        <div class="font-mono text-[10px] font-bold text-text-ter uppercase tracking-[0.15em]">
+          JUNGLEDIFF &middot; V{{ config.public.appVersion }}
+        </div>
+        
+        <div class="text-[12px] font-medium text-text-ter flex items-center gap-1">
+          <span>Created with</span>
+          <span class="text-brand-red">❤️</span>
+          <span>in France by</span>
+          <a href="https://www.valentinvirot.fr" target="_blank" class="font-bold text-text-main hover:text-brand-gold transition-colors">LeadOn</a>
+        </div>
+      </footer>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import AppHeader from '~/components/ui/AppHeader.vue'
+import { useRuntimeConfig } from '#app'
+
+const config = useRuntimeConfig()
 </script>

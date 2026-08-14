@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import pkg from './package.json'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default {
@@ -29,7 +30,15 @@ export default {
     locales: [
       { code: 'fr', iso: 'fr-FR', name: 'Français' },
       { code: 'en', iso: 'en-US', name: 'English' }
-    ]
+    ],
+    // Disabled: the null-prototype objects this optimization produces break
+    // the SSR payload serialization (crashes @pinia/nuxt's payload reducer
+    // with "obj.hasOwnProperty is not a function") on routes that hit the
+    // error page. Also recommended by the module itself, which deprecates
+    // this flag in v10.
+    bundle: {
+      optimizeTranslationDirective: false
+    }
   },
 
   vite: {
@@ -42,6 +51,7 @@ export default {
 
   runtimeConfig: {
     public: {
+      appVersion: pkg.version,
       gameOnApiUrl: process.env.NUXT_PUBLIC_GAME_ON_API_URL,
       keycloak: {
         authority: process.env.NUXT_PUBLIC_KEYCLOAK_AUTHORITY,
