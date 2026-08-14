@@ -1,5 +1,5 @@
 import { BaseApiService } from './BaseApiService'
-import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto } from '../types'
+import type { LoLQueue, Summoner, Match, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto } from '../types'
 
 export class GameOnClient extends BaseApiService {
   constructor(baseUrl: string) {
@@ -84,5 +84,14 @@ export class GameOnClient extends BaseApiService {
 
   public refreshGame(matchId: string, signal?: AbortSignal) {
     return this.post(`/lol/match/${matchId}/update`, null, { signal })
+  }
+
+  public getGlobalStats(queue?: string, period?: string, rankedOnly?: boolean, signal?: AbortSignal) {
+    const params = new URLSearchParams()
+    if (queue && queue !== 'All') params.set('queue', queue)
+    if (period && period !== 'AllTime') params.set('period', period)
+    if (rankedOnly) params.set('rankedOnly', 'true')
+    const query = params.toString()
+    return this.get<LoLGlobalStatsDto>(`/lol/Stats/global${query ? `?${query}` : ''}`, { signal })
   }
 }

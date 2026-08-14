@@ -62,3 +62,11 @@ export function getItemIconUrl(itemId: string | number, patch: string): string {
   if (!itemId || itemId === 0 || itemId === '0') return ''
   return `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${itemId}.png`
 }
+
+/**
+ * Génère l'URL d'icône de profil d'un joueur.
+ */
+export function getProfileIconUrl(iconId: string | number, patch: string): string {
+  if (iconId == null) return ''
+  return `https://ddragon.leagueoflegends.com/cdn/${patch}/img/profileicon/${iconId}.png`
+}

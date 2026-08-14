@@ -10,6 +10,7 @@ import LadderTable from '~/components/home/LadderTable.vue'
 import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
 import { getChampionIconUrl } from '~/utils/ddragon'
+import { AWARD_MAPPINGS, PRIORITY_KEYS } from '~/utils/lol-awards'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
@@ -95,51 +96,12 @@ const factPlayerLink = computed(() => {
 })
 
 // Crew Records logic
-const formatShortDate = (isoString: string): string => {
-  const date = new Date(isoString)
-  return new Intl.DateTimeFormat('fr-FR', {
-    timeZone: 'Europe/Paris',
-    day: 'numeric',
-    month: 'short'
-  }).format(date).toUpperCase().replace('.', '')
-}
-
-const getPlayerName = (p: Partial<LeaguePlayer> | null | undefined) => {
-  if (!p) return 'Crew'
-  return p.riotGamesNickname || p.nickname
-}
-
-const AWARD_MAPPINGS: Record<string, { title: string, color: string, unit: string, getSubtitle: (stat: LoLFunStatDto) => string }> = {
-  pingMachine: { title: 'Spam Ping', color: 'text-brand-gold', unit: ' pings', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  biggestInter: { title: 'Énorme Inter', color: 'text-brand-red', unit: ' morts', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  highestBounty: { title: 'Plus grosse prime', color: 'text-brand-gold', unit: ' PO', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  shoppingAddict: { title: 'Acheteur Compulsif', color: 'text-brand-gold', unit: ' objets', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  oneTrickPony: { title: 'One Trick Pony', color: 'text-brand-gold', unit: ' parties', getSubtitle: (s) => `${getPlayerName(s.player)} · Cette semaine` },
-  crowdControlMaster: { title: 'Maître du CC', color: 'text-brand-green', unit: 's', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  punchingBall: { title: 'Punching Ball', color: 'text-brand-red', unit: ' dégâts', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  pacifist: { title: 'Pacifiste', color: 'text-brand-gold', unit: ' dégâts', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  squirrel: { title: 'Le farmer', color: 'text-brand-gold', unit: ' CS', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  jungleThief: { title: 'Voleur de jungle', color: 'text-brand-green', unit: ' camps', getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}` },
-  comebackKing: { title: 'Roi du comeback', color: 'text-brand-gold', unit: '', getSubtitle: (s) => `${getPlayerName(s.player)} · Retour incroyable` },
-  nightOwl: { title: 'Oiseau de nuit', color: 'text-text-main', unit: ' parties', getSubtitle: (s) => `${getPlayerName(s.player)} · Après minuit` },
-  longestLossStreak: { title: 'Pire série de défaites', color: 'text-brand-red', unit: ' défaites', getSubtitle: (s) => `${getPlayerName(s.player)} · En série` },
-  emotionalElevator: { title: 'Ascenseur émotionnel', color: 'text-brand-gold', unit: ' yoyos', getSubtitle: (s) => `${getPlayerName(s.player)} · Montagnes russes` },
-  cursedPatch: { title: 'Patch maudit', color: 'text-brand-red', unit: ' défaites', getSubtitle: () => `Maudit cette semaine` },
-}
-
 const topAwards = computed(() => {
   const records = store.homeStats?.crewRecords
   if (!records) return []
   
-  const priorityKeys = [
-    'biggestInter', 'longestLossStreak', 'crowdControlMaster', 'highestBounty', 
-    'nightOwl', 'jungleThief', 'pingMachine', 'punchingBall', 'pacifist', 
-    'squirrel', 'comebackKing', 'emotionalElevator', 'cursedPatch', 
-    'oneTrickPony', 'shoppingAddict'
-  ]
-  
-  const results: Array<{ key: string, stat: LoLFunStatDto, meta: { title: string, color: string, unit: string, getSubtitle: (stat: LoLFunStatDto) => string } }> = []
-  for (const key of priorityKeys) {
+  const results: Array<{ key: string, stat: LoLFunStatDto, meta: any }> = []
+  for (const key of PRIORITY_KEYS) {
     const stat = (records as any)[key] as LoLFunStatDto | null
     const meta = AWARD_MAPPINGS[key]
     if (stat && meta) {
@@ -335,7 +297,7 @@ const topChampions = computed(() => {
         
         <!-- Records du crew -->
         <div v-if="topAwards.length > 0" class="relative">
-          <SideCard title="Records de la semaine" badge="Tous">
+          <SideCard title="Records de la semaine" badge="Voir tout" badgeLink="/stats">
             <div class="flex flex-col gap-4 mt-4">
               <template v-for="(award, index) in topAwards" :key="award.key">
                 <div class="flex items-center justify-between">

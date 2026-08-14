@@ -196,7 +196,7 @@ watch(timeline, (newVal) => {
             :selected-player="selectedPlayer"
             :mvp-puuid="mvpPuuid"
             :ace-puuid="acePuuid"
-            @player-selected="onPlayerSelected"
+            @playerSelected="onPlayerSelected"
           />
 
           <div class="mt-4 rounded-2xl bg-surface-base border border-border-base shadow-sm">
@@ -310,7 +310,7 @@ watch(timeline, (newVal) => {
             :players="allPlayers"
             :selected-puuid="selectedPlayer?.puuid"
             :patch="patch"
-            @update:selectedPuuid="onPlayerSelected"
+            @update:selected-puuid="onPlayerSelected"
           />
 
           <div class="mt-4">
@@ -388,7 +388,7 @@ watch(timeline, (newVal) => {
               :patch="patch"
               :mode="damageMode"
               :selected-puuid="selectedPlayer?.puuid"
-              @update:selectedPuuid="onPlayerSelected"
+              @update:selected-puuid="onPlayerSelected"
             />
           </div>
 
@@ -407,7 +407,7 @@ watch(timeline, (newVal) => {
               :players="allPlayers"
               :selected-puuid="selectedPlayer?.puuid"
               :patch="patch"
-              @update:selectedPuuid="onPlayerSelected"
+              @update:selected-puuid="onPlayerSelected"
             />
           </div>
         </div>
