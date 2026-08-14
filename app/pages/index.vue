@@ -158,10 +158,10 @@ const topChampions = computed(() => {
         </h1>
         
         <p class="text-lg text-text-sec mb-10 max-w-[500px] leading-relaxed font-medium">
-          Ranks, forme, historique et records — mis à jour à chaque fin de partie. Cherche aussi n'importe quel invocateur EUW.
+          Ranks, forme, historique et records — mis à jour à chaque fin de partie.
         </p>
         
-        <div class="flex items-center gap-6 w-full flex-wrap relative z-50">
+        <div v-if="false" class="flex items-center gap-6 w-full flex-wrap relative z-50">
           <div class="relative w-full max-w-full md:max-w-[380px]">
             <form @submit.prevent="onSearch" 
                   class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300"

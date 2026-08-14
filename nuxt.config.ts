@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import pkg from './package.json'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default {
@@ -50,6 +51,7 @@ export default {
 
   runtimeConfig: {
     public: {
+      appVersion: pkg.version,
       gameOnApiUrl: process.env.NUXT_PUBLIC_GAME_ON_API_URL,
       keycloak: {
         authority: process.env.NUXT_PUBLIC_KEYCLOAK_AUTHORITY,
