@@ -72,6 +72,9 @@ const isSyncing = ref(false)
 
 useSeoMeta({
   title: computed(() => heroPlayer.value ? `${heroPlayer.value.riotIdGameName || heroPlayer.value.championName} · Partie` : 'Détail de la partie'),
+  description: computed(() => heroPlayer.value
+    ? `Détail de la partie de ${heroPlayer.value.riotIdGameName || heroPlayer.value.championName} sur JungleDiff : score, objectifs, film de la partie et statistiques avancées.`
+    : 'Détail de partie League of Legends sur JungleDiff.'),
 })
 
 const mvpPuuid = computed(() => {

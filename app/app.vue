@@ -31,7 +31,8 @@ useHead({
   ],
   meta: [
     { name: 'apple-mobile-web-app-title', content: 'JungleDiff' },
-    { name: 'description', content: 'JungleDiff - League of Legends stats tracker' }
+    { name: 'description', content: 'JungleDiff - League of Legends stats tracker' },
+    { name: 'theme-color', content: '#d7bc74' }
   ]
 })
 </script>

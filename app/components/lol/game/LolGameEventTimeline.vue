@@ -36,6 +36,7 @@
 
     <div class="text-text-ter mt-2 flex items-center justify-between text-xs font-semibold">
       <span>00:00</span>
+      <span class="text-text-main">{{ currentLabel }}</span>
       <span>{{ endLabel }}</span>
     </div>
   </div>
@@ -105,6 +106,8 @@ const markers = computed<Marker[]>(() => {
 })
 
 const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?? 0))
+
+const currentLabel = computed(() => formatTimestamp(frames.value[props.currentFrameIndex]?.timestamp ?? 0))
 
 const playheadPercent = computed(() => {
   const frame = frames.value[props.currentFrameIndex]

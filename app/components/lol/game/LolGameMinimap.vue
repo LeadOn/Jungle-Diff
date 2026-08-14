@@ -3,6 +3,7 @@
     <div class="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl">
       <img
         :src="mapUrl"
+        alt=""
         class="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
       />
 
@@ -16,6 +17,7 @@
       >
         <img
           :src="structure.isInhibitor ? inhibitorIconUrl : towerIconUrl"
+          alt=""
           class="h-2.5 w-2.5 object-contain"
         />
       </span>
@@ -24,6 +26,7 @@
         v-for="(marker, index) in objectiveMarkers"
         :key="'obj-' + index"
         :src="marker.iconUrl"
+        :alt="marker.label"
         :title="marker.label"
         class="absolute h-4 w-4 -translate-x-1/2 translate-y-1/2 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
         :style="{ left: `${marker.leftPercent}%`, bottom: `${marker.bottomPercent}%` }"
@@ -33,6 +36,7 @@
         v-for="dot in dots"
         :key="dot.player.puuid"
         :src="championIconUrl(dot.player)"
+        :alt="dot.player.riotIdGameName"
         :title="dot.player.riotIdGameName"
         class="absolute h-6 w-6 -translate-x-1/2 translate-y-1/2 rounded-full border-2 object-cover shadow-[0_0_6px_rgba(0,0,0,0.6)] transition-[left,bottom] duration-300"
         :class="teamBorderClass(dot.player)"
@@ -42,11 +46,11 @@
 
     <div class="text-text-ter mt-3 flex items-center justify-center gap-4 text-xs font-semibold">
       <span class="text-brand-green inline-flex items-center gap-1">
-        <img :src="wardIconUrl" class="h-3.5 w-3.5 object-contain" />
+        <img :src="wardIconUrl" alt="" class="h-3.5 w-3.5 object-contain" />
         {{ wardCounts.blue }} posées
       </span>
       <span class="text-brand-red inline-flex items-center gap-1">
-        <img :src="wardIconUrl" class="h-3.5 w-3.5 object-contain" />
+        <img :src="wardIconUrl" alt="" class="h-3.5 w-3.5 object-contain" />
         {{ wardCounts.red }} posées
       </span>
     </div>

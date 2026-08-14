@@ -36,6 +36,7 @@
         <div class="border-border-base mt-4 flex items-center gap-2 border-t pt-3">
           <img
             :src="championIconUrl(card.player)"
+            :alt="card.player.championName"
             class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
           />
           <span

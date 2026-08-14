@@ -50,6 +50,7 @@
                 v-if="item !== 0"
                 class="h-full w-full object-cover"
                 :src="itemIconUrl(item)"
+                alt=""
               />
             </div>
           </div>

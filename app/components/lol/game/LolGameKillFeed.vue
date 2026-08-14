@@ -34,6 +34,7 @@
         <img
           v-if="entry.iconUrl"
           :src="entry.iconUrl"
+          alt=""
           class="h-5 w-5 shrink-0 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
         />
         <span v-else class="w-5 shrink-0 text-center text-sm">{{ entry.icon }}</span>
@@ -41,6 +42,7 @@
         <img
           v-if="entry.killer"
           :src="championIconUrl(entry.killer)"
+          alt=""
           class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
         />
 
@@ -64,6 +66,7 @@
         <img
           v-if="entry.victim"
           :src="championIconUrl(entry.victim)"
+          alt=""
           class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
         />
 
@@ -76,6 +79,7 @@
               v-for="assist in entry.assists"
               :key="assist.puuid"
               :src="championIconUrl(assist)"
+              :alt="displayName(assist)"
               :title="displayName(assist)"
               class="border-bg-base h-5 w-5 shrink-0 rounded-full border object-cover"
             />

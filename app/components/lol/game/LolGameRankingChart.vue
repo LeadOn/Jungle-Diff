@@ -38,6 +38,7 @@
             ></span>
             <img
               :src="championIconUrl(row.player)"
+              :alt="row.player.championName"
               class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
             />
             <span class="text-text-main truncate text-xs font-medium">

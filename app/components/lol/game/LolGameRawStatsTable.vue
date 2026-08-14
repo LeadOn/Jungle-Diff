@@ -47,12 +47,14 @@
                 <img
                   class="border-border-base h-6 w-6 rounded-full border object-cover"
                   :src="championIconUrl(player)"
+                  :alt="player.championName"
                 />
                 <img
                   v-if="roleIconUrl(player)"
                   class="border-border-base bg-surface-base absolute -left-1 -top-1 h-3 w-3 rounded-full border p-px"
                   :src="roleIconUrl(player)"
                   :title="roleLabel(player)"
+                  alt=""
                 />
               </div>
               <span

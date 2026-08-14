@@ -33,9 +33,9 @@ const syncedAgoLabel = computed(() => {
       <div class="flex items-center gap-5 min-w-0">
         <div class="relative w-22 h-22 shrink-0">
           <span class="block w-full h-full rounded-full overflow-hidden border-[3px] border-border-accent bg-surface-high">
-            <img v-if="player.lolIconId != null" :src="`https://ddragon.leagueoflegends.com/cdn/${currentLoLPatch}/img/profileicon/${player.lolIconId}.png`" class="w-full h-full object-cover" >
-            <img v-else-if="player.profilePictureUrl" :src="`${apiUrl}/player/${player.id}/pp`" class="w-full h-full object-cover" >
-            <img v-else src="~/assets/img/JungleDiff_Logo.png" class="w-full h-full object-cover" >
+            <img v-if="player.lolIconId != null" :src="`https://ddragon.leagueoflegends.com/cdn/${currentLoLPatch}/img/profileicon/${player.lolIconId}.png`" :alt="player.riotGamesNickname || player.nickname" class="w-full h-full object-cover" >
+            <img v-else-if="player.profilePictureUrl" :src="`${apiUrl}/player/${player.id}/pp`" :alt="player.riotGamesNickname || player.nickname" class="w-full h-full object-cover" >
+            <img v-else src="~/assets/img/JungleDiff_Logo.png" alt="" class="w-full h-full object-cover" >
           </span>
           <span v-if="player.lolSummonerLevel != null" class="absolute -bottom-0.5 -right-1.5 px-2 py-0.5 rounded-full bg-surface-high border-2 border-surface-base shadow-sm font-mono text-[10px] font-bold text-text-main whitespace-nowrap">
             {{ player.lolSummonerLevel }}

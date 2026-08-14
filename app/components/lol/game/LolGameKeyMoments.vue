@@ -10,7 +10,7 @@
           class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-base"
           :class="iconClass(moment.tone)"
         >
-          <img v-if="moment.iconUrl" :src="moment.iconUrl" class="h-5 w-5 object-contain" />
+          <img v-if="moment.iconUrl" :src="moment.iconUrl" alt="" class="h-5 w-5 object-contain" />
           <span v-else>{{ moment.icon }}</span>
         </span>
 

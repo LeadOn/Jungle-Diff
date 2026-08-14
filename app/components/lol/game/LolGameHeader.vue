@@ -1,11 +1,6 @@
 <template>
   <div class="block">
     <div class="relative">
-      <div
-        class="pointer-events-none absolute -inset-10 -z-10 rounded-[2.5rem] blur-3xl"
-        :class="glowClass"
-      ></div>
-
       <div class="relative p-5 rounded-2xl bg-surface-base border shadow-sm overflow-hidden" :class="frameClass">
         <template v-if="splashUrl">
           <img
@@ -93,7 +88,7 @@
           :title="badge.label"
           class="border-border-base text-text-sec inline-flex items-center gap-1 rounded-lg border bg-white/5 px-2 py-1 text-xs font-semibold"
         >
-          <img :src="badge.iconUrl" class="h-4 w-4 object-contain" />
+          <img :src="badge.iconUrl" alt="" class="h-4 w-4 object-contain" />
           {{ badge.value }}
         </span>
       </div>
@@ -163,7 +158,7 @@ const rating = computed(() => {
 const objectiveRows = computed(() => {
   const players = [...props.team1, ...props.team2]
   return [
-    { teamId: 100, dotClass: 'bg-brand-green' },
+    { teamId: 100, dotClass: 'bg-blue-400' },
     { teamId: 200, dotClass: 'bg-brand-red' },
   ].map(({ teamId, dotClass }) => {
     const objectives = teamObjectivesFor(
@@ -223,11 +218,6 @@ const tintClass = computed(() => {
   return heroWon.value
     ? 'bg-[linear-gradient(180deg,rgba(45,224,165,0.16),transparent)]'
     : 'bg-[linear-gradient(180deg,rgba(255,92,116,0.16),transparent)]'
-})
-
-const glowClass = computed(() => {
-  if (props.game.isRemake || !isSynced.value) return 'bg-brand-gold/10' // Neutral
-  return heroWon.value ? 'bg-brand-green/20' : 'bg-brand-red/20'
 })
 
 const showRating = computed(() => {

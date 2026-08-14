@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <div v-for="side in scoreboards" :key="side.teamId" class="rounded-2xl bg-surface-base border border-border-base shadow-sm @container">
+    <div v-for="side in scoreboards" :key="side.teamId" class="rounded-2xl bg-surface-base border border-border-base shadow-sm overflow-hidden @container">
       <div
         class="border-border-base flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3"
         :class="side.headerTintClass"
@@ -84,8 +84,8 @@ const scoreboards = computed(() => {
     {
       teamId: 100,
       label: 'Équipe bleue',
-      dotClass: 'bg-brand-green',
-      headerTintClass: 'bg-[linear-gradient(90deg,rgba(63,214,143,0.16),transparent_70%)]', // brand-green wash
+      dotClass: 'bg-blue-400',
+      headerTintClass: 'bg-[linear-gradient(90deg,rgba(96,165,250,0.16),transparent_70%)]', // blue-400 wash
       players: props.team1,
     },
     {
