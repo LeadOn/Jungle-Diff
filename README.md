@@ -16,6 +16,8 @@ JungleDiff is a League of Legends stats tracker built with a strict Nuxt 4 archi
 - `app/components/`: Reusable Vue components separated into `ui/` and `lol/` domains.
 - `app/composables/`: Reusable logic, including API clients injections.
 - `app/stores/`: Pinia stores (using setup function syntax).
+- `app/utils/async-data.ts`: `getCachedData` helper (`cacheOnlyDuringHydration`) for `useAsyncData` calls
+  whose data must be re-fetched on client navigation instead of being pinned to the first page load.
 - `app/lib/api/`: Centralized HTTP services handling standardized errors and automated token injection.
 
 ## 🔑 Authentication
@@ -26,6 +28,12 @@ The app connects to Keycloak (`gameon` realm). The global auth middleware (`app/
 - **Dependencies:** Installed and audited (overrides configured for `nanoid` and `esbuild` vulnerabilities).
 - **Authentication:** Operational.
 - **Pages:** Home, Summoner Profile, and Match Details are built out.
+- **Data freshness:** the home page (crew stats, ladder, recent games) used to keep the values of the very
+  first page load for the whole SPA session — coming back from a player profile showed stale ranks until a
+  manual refresh. The `lol` store now stamps each successful load and reuses it for 60 s only, and the
+  matching `useAsyncData` calls opt out of Nuxt's per-key cache after hydration via
+  `cacheOnlyDuringHydration`. Both halves are required: the store window alone never runs, and forcing the
+  handler alone flips `pending` back to true during hydration and breaks the SSR match.
 - **LoL Patches:** Integration with Riot Data Dragon via SSR-friendly Pinia store and ddragon utils is fully operational.
 - **Homepage:** Recent Games logic mapped to Riot API with dynamic DDragon versioning.
 - **Summoner Profile:** Rebuilt to match the "JungleDiff Profil v3" design — identity card, Solo/Duo & Flex rank cards, filterable/paginated match history (with per-game CS/min, dmg/min and vision stats), a real LP progression sparkline, and a real, period-filterable Performance KPI panel, all wired to the GameOn API.

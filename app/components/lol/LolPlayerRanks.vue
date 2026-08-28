@@ -14,9 +14,11 @@ interface RankCardData {
   lpDelta: number | null
 }
 
+// L'API renvoie déjà la forme de la partie la plus récente à la plus ancienne, dans l'ordre
+// d'affichage ; le slice ne borne que la longueur, au cas où l'API en renverrait davantage.
 const cards = computed<RankCardData[]>(() => [
-  { queueLabel: 'Classée Solo/Duo', rank: props.player.leagueOfLegendsSoloRank, form: (props.player.recentFormSolo || []).slice(-8), lpDelta: props.player.lpChange7DaysSolo },
-  { queueLabel: 'Classée Flex', rank: props.player.leagueOfLegendsFlexRank, form: (props.player.recentFormFlex || []).slice(-8), lpDelta: props.player.lpChange7DaysFlex },
+  { queueLabel: 'Classée Solo/Duo', rank: props.player.leagueOfLegendsSoloRank, form: (props.player.recentFormSolo || []).slice(0, 8), lpDelta: props.player.lpChange7DaysSolo },
+  { queueLabel: 'Classée Flex', rank: props.player.leagueOfLegendsFlexRank, form: (props.player.recentFormFlex || []).slice(0, 8), lpDelta: props.player.lpChange7DaysFlex },
 ])
 
 const winRate = (rank: LeagueOfLegendsRank) => {

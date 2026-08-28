@@ -37,7 +37,8 @@
 <script setup lang="ts">
 import { useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
+import { cacheOnlyDuringHydration } from '~/utils/async-data'
 
 const store = useLolStore()
-const { pending, error } = useAsyncData('recentGames', () => store.fetchLastMatches())
+const { pending, error } = useAsyncData('recentGames', () => store.fetchLastMatches(), { getCachedData: cacheOnlyDuringHydration })
 </script>

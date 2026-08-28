@@ -13,6 +13,11 @@ You are assisting with the JungleDiff project, a League of Legends stats tracker
 - `app/components`: Separate generic UI (`app/components/ui/`) from business components (`app/components/lol/`).
 - `app/composables`: Reusable business logic and API injection.
 - `app/stores`: State management via Pinia setup stores (e.g., `app/stores/lol.ts`).
+- Data that must stay fresh (`lol` store: home stats, ladder players, last matches) is cached behind a
+  60 s freshness window rather than for the whole SPA session, and its `useAsyncData` callers pass
+  `getCachedData: cacheOnlyDuringHydration` (`app/utils/async-data.ts`) so the handler is replayed on
+  client navigation without breaking hydration. Without both, returning to a page reused the values
+  from the very first load until a manual refresh.
 - `app/lib/api`: Centralized typed API client (`BaseApiService`). Bearer token is strictly attached only for the GameOn API domain. No auth headers for Riot CDN.
 - `app/lib/types`: Strict domain interfaces.
 
