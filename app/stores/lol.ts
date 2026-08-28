@@ -11,6 +11,21 @@ export const useLolStore = defineStore('lol', () => {
   const players = ref<LeaguePlayer[]>([])
   const lastMatches = ref<LoLGameDto[]>([])
 
+  // Durée pendant laquelle une donnée déjà chargée est réutilisée telle quelle. Sans elle, les
+  // getters ci-dessous gardaient leur valeur pour toute la durée de la session SPA : revenir sur
+  // l'accueil depuis une fiche joueur réaffichait les rangs du tout premier chargement, et seul
+  // un F5 (qui recrée le store) les rafraîchissait.
+  const FRESHNESS_MS = 60_000
+
+  // Horodatages du dernier chargement réussi. Ils font partie de l'état retourné par le store :
+  // @pinia/nuxt ne sérialise dans le payload SSR que ce qui est retourné, et sans eux le client
+  // repartirait à 0 juste après l'hydratation et rejouerait chaque requête déjà faite côté serveur.
+  const homeStatsFetchedAt = ref(0)
+  const playersFetchedAt = ref(0)
+  const lastMatchesFetchedAt = ref(0)
+
+  const isFresh = (fetchedAt: number) => fetchedAt > 0 && Date.now() - fetchedAt < FRESHNESS_MS
+
   const setVersion = (v: string) => {
     version.value = v
   }
@@ -25,14 +40,17 @@ export const useLolStore = defineStore('lol', () => {
 
   const setHomeStats = (stats: LoLHomeStatsDto) => {
     homeStats.value = stats
+    homeStatsFetchedAt.value = Date.now()
   }
 
   const setPlayers = (p: LeaguePlayer[]) => {
     players.value = p
+    playersFetchedAt.value = Date.now()
   }
 
   const setLastMatches = (matches: LoLGameDto[]) => {
     lastMatches.value = matches
+    lastMatchesFetchedAt.value = Date.now()
   }
 
   const fetchQueues = async () => {
@@ -51,7 +69,7 @@ export const useLolStore = defineStore('lol', () => {
   }
 
   const fetchHomeStats = async () => {
-    if (homeStats.value) return homeStats.value
+    if (homeStats.value && isFresh(homeStatsFetchedAt.value)) return homeStats.value
 
     const gameOnApi = useGameOnLol()
     try {
@@ -67,7 +85,7 @@ export const useLolStore = defineStore('lol', () => {
   }
 
   const fetchPlayers = async () => {
-    if (players.value.length > 0) return players.value
+    if (players.value.length > 0 && isFresh(playersFetchedAt.value)) return players.value
 
     const gameOnApi = useGameOnLol()
     try {
@@ -83,7 +101,7 @@ export const useLolStore = defineStore('lol', () => {
   }
 
   const fetchLastMatches = async () => {
-    if (lastMatches.value.length > 0) return lastMatches.value
+    if (lastMatches.value.length > 0 && isFresh(lastMatchesFetchedAt.value)) return lastMatches.value
 
     const gameOnApi = useGameOnLol()
     try {
@@ -105,6 +123,9 @@ export const useLolStore = defineStore('lol', () => {
     homeStats,
     players,
     lastMatches,
+    homeStatsFetchedAt,
+    playersFetchedAt,
+    lastMatchesFetchedAt,
     setVersion,
     setVersions,
     setQueues,

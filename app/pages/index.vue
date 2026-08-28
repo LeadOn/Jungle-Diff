@@ -11,6 +11,7 @@ import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
 import { getChampionIconUrl } from '~/utils/ddragon'
 import { AWARD_MAPPINGS, PRIORITY_KEYS } from '~/utils/lol-awards'
+import { cacheOnlyDuringHydration } from '~/utils/async-data'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
@@ -18,9 +19,13 @@ const router = useRouter()
 const searchName = ref('')
 const isSearchFocused = ref(false)
 
-await useAsyncData('homeStats', () => store.fetchHomeStats())
-await useAsyncData('players', () => store.fetchPlayers())
-await useAsyncData('lastMatches', () => store.fetchLastMatches())
+// Le handler est rejoué à chaque retour sur l'accueil (voir cacheOnlyDuringHydration) ; c'est la
+// fenêtre de fraîcheur du store qui décide s'il faut réellement rappeler l'API.
+const freshOnNavigation = { getCachedData: cacheOnlyDuringHydration }
+
+await useAsyncData('homeStats', () => store.fetchHomeStats(), freshOnNavigation)
+await useAsyncData('players', () => store.fetchPlayers(), freshOnNavigation)
+await useAsyncData('lastMatches', () => store.fetchLastMatches(), freshOnNavigation)
 
 useSeoMeta({
   title: 'Accueil',
