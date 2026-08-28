@@ -30,6 +30,7 @@ The app connects to Keycloak (`gameon` realm). The global auth middleware (`app/
 - **Homepage:** Recent Games logic mapped to Riot API with dynamic DDragon versioning.
 - **Summoner Profile:** Rebuilt to match the "JungleDiff Profil v3" design — identity card, Solo/Duo & Flex rank cards, filterable/paginated match history (with per-game CS/min, dmg/min and vision stats), a real LP progression sparkline, and a real, period-filterable Performance KPI panel, all wired to the GameOn API.
 - **Match Details** (`app/pages/game/[id]/[playerId].vue`): Rebuilt to match the "JungleDiff Partie (features-game)" design — win/loss-tinted header with rating & MVP/ACE accolade, per-team objectives row, key-moments strip, and four tabs (Vue d'ensemble, Film de la partie, Performance, Données brutes), all wired to real GameOn API match + timeline data. No `MockBadge` needed on this page.
+- **Dependencies:** Bumped to latest compatible majors on 2026-08-28 (`@nuxtjs/i18n` v10, `@pinia/nuxt` v1 / `pinia` v4, `@nuxt/eslint` v1 / `eslint` v10, `flowbite-vue` v0.4, `oidc-client-ts` v3.5, `tailwindcss`/`@tailwindcss/vite` v4.3, `vue-tsc` v3.3). `typescript` stays pinned to `^6.0.3` — the new v7 "Corsa" native-compiler line breaks `typescript-eslint` (via `@nuxt/eslint-config`), which currently requires `typescript <6.1.0`. Build, `vue-tsc --noEmit`, and `eslint .` all confirmed working post-upgrade.
 
 ## 🛠️ Ongoing Modifications
 - Implementation of a custom Dark/Light Design System based on CSS variables mapped to Tailwind v4.
