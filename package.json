@@ -24,12 +24,12 @@
     "vue-chartjs": "^5.3.4"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.126",
+    "@iconify-json/lucide": "^1.2.130",
     "@nuxt/eslint": "^1.17.0",
     "@nuxt/icon": "^2.5.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.4.0",
-    "eslint": "^10.9.1",
+    "@types/node": "^26.5.0",
+    "eslint": "^10.10.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.11"
