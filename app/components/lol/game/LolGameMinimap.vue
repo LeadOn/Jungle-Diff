@@ -1,7 +1,7 @@
 <template>
   <div class="p-5">
     <div class="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl">
-      <img
+      <UiAppImage
         :src="mapUrl"
         alt=""
         class="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
@@ -15,14 +15,14 @@
         :style="{ left: `${structure.leftPercent}%`, bottom: `${structure.bottomPercent}%` }"
         :title="structureTooltip(structure)"
       >
-        <img
+        <UiAppImage
           :src="structure.isInhibitor ? inhibitorIconUrl : towerIconUrl"
           alt=""
           class="h-2.5 w-2.5 object-contain"
         />
       </span>
 
-      <img
+      <UiAppImage
         v-for="(marker, index) in objectiveMarkers"
         :key="'obj-' + index"
         :src="marker.iconUrl"
@@ -32,7 +32,7 @@
         :style="{ left: `${marker.leftPercent}%`, bottom: `${marker.bottomPercent}%` }"
       />
 
-      <img
+      <UiAppImage
         v-for="dot in dots"
         :key="dot.player.puuid"
         :src="championIconUrl(dot.player)"
@@ -46,11 +46,11 @@
 
     <div class="text-text-ter mt-3 flex items-center justify-center gap-4 text-xs font-semibold">
       <span class="text-brand-green inline-flex items-center gap-1">
-        <img :src="wardIconUrl" alt="" class="h-3.5 w-3.5 object-contain" />
+        <UiAppImage :src="wardIconUrl" alt="" class="h-3.5 w-3.5 object-contain" />
         {{ wardCounts.blue }} posées
       </span>
       <span class="text-brand-red inline-flex items-center gap-1">
-        <img :src="wardIconUrl" alt="" class="h-3.5 w-3.5 object-contain" />
+        <UiAppImage :src="wardIconUrl" alt="" class="h-3.5 w-3.5 object-contain" />
         {{ wardCounts.red }} posées
       </span>
     </div>

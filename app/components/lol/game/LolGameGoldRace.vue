@@ -15,7 +15,7 @@
           {{ row.rank + 1 }}
         </span>
 
-        <img
+        <UiAppImage
           :src="championIconUrl(row.player)"
           alt=""
           class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"

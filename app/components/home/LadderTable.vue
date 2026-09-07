@@ -45,7 +45,7 @@
             <td class="py-3.5">
               <div class="flex items-center gap-3">
                 <div v-if="player.iconUrl" class="w-8 h-8 rounded-md overflow-hidden shadow-sm flex-shrink-0 border border-border-subtle">
-                  <img :src="player.iconUrl" alt="Profile Icon" class="w-full h-full object-cover" />
+                  <UiAppImage :src="player.iconUrl" alt="Profile Icon" class="w-full h-full object-cover" />
                 </div>
                 <div v-else class="w-8 h-8 rounded-md flex items-center justify-center text-xs font-black shadow-sm flex-shrink-0" :style="{ backgroundColor: getTierColor(player.queues[activeQueue]?.tier, 0.15), color: getTierColor(player.queues[activeQueue]?.tier, 1), border: `1px solid ${getTierColor(player.queues[activeQueue]?.tier, 0.3)}` }">
                   {{ player.initial }}
@@ -59,7 +59,7 @@
             <td class="py-3.5">
               <div class="flex items-center gap-2.5" v-if="player.queues[activeQueue]">
                 <div class="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                  <img :src="getTierIconUrl(player.queues[activeQueue]?.tier)" alt="Rank Icon" class="w-full h-full object-contain drop-shadow-sm" />
+                  <UiAppImage :src="getTierIconUrl(player.queues[activeQueue]?.tier)" alt="Rank Icon" class="w-full h-full object-contain drop-shadow-sm" />
                 </div>
                 <div>
                   <div class="font-extrabold text-[13px] text-text-main leading-tight">{{ player.queues[activeQueue]?.rankLabel }}</div>
@@ -68,7 +68,7 @@
               </div>
               <div v-else class="flex items-center gap-2.5">
                 <div class="w-8 h-8 flex items-center justify-center flex-shrink-0 opacity-50 grayscale">
-                  <img :src="getTierIconUrl('UNRANKED')" alt="Unranked" class="w-full h-full object-contain" />
+                  <UiAppImage :src="getTierIconUrl('UNRANKED')" alt="Unranked" class="w-full h-full object-contain" />
                 </div>
                 <div class="text-[13px] font-bold text-text-ter italic">
                   Non classé

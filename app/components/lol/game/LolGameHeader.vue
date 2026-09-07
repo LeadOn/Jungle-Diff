@@ -3,7 +3,7 @@
     <div class="relative">
       <div class="relative p-5 rounded-2xl bg-surface-base border shadow-sm overflow-hidden" :class="frameClass">
         <template v-if="splashUrl">
-          <img
+          <UiAppImage
             :src="splashUrl"
             alt=""
             aria-hidden="true"
@@ -20,7 +20,7 @@
 
         <div class="relative flex flex-wrap items-center gap-x-5 gap-y-4">
           <div class="relative shrink-0">
-            <img
+            <UiAppImage
               :src="championIconUrlStr"
               :alt="heroPlayer?.championName"
               class="h-[72px] w-[72px] rounded-2xl border-2 border-white/25 object-cover shadow-lg"
@@ -88,7 +88,7 @@
           :title="badge.label"
           class="border-border-base text-text-sec inline-flex items-center gap-1 rounded-lg border bg-white/5 px-2 py-1 text-xs font-semibold"
         >
-          <img :src="badge.iconUrl" alt="" class="h-4 w-4 object-contain" />
+          <UiAppImage :src="badge.iconUrl" alt="" class="h-4 w-4 object-contain" />
           {{ badge.value }}
         </span>
       </div>
