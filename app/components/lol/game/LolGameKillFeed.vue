@@ -31,7 +31,7 @@
           {{ timeLabel(entry) }}
         </span>
 
-        <img
+        <UiAppImage
           v-if="entry.iconUrl"
           :src="entry.iconUrl"
           alt=""
@@ -39,7 +39,7 @@
         />
         <span v-else class="w-5 shrink-0 text-center text-sm">{{ entry.icon }}</span>
 
-        <img
+        <UiAppImage
           v-if="entry.killer"
           :src="championIconUrl(entry.killer)"
           alt=""
@@ -63,7 +63,7 @@
           </span>
         </div>
 
-        <img
+        <UiAppImage
           v-if="entry.victim"
           :src="championIconUrl(entry.victim)"
           alt=""
@@ -75,7 +75,7 @@
             Assist
           </span>
           <div class="flex -space-x-2">
-            <img
+            <UiAppImage
               v-for="assist in entry.assists"
               :key="assist.puuid"
               :src="championIconUrl(assist)"

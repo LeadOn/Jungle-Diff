@@ -12,13 +12,13 @@
         <!-- Icône Champion & Badge -->
         <div class="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0">
           <div class="w-full h-full rounded-full overflow-hidden border-2" :class="getAvatarBorderColor(computedStatus)">
-            <img 
+            <UiAppImage 
               v-if="championName"
               :src="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${championName}.png`" 
               :alt="championName" 
               class="w-full h-full object-cover scale-[1.15]"
-              @error="(e) => (e.target as HTMLImageElement).src = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/29.png`"
-            >
+              :fallback="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/29.png`"
+            />
             <Icon v-else name="lucide:circle-dashed" class="text-text-ter text-xl sm:text-2xl m-auto h-full w-full opacity-50" />
           </div>
           
@@ -27,7 +27,7 @@
             v-if="roleIconUrl"
             class="absolute -top-1 -left-1 w-5 h-5 flex items-center justify-center rounded-full bg-surface-high border border-border-subtle shadow-sm"
           >
-            <img :src="roleIconUrl" :alt="roleAlt" class="w-3 h-3">
+            <UiAppImage :src="roleIconUrl" :alt="roleAlt" class="w-3 h-3" />
           </div>
 
           <!-- Badge Niveau -->
@@ -78,12 +78,12 @@
           :key="index"
           class="w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden bg-(--color-item-bg) border border-(--color-item-line) flex-shrink-0"
         >
-          <img 
+          <UiAppImage 
             v-if="itemId > 0"
             :src="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${itemId}.png`" 
             :alt="`Item ${itemId}`"
             class="w-full h-full object-cover"
-          >
+          />
         </div>
       </div>
     </div>

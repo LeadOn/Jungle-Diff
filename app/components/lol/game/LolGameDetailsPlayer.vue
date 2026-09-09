@@ -11,13 +11,13 @@
     >
       <div class="flex min-w-0 flex-1 items-center gap-3">
         <div class="relative shrink-0">
-          <img
+          <UiAppImage
             class="h-11 w-11 rounded-lg border border-white/20 object-cover"
             :src="championIconUrl"
             :alt="player.championName"
           />
 
-          <img
+          <UiAppImage
             v-if="roleIconUrl"
             class="border-border-base bg-bg-base absolute -left-1.5 -top-1.5 h-4 w-4 rounded-full border p-0.5"
             :src="roleIconUrl"
@@ -129,7 +129,7 @@
           class="border-border-base light:bg-[rgba(23,30,54,0.03)] h-6 w-6 overflow-hidden rounded-md border bg-white/5"
           :class="index === itemSlotsArr.length - 1 ? 'ml-1' : ''"
         >
-          <img v-if="item !== 0" class="h-full w-full object-cover" :src="itemIconUrl(item)" alt="" />
+          <UiAppImage v-if="item !== 0" class="h-full w-full object-cover" :src="itemIconUrl(item)" alt="" />
         </div>
       </div>
 
