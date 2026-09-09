@@ -4,6 +4,7 @@ import { useRoute, useRouter } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
+import { roleIconUrl } from '~/utils/lol-role'
 import type { LeaguePlayer, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
 import LolPlayerHeader from '~/components/lol/LolPlayerHeader.vue'
 import LolPlayerRanks from '~/components/lol/LolPlayerRanks.vue'
@@ -56,6 +57,7 @@ const queueOptions = ref<{ id: number, label: string }[]>([])
 const queueFilterOpen = ref(false)
 const initialQueues = route.query.queues ? String(route.query.queues).split(',').map(Number).filter(Boolean) : []
 const selectedQueueIds = ref<number[]>(initialQueues)
+const selectedRole = ref<string | null>(route.query.role as string || null)
 
 function updateQueryParams() {
   const query = { ...route.query }
@@ -65,6 +67,9 @@ function updateQueryParams() {
 
   if (selectedQueueIds.value.length > 0) query.queues = selectedQueueIds.value.join(',')
   else delete query.queues
+
+  if (selectedRole.value) query.role = selectedRole.value
+  else delete query.role
 
   router.replace({ query })
 }
@@ -95,7 +100,8 @@ async function loadPlayer() {
   hasError.value = false
   try {
     const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
-    player.value = await gameOnApi.getPlayerById(playerId, toApiPeriod(period.value), queueIds)
+    const role = selectedRole.value || undefined
+    player.value = await gameOnApi.getPlayerById(playerId, toApiPeriod(period.value), queueIds, role)
   } catch (e) {
     console.error(e)
     hasError.value = true
@@ -153,7 +159,8 @@ async function refreshPerformanceStats() {
   const pId = player.value.id.toString()
   try {
     const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
-    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(period.value), queueIds)
+    const role = selectedRole.value || undefined
+    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(period.value), queueIds, role)
     if (player.value) player.value.performanceStats = updated.performanceStats
   } catch (e) {
     console.error(e)
@@ -166,6 +173,15 @@ async function onPeriodChange(next: Period) {
   if (!player.value) return
   const pId = player.value.id.toString()
   loadRankHistory(pId)
+  refreshPerformanceStats()
+}
+
+async function onRoleChange(role: string | null) {
+  selectedRole.value = role
+  updateQueryParams()
+  if (!player.value) return
+  const pId = player.value.id.toString()
+  loadGames(pId)
   refreshPerformanceStats()
 }
 
@@ -191,7 +207,8 @@ async function loadGames(pId: string, append = false) {
   }
   try {
     const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
-    const data = await gameOnApi.getLastGamesPlayedByPlayer(pId, currentPage.value, pageSize, false, queueIds)
+    const role = selectedRole.value || undefined
+    const data = await gameOnApi.getLastGamesPlayedByPlayer(pId, currentPage.value, pageSize, false, queueIds, undefined, undefined, role)
     gamesPlayed.value = append ? [...gamesPlayed.value, ...data.results] : data.results
     totalItems.value = data.total
     totalPages.value = Math.max(1, Math.ceil(totalItems.value / (data.resultsPerPage || pageSize)))
@@ -333,12 +350,33 @@ const groupedGames = computed(() => {
                 <p class="m-0 mt-0.5 font-mono text-[11px] font-bold tracking-widest uppercase text-text-ter">{{ historyCountLabel }}</p>
               </div>
 
-              <div class="relative inline-flex">
-                <button
-                  type="button"
-                  class="h-8.5 flex items-center gap-1.5 pl-3.5 pr-3 rounded-full bg-surface-high border border-border-subtle text-text-main text-xs font-bold"
-                  @click="queueFilterOpen = !queueFilterOpen"
-                >
+              <div class="flex items-center gap-2">
+                <!-- Filtre de rôle -->
+                <div class="flex items-center rounded-full bg-surface-high border border-border-subtle p-0.5">
+                  <button
+                    v-for="role in ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']"
+                    :key="role"
+                    type="button"
+                    class="h-7.5 w-7.5 rounded-full flex items-center justify-center transition-all"
+                    :class="selectedRole === role ? 'bg-surface-base border border-brand-gold/30 shadow-sm' : 'border border-transparent hover:bg-surface-base'"
+                    @click="onRoleChange(selectedRole === role ? null : role)"
+                  >
+                    <UiAppImage 
+                      :src="roleIconUrl(role)" 
+                      :alt="role"
+                      class="w-4 h-4 transition-all" 
+                      :class="selectedRole === role ? 'opacity-100' : 'opacity-40 grayscale hover:opacity-80 hover:grayscale-0'" 
+                    />
+                  </button>
+                </div>
+
+                <!-- Filtre de file -->
+                <div class="relative inline-flex">
+                  <button
+                    type="button"
+                    class="h-8.5 flex items-center gap-1.5 pl-3.5 pr-3 rounded-full bg-surface-high border border-border-subtle text-text-main text-xs font-bold"
+                    @click="queueFilterOpen = !queueFilterOpen"
+                  >
                   <span class="max-w-40 truncate">{{ queueFilterLabel }}</span>
                   <Icon name="lucide:chevron-down" class="h-3 w-3 shrink-0 text-text-ter" />
                 </button>
@@ -368,9 +406,10 @@ const groupedGames = computed(() => {
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="flex flex-col gap-2">
-              <div v-if="gameHistoryLoading" class="space-y-2 animate-pulse">
+          <div class="flex flex-col gap-2">
+            <div v-if="gameHistoryLoading" class="space-y-2 animate-pulse">
                 <div v-for="i in 6" :key="i" class="h-22 w-full rounded-xl bg-surface-high"/>
               </div>
               <template v-else>

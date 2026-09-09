@@ -26,10 +26,11 @@ export class GameOnClient extends BaseApiService {
     return this.get<LeaguePlayer[]>(`/lol/summoner?archived=${archived}`, { signal })
   }
 
-  public getPlayerById(id: string | number, period?: LoLStatsPeriod, queueIds?: number[] | null, signal?: AbortSignal) {
+  public getPlayerById(id: string | number, period?: LoLStatsPeriod, queueIds?: number[] | null, teamPosition?: string, signal?: AbortSignal) {
     const params = new URLSearchParams()
     if (period) params.set('period', period)
     if (queueIds && queueIds.length > 0) params.set('queues', queueIds.join(','))
+    if (teamPosition) params.set('teamPosition', teamPosition)
     const query = params.toString()
     return this.get<LeaguePlayer>(`/lol/summoner/${id}${query ? `?${query}` : ''}`, { signal })
   }
@@ -54,6 +55,7 @@ export class GameOnClient extends BaseApiService {
     queueIds?: number[] | null,
     startDate?: string | null,
     endDate?: string | null,
+    teamPosition?: string,
     signal?: AbortSignal
   ) {
     const params = new URLSearchParams()
@@ -66,6 +68,7 @@ export class GameOnClient extends BaseApiService {
     }
     if (startDate) params.set('startDate', startDate)
     if (endDate) params.set('endDate', endDate)
+    if (teamPosition) params.set('teamPosition', teamPosition)
 
     return this.get<PaginatedMatchResponse>(`/lol/match/player/${playerId}?${params.toString()}`, { signal })
   }
