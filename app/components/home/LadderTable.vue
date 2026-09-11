@@ -51,7 +51,17 @@
                   {{ player.initial }}
                 </div>
                 <div>
-                  <div class="font-bold text-[13px] text-text-main leading-tight" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : ''">{{ player.name }}</div>
+                  <div class="font-bold text-[13px] text-text-main leading-tight flex items-center gap-1.5" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : ''">
+                    {{ player.name }}
+                    <div v-if="player.isSmurf" class="group/smurf relative flex items-center cursor-help" @click.stop="goToPlayer(player.primaryPlayerId!)">
+                      <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-surface-high border border-brand-gold text-brand-gold transition-colors hover:bg-brand-gold hover:text-brand-gold-text">
+                        <Icon name="lucide:bot" class="w-2.5 h-2.5" />
+                      </span>
+                      <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/smurf:block whitespace-nowrap bg-surface-high border border-border-subtle rounded px-2 py-1 text-[10px] font-bold text-text-main z-10 shadow-lg">
+                        Smurf de <span class="text-brand-gold">{{ player.primaryPlayerName || 'Inconnu' }}</span>
+                      </div>
+                    </div>
+                  </div>
                   <div class="text-[11px] text-text-ter font-medium">{{ player.tag }}</div>
                 </div>
               </div>
@@ -138,9 +148,14 @@ const mappedPlayers = computed(() => {
     const flex = p.leagueOfLegendsFlexRank
     
     const capitalizeTier = (tier: string) => tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase()
+    
+    const primaryPlayer = p.primaryPlayerId ? props.players?.find(pl => pl.id === p.primaryPlayerId) : null
 
     return {
       id: p.id,
+      isSmurf: !!p.primaryPlayerId && p.primaryPlayerId !== p.id && p.primaryPlayerId !== 0,
+      primaryPlayerId: p.primaryPlayerId,
+      primaryPlayerName: primaryPlayer ? (primaryPlayer.riotGamesNickname || primaryPlayer.nickname) : null,
       initial: p.nickname.charAt(0).toUpperCase(),
       iconUrl: p.lolIconId != null ? `https://ddragon.leagueoflegends.com/cdn/${patchStore.currentPatch}/img/profileicon/${p.lolIconId}.png` : null,
       name: p.riotGamesNickname || p.nickname,

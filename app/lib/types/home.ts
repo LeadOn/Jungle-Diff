@@ -12,6 +12,7 @@ export interface PlayerDto {
   lolRefreshedOn: string | null; // ISO 8601 UTC
   createdOn: string;             // ISO 8601 UTC
   archived: boolean;
+  primaryPlayerId: number | null;
 }
 
 export interface LoLFactOfTheWeekDto {
