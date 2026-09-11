@@ -45,6 +45,36 @@
               {{ displayName }}
             </span>
 
+            <div v-if="!isLinked" class="flex items-center gap-1 ml-1">
+              <a
+                :href="`https://www.op.gg/summoners/euw/${player.riotIdGameName}-${player.riotIdTagLine}`"
+                target="_blank"
+                class="group flex items-center justify-center w-5 h-5 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-px shadow-sm"
+                title="Accéder à OP.GG"
+                @click.stop
+              >
+                <img src="https://www.google.com/s2/favicons?domain=op.gg&sz=32" alt="OP.GG" class="w-3 h-3 rounded-[2px] grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              </a>
+              <a
+                :href="`https://dpm.lol/${player.riotIdGameName}-${player.riotIdTagLine}`"
+                target="_blank"
+                class="group flex items-center justify-center w-5 h-5 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-px shadow-sm"
+                title="Accéder à DPM.LoL"
+                @click.stop
+              >
+                <img src="https://www.google.com/s2/favicons?domain=dpm.lol&sz=32" alt="DPM.LoL" class="w-3 h-3 rounded-[2px] grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              </a>
+            </div>
+
+            <div v-if="isSmurf" class="group/smurf relative flex items-center cursor-help" @click.stop="goToPrimaryPlayer">
+              <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-brand-gold/15 border border-brand-gold/45 text-brand-gold transition-colors hover:bg-brand-gold hover:text-brand-gold-text">
+                <Icon name="lucide:bot" class="w-2.5 h-2.5" />
+              </span>
+              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/smurf:block whitespace-nowrap bg-surface-high border border-border-subtle rounded px-2 py-1 text-[10px] font-bold text-text-main z-50 shadow-lg">
+                Smurf de <span class="text-brand-gold">{{ primaryPlayerName || 'Inconnu' }}</span>
+              </div>
+            </div>
+
             <span
               v-if="isMvp"
               class="bg-brand-gold/20 text-brand-gold whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-bold"
@@ -290,6 +320,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from '#app'
+import { useLolStore } from '~/stores/lol'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import type { LoLGameTimelineFrame } from '~/lib/types/timeline'
 import {
@@ -344,6 +376,41 @@ const toggleAdvancedStats = () => {
 
 const toggleMoreChallenges = () => {
   showMoreChallenges.value = !showMoreChallenges.value
+}
+
+const router = useRouter()
+const lolStore = useLolStore()
+
+const isSmurf = computed(() => {
+  if (!props.player.player) return false
+  let primaryId = props.player.player.primaryPlayerId
+  if (primaryId == null) {
+    const leaguePlayer = lolStore.players.find(p => p.id === props.player.player!.id)
+    primaryId = leaguePlayer?.primaryPlayerId
+  }
+  return !!primaryId && primaryId !== props.player.player.id && primaryId !== 0
+})
+
+const primaryPlayerId = computed(() => {
+  if (!props.player.player) return null
+  let primaryId = props.player.player.primaryPlayerId
+  if (primaryId == null) {
+    const leaguePlayer = lolStore.players.find(p => p.id === props.player.player!.id)
+    primaryId = leaguePlayer?.primaryPlayerId
+  }
+  return primaryId
+})
+
+const primaryPlayerName = computed(() => {
+  if (!isSmurf.value || !primaryPlayerId.value) return null
+  const primary = lolStore.players.find(p => p.id === primaryPlayerId.value)
+  return primary ? (primary.riotGamesNickname || primary.nickname) : null
+})
+
+const goToPrimaryPlayer = () => {
+  if (primaryPlayerId.value) {
+    router.push(`/summoner/${primaryPlayerId.value}`)
+  }
 }
 
 // Map Tailwind colors dynamically instead of old angular `mpX` ones

@@ -4,6 +4,7 @@ import { useRuntimeConfig } from '#app'
 import type { LeaguePlayer } from '~/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { useLolStore } from '~/stores/lol'
 
 const props = defineProps<{
   player: LeaguePlayer
@@ -23,6 +24,12 @@ const syncedAgoLabel = computed(() => {
   const date = new Date(props.player.lolRefreshedOn)
   if (isNaN(date.getTime())) return 'Jamais synchronisé'
   return 'Synchro il y a ' + formatDistanceToNow(date, { locale: fr })
+})
+
+const lolStore = useLolStore()
+const primaryPlayer = computed(() => {
+  if (!props.player.primaryPlayerId || props.player.primaryPlayerId === props.player.id) return null
+  return lolStore.players.find(p => p.id === props.player.primaryPlayerId)
 })
 </script>
 
@@ -47,19 +54,31 @@ const syncedAgoLabel = computed(() => {
             <h1 class="m-0 text-[26px] md:text-[34px] font-extrabold tracking-[-0.03em] leading-none text-text-main truncate">{{ player.riotGamesNickname || player.nickname }}</h1>
             <span v-if="player.riotGamesTagLine" class="text-lg font-semibold text-text-ter">#{{ player.riotGamesTagLine }}</span>
             <span v-if="player.archived" class="font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-surface-high border border-border-subtle text-text-ter">Archivé</span>
+            <NuxtLink v-if="primaryPlayer" :to="`/summoner/${primaryPlayer.id}`" class="font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-surface-high border border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-brand-gold-text transition-colors">
+              Smurf de {{ primaryPlayer.riotGamesNickname || primaryPlayer.nickname }}
+            </NuxtLink>
           </div>
           <div class="flex items-center gap-2.5 flex-wrap font-mono text-[10.5px] font-bold tracking-widest uppercase text-text-ter">
             <span>{{ syncedAgoLabel }}</span>
           </div>
-          <a
-            v-if="player.riotGamesNickname && player.riotGamesTagLine"
-            :href="`https://www.op.gg/summoners/euw/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
-            target="_blank"
-            class="inline-flex items-center gap-1 text-sm text-blue-500 hover:underline w-fit"
-          >
-            Accéder à OP.GG
-            <Icon name="lucide:external-link" class="text-xs" />
-          </a>
+          <div v-if="player.riotGamesNickname && player.riotGamesTagLine" class="flex flex-wrap items-center gap-2.5 mt-2">
+            <a
+              :href="`https://www.op.gg/summoners/euw/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
+              target="_blank"
+              class="group flex items-center justify-center w-8 h-8 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-0.5 hover:shadow-md"
+              title="Accéder à OP.GG"
+            >
+              <img src="https://www.google.com/s2/favicons?domain=op.gg&sz=64" alt="OP.GG" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+            </a>
+            <a
+              :href="`https://dpm.lol/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
+              target="_blank"
+              class="group flex items-center justify-center w-8 h-8 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-0.5 hover:shadow-md"
+              title="Accéder à DPM.LoL"
+            >
+              <img src="https://www.google.com/s2/favicons?domain=dpm.lol&sz=64" alt="DPM.LoL" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+            </a>
+          </div>
         </div>
       </div>
 

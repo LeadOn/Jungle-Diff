@@ -24,6 +24,7 @@ export interface LoLGameParticipantDto {
   player: {
     id: number;
     nickname: string;
+    primaryPlayerId?: number | null;
   } | null;
   puuid?: string;
   championId: number;
