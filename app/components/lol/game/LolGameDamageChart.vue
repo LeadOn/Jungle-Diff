@@ -5,15 +5,15 @@
       class="text-text-ter mb-3 flex items-center justify-end gap-4 text-xs"
     >
       <span class="flex items-center gap-1.5">
-        <span class="bg-brand-gold h-2 w-2 rounded-full"></span>
+        <span class="bg-brand-gold h-2 w-2 rounded-full"/>
         Physique
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="bg-blue-400 h-2 w-2 rounded-full"></span>
+        <span class="bg-blue-400 h-2 w-2 rounded-full"/>
         Magique
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="bg-text-main h-2 w-2 rounded-full"></span>
+        <span class="bg-text-main h-2 w-2 rounded-full"/>
         Brut
       </span>
     </div>
@@ -56,7 +56,7 @@
           <span
             class="h-2 w-2 shrink-0 rounded-full"
             :class="row.player.teamId === 100 ? 'bg-brand-green' : 'bg-brand-red'"
-          ></span>
+          />
           <UiAppImage
             :src="championIconUrl(row.player)"
             :alt="row.player.championName"
@@ -78,21 +78,21 @@
             <div
               class="bg-brand-gold h-full"
               :style="{ width: `${segmentPercent(row.physical, row.total)}%` }"
-            ></div>
+            />
             <div
               class="bg-blue-400 h-full"
               :style="{ width: `${segmentPercent(row.magic, row.total)}%` }"
-            ></div>
+            />
             <div
               class="bg-text-main h-full"
               :style="{ width: `${segmentPercent(row.trueDamage, row.total)}%` }"
-            ></div>
+            />
           </div>
           <div
             v-else
             class="bg-brand-red h-full rounded-full transition-all duration-500"
             :style="{ width: `${widthPercent(row.taken)}%` }"
-          ></div>
+          />
         </div>
 
         <span

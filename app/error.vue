@@ -26,14 +26,14 @@ const handleHome = () => clearError({ redirect: '/' })
   <div class="relative flex min-h-screen flex-col overflow-hidden">
     <div class="pointer-events-none absolute inset-0 z-0 flex justify-center overflow-hidden">
       <div class="relative h-full w-full max-w-[1200px]">
-        <div class="absolute right-[10%] top-[10%] h-[600px] w-[600px] rounded-full bg-(--color-glow) blur-[100px]"></div>
+        <div class="absolute right-[10%] top-[10%] h-[600px] w-[600px] rounded-full bg-(--color-glow) blur-[100px]"/>
       </div>
     </div>
 
     <div class="relative z-10 flex flex-grow flex-col">
       <header class="mx-auto flex w-full max-w-[1400px] items-center px-6 py-4 md:px-8 md:py-5">
         <NuxtLink to="/" class="flex items-center gap-2">
-          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Logo" class="h-8 w-8 object-contain drop-shadow-sm" />
+          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Logo" class="h-8 w-8 object-contain drop-shadow-sm" >
           <span class="font-sans text-lg font-extrabold tracking-tight text-text-main md:text-[22px]">JungleDiff</span>
         </NuxtLink>
       </header>

@@ -80,17 +80,17 @@ const positionClass = computed(() => {
     :class="[!isLoaded && !hasError ? 'bg-surface-high/30' : 'bg-transparent', positionClass]"
   >
     <img
-      ref="imgRef"
       v-show="src && !hasError"
+      ref="imgRef"
       :src="src || ''"
       :alt="alt"
       class="w-full h-full transition-opacity duration-500 ease-out"
       :class="[objectFitClass, { 'opacity-0': !isLoaded, 'opacity-100': isLoaded }]"
       @load="onLoad"
       @error="onError"
-    />
+    >
     <div v-if="hasError || (!src && !isLoaded)" class="absolute inset-0 flex items-center justify-center bg-surface-high/50 text-text-muted">
-      <img v-if="fallback" :src="fallback" :alt="alt" class="w-full h-full opacity-50 grayscale" :class="objectFitClass" />
+      <img v-if="fallback" :src="fallback" :alt="alt" class="w-full h-full opacity-50 grayscale" :class="objectFitClass" >
       <Icon v-else name="lucide:image-off" class="w-1/2 h-1/2 opacity-30" />
     </div>
   </div>

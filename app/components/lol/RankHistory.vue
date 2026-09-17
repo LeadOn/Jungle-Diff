@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { Chart, type ChartDataset } from 'chart.js/auto'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { Chart, type ChartDataset, type ScriptableContext, type TooltipItem } from 'chart.js/auto'
 import type { LeagueOfLegendsRank, LoLRankHistoryGranularity } from '~/lib/types'
 import { tierLabel, rankScore } from '~/utils/lol-tier'
+
+/**
+ * Each dataset carries the rank entry behind every point so the tooltip can render the tier and LP.
+ * Chart.js has no slot for custom dataset fields, hence this local extension of its own type.
+ */
+type RankDataset = ChartDataset<'line', (number | null)[]> & {
+  entries: (LeagueOfLegendsRank | null)[]
+}
 
 const props = defineProps<{
   rankHistory: LeagueOfLegendsRank[]
@@ -53,7 +61,7 @@ function hexToRgba(hex: string, alpha: number): string {
 
 const averageLinePlugin = {
   id: 'averageLine',
-  afterDatasetsDraw(chart: any) {
+  afterDatasetsDraw(chart: Chart<'line'>) {
     const { ctx, chartArea, scales } = chart
 
     if (chartArea == null) {
@@ -61,15 +69,20 @@ const averageLinePlugin = {
     }
 
     const values = chart.data.datasets
-      .flatMap((dataset: any) => dataset.data)
-      .filter((value: number | null) => value != null) as number[]
+      .flatMap(dataset => dataset.data)
+      .filter((value): value is number => typeof value === 'number')
 
     if (values.length === 0) {
       return
     }
 
     const average = values.reduce((a: number, b: number) => a + b, 0) / values.length
-    const y = scales['y'].getPixelForValue(average)
+    // The `y` scale is registered by the chart config below, but Chart.js types `scales` as a
+    // partial record: bail out rather than assert, so a future config change fails visibly here
+    // instead of throwing during a draw.
+    const yScale = scales.y
+    if (!yScale) return
+    const y = yScale.getPixelForValue(average)
 
     ctx.save()
     ctx.setLineDash([4, 4])
@@ -106,11 +119,10 @@ function rebuildChart() {
   const soloPoints = toPoints(props.rankHistory.filter((h) => h.queueType === 'RANKED_SOLO_5x5'))
   const flexPoints = toPoints(props.rankHistory.filter((h) => h.queueType === 'RANKED_FLEX_SR'))
 
-  // We are in tailwind v4, for simplicity assume dark mode colors
-  // The system handles dark mode class, ideally we'd detect it, but since jungle-diff forces dark/light we can just pick dark for now or rely on a media query.
-  // Actually, we can check if document.documentElement.classList.contains('dark')
-  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
-  const colors = isDark ? SERIES_COLORS.dark : SERIES_COLORS.light
+  // The theme is read through `isLightTheme()`: this block used to test a `.dark` class the app
+  // never sets, so the chart always rendered its light palette — including in dark mode, which is
+  // the default theme.
+  const colors = isLightTheme() ? SERIES_COLORS.light : SERIES_COLORS.dark
 
   const timestamps = Array.from(new Set([...soloPoints, ...flexPoints].map((p) => p.x))).sort((a, b) => a - b)
 
@@ -122,7 +134,7 @@ function rebuildChart() {
     }
   }
 
-  const buildDataset = (label: string, points: RankPoint[], color: string): ChartDataset<'line'> => {
+  const buildDataset = (label: string, points: RankPoint[], color: string): RankDataset => {
     const { data, entries } = alignToTimeline(points)
 
     let lastIndex = -1
@@ -138,7 +150,7 @@ function rebuildChart() {
       data,
       entries,
       borderColor: color,
-      backgroundColor: (context: any) => {
+      backgroundColor: (context: ScriptableContext<'line'>) => {
         const { ctx, chartArea } = context.chart
         if (!chartArea) return hexToRgba(color, 0.2)
         const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
@@ -150,16 +162,16 @@ function rebuildChart() {
       pointBackgroundColor: color,
       pointBorderColor: color,
       pointBorderWidth: 0,
-      pointRadius: (context: any) => (context.dataIndex === lastIndex ? 4 : 0),
+      pointRadius: (context: ScriptableContext<'line'>) => (context.dataIndex === lastIndex ? 4 : 0),
       pointHoverRadius: 5,
       tension: 0.35,
       cubicInterpolationMode: 'monotone',
       fill: true,
       spanGaps: true,
-    } as any
+    } satisfies RankDataset
   }
 
-  const datasets: ChartDataset<'line'>[] = []
+  const datasets: RankDataset[] = []
   if (soloPoints.length > 0) datasets.push(buildDataset('Solo 5v5', soloPoints, colors.solo))
   if (flexPoints.length > 0) datasets.push(buildDataset('Flex 5v5', flexPoints, colors.flex))
 
@@ -210,14 +222,14 @@ function rebuildChart() {
           cornerRadius: 6,
           displayColors: true,
           callbacks: {
-            title: (context: any[]) => {
+            title: (context: TooltipItem<'line'>[]) => {
               if (!context || !context[0]) return ''
               const timestamp = timestamps[context[0].dataIndex]
               if (!timestamp) return ''
               return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'long' }).format(new Date(timestamp))
             },
             label: (context) => {
-              const entry = (context.dataset as any).entries?.[context.dataIndex] as LeagueOfLegendsRank | null
+              const entry = (context.dataset as RankDataset).entries?.[context.dataIndex] ?? null
               if (entry == null) return ''
               return `${context.dataset.label}: ${tierLabel(entry)} · ${entry.leaguePoints} LP`
             },
@@ -245,6 +257,6 @@ onUnmounted(() => {
 
 <template>
   <div class="h-64 w-full">
-    <canvas ref="rankHistoryChart"></canvas>
+    <canvas ref="rankHistoryChart"/>
   </div>
 </template>

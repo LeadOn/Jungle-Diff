@@ -11,12 +11,12 @@
           />
           <div
             class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,var(--color-bg-base)_0%,var(--color-bg-base)_20%,color-mix(in_srgb,var(--color-bg-base)_60%,transparent)_46%,color-mix(in_srgb,var(--color-bg-base)_32%,transparent)_100%)]"
-          ></div>
+          />
         </template>
         <div
           class="pointer-events-none absolute inset-0"
           :class="tintClass"
-        ></div>
+        />
 
         <div class="relative flex flex-wrap items-center gap-x-5 gap-y-4">
           <div class="relative shrink-0">
@@ -77,7 +77,7 @@
 
     <div v-if="hasObjectives" class="rounded-2xl bg-surface-base border border-border-base shadow-sm divide-border-base mt-3 grid grid-cols-1 divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0">
       <div v-for="row in objectiveRows" :key="row.teamId" class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 p-4">
-        <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="row.dotClass"></span>
+        <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="row.dotClass"/>
         <span class="font-sans text-text-main text-xl font-bold">
           {{ row.objectives.kills }}
         </span>
@@ -117,7 +117,6 @@ import {
   GRUB_ICON_URL,
   HERALD_ICON_URL,
   INHIBITOR_ICON_URL,
-  type TeamObjectives,
   teamObjectivesFor,
   TOWER_ICON_URL,
 } from '~/utils/lol-timeline-event'

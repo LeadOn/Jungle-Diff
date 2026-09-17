@@ -37,12 +37,31 @@ const lolStore = useLolStore()
 const matchId = route.params.id as string
 const playerId = route.params.playerId ? Number(route.params.playerId) : undefined
 
-const { data: match, status, error, refresh } = await useAsyncData(`match-${matchId}`, 
+const { data: match, status, error, refresh } = await useAsyncData(
+  `match-${matchId}`,
   () => gameOnApi.getMatch(matchId)
 )
 
-const { data: timeline } = await useAsyncData(`timeline-${matchId}`, 
-  () => gameOnApi.getGameTimeline(matchId).catch(() => null)
+/**
+ * An unknown match is a genuine 404, raised here and not inside the handler: `useAsyncData`
+ * captures whatever the handler throws into `error`, so a `createError` raised in there would never
+ * reach Nuxt and the response would stay 200 — which is what made crawlers and monitoring probes
+ * treat an error page as a valid one.
+ *
+ * The empty check is not redundant: the GameOn API answers an unknown match id with `204 No
+ * Content` rather than a 404, which reaches us as a successful call carrying no data.
+ */
+if (error.value?.statusCode === 404 || !match.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Partie introuvable', fatal: true })
+}
+
+// The timeline enriches the page (replay, minimap, charts) but does not gate it: its absence
+// degrades the display instead of failing it.
+const { data: timeline } = await useAsyncData(`timeline-${matchId}`,
+  () => gameOnApi.getGameTimeline(matchId).catch((e: unknown) => {
+    console.error('[game] Timeline indisponible:', e)
+    return null
+  })
 )
 
 const team1 = computed(() => match.value?.leagueOfLegendsGameParticipants.filter((p: LoLGameParticipantDto) => p.teamId === 100) || [])
@@ -95,18 +114,18 @@ const acePuuid = computed(() => {
   return bestParticipant(losers, (p: LoLGameParticipantDto) => compositeScore(p, timeline.value || undefined))?.player.puuid
 })
 
-const selectedPlayer = ref<any>(undefined)
+const selectedPlayer = ref<LoLGameParticipantDto | undefined>(undefined)
 watch(heroPlayer, (newVal) => {
   if (newVal && !selectedPlayer.value) {
     selectedPlayer.value = newVal
   }
 }, { immediate: true })
 
-const onPlayerSelected = (playerOrPuuid: any) => {
-  let player = playerOrPuuid
-  if (typeof playerOrPuuid === 'string') {
-    player = allPlayers.value.find((p) => p.puuid === playerOrPuuid)
-  }
+const onPlayerSelected = (playerOrPuuid: LoLGameParticipantDto | string) => {
+  const player = typeof playerOrPuuid === 'string'
+    ? allPlayers.value.find((p: LoLGameParticipantDto) => p.puuid === playerOrPuuid)
+    : playerOrPuuid
+
   if (player) {
     selectedPlayer.value = player
   }
@@ -196,7 +215,7 @@ watch(timeline, (newVal) => {
             :selected-player="selectedPlayer"
             :mvp-puuid="mvpPuuid"
             :ace-puuid="acePuuid"
-            @playerSelected="onPlayerSelected"
+            @player-selected="onPlayerSelected"
           />
 
           <div class="mt-4 rounded-2xl bg-surface-base border border-border-base shadow-sm">
@@ -228,20 +247,20 @@ watch(timeline, (newVal) => {
 
               <div class="text-text-ter flex items-center gap-4 text-xs">
                 <span class="flex items-center gap-1.5">
-                  <span class="bg-brand-red h-2 w-2 rounded-full"></span>
+                  <span class="bg-brand-red h-2 w-2 rounded-full"/>
                   Éliminations
                 </span>
                 <span class="flex items-center gap-1.5">
-                  <span class="bg-brand-gold h-2 w-2 rounded-full"></span>
+                  <span class="bg-brand-gold h-2 w-2 rounded-full"/>
                   Objectifs
                 </span>
               </div>
             </div>
 
             <LolGameEventTimeline
+              v-model:current-frame-index="currentFrameIndex"
               :timeline="timeline || undefined"
               :players="allPlayers"
-              v-model:currentFrameIndex="currentFrameIndex"
               @play-progress-change="playProgress = $event"
             />
 

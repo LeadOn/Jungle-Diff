@@ -44,7 +44,7 @@ onMounted(() => {
       current += increment
       if (current >= target) {
         displayValue.value = props.value
-        if (timer) clearInterval(timer as any)
+        if (timer) clearInterval(timer)
       } else {
         displayValue.value = `${prefix}${current}${suffix}`
       }
@@ -54,7 +54,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (timer) {
-    clearInterval(timer as any)
+    clearInterval(timer)
   }
 })
 </script>

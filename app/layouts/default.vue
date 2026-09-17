@@ -3,7 +3,7 @@
     <!-- Subtle glow behind the page -->
     <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden flex justify-center">
       <div class="w-full max-w-[1200px] h-full relative">
-         <div class="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-(--color-glow) rounded-full blur-[100px]"></div>
+         <div class="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-(--color-glow) rounded-full blur-[100px]"/>
       </div>
     </div>
 

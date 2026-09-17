@@ -1,7 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Dark is the default theme: the `:root` tokens are dark and the `.light` class on <html> switches
+ * to the light palette. The variant declared here follows that convention.
+ *
+ * It previously declared `dark (&:is(.dark *))`, while the `.dark` class is never set anywhere, so
+ * every `dark:` utility in the project was silently inert.
+ */
+@custom-variant light (&:is(.light *));
 
 @theme {
   --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;

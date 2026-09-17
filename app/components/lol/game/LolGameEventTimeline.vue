@@ -13,13 +13,13 @@
       <div class="relative h-10 flex-1 cursor-pointer" @click="onTrackClick">
         <div
           class="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border-base light:bg-black/10"
-        ></div>
+        />
 
         <div
           v-if="frames.length > 1"
           class="bg-text-main/60 absolute top-0 h-full w-0.5 -translate-x-1/2"
           :style="{ left: `${playheadPercent}%` }"
-        ></div>
+        />
 
         <button
           v-for="marker in markers"
@@ -30,7 +30,7 @@
           :style="{ left: `${marker.leftPercent}%` }"
           :title="tooltipFor(marker)"
           @click="selectMarker(marker, $event)"
-        ></button>
+        />
       </div>
     </div>
 
@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import type { LoLGameTimelineFrame } from '~/lib/types/timeline'
 import { formatTimestamp } from '~/utils/lol-match'
@@ -60,8 +60,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:currentFrameIndex', value: number): void
-  (e: 'playProgressChange', value: number): void
+  (e: 'update:currentFrameIndex' | 'playProgressChange', value: number): void
 }>()
 
 interface Marker {

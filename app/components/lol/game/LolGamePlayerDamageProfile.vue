@@ -18,7 +18,7 @@
             <span
               class="h-2.5 w-2.5 shrink-0 rounded-sm"
               :class="row.dotClass"
-            ></span>
+            />
             {{ row.label }}
           </span>
           <span class="text-text-main text-[13px] font-semibold">
@@ -33,7 +33,7 @@
             class="h-full rounded-full"
             :class="row.barClass"
             :style="{ width: `${row.percent}%` }"
-          ></div>
+          />
         </div>
       </div>
     </div>

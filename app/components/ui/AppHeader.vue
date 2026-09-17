@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { usePlayerStore } from '~/stores/player'
 import { useRuntimeConfig } from '#app'
+import { applyTheme, isLightTheme } from '~/utils/theme'
 
 const authStore = useAuthStore()
 const playerStore = usePlayerStore()
@@ -10,43 +11,58 @@ const config = useRuntimeConfig()
 const isMobileMenuOpen = ref(false)
 const isLight = ref(false)
 
+// The current player only feeds the header pill: abort the request if the header goes away before
+// the response, rather than leaving a pending state write behind.
+const profileRequest = new AbortController()
+
 onMounted(() => {
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light') {
-    isLight.value = true
-    document.documentElement.classList.add('light')
-  }
-  
+  // `public/theme-init.js` already set the class before render; here we only mirror the document's
+  // actual state into the component.
+  isLight.value = isLightTheme()
+
   if (authStore.isAuthenticated) {
-    playerStore.fetchCurrentPlayer()
+    playerStore.fetchCurrentPlayer(false, profileRequest.signal)
   }
+})
+
+onBeforeUnmount(() => {
+  profileRequest.abort()
+  document.body.style.overflow = ''
 })
 
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
-    playerStore.fetchCurrentPlayer()
+    playerStore.fetchCurrentPlayer(false, profileRequest.signal)
   } else {
-    playerStore.setCurrentPlayer(null as any) // Clear on logout
+    playerStore.setCurrentPlayer(null)
   }
 })
 
 watch(isMobileMenuOpen, (isOpen) => {
-  if (isOpen) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
-  }
+  document.body.style.overflow = isOpen ? 'hidden' : ''
 })
+
+const avatarUrl = computed(() => {
+  const player = playerStore.currentPlayer
+  if (!player?.profilePictureUrl) return null
+  return `${config.public.gameOnApiUrl}/player/${player.id}/pp`
+})
+
+const avatarInitial = computed(() => {
+  const source = playerStore.currentPlayer?.nickname || authStore.displayName
+  return source?.charAt(0).toUpperCase() || '?'
+})
+
+const profileLabel = computed(() =>
+  playerStore.currentPlayer?.fullName
+  || playerStore.currentPlayer?.nickname
+  || authStore.displayName
+  || 'Mon profil'
+)
 
 const toggleTheme = () => {
   isLight.value = !isLight.value
-  if (isLight.value) {
-    document.documentElement.classList.add('light')
-    localStorage.setItem('theme', 'light')
-  } else {
-    document.documentElement.classList.remove('light')
-    localStorage.setItem('theme', 'dark')
-  }
+  applyTheme(isLight.value ? 'light' : 'dark')
 }
 </script>
 
@@ -55,7 +71,7 @@ const toggleTheme = () => {
     <!-- Logo -->
     <NuxtLink to="/" class="flex items-center gap-2 w-auto md:w-[200px]" @click="isMobileMenuOpen = false">
       <div class="w-8 h-8 flex items-center justify-center">
-        <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Logo" class="w-full h-full object-contain drop-shadow-sm" />
+        <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Logo" class="w-full h-full object-contain drop-shadow-sm" >
       </div>
       <span class="font-extrabold text-lg md:text-[22px] tracking-tight text-text-main">JungleDiff</span>
     </NuxtLink>
@@ -69,7 +85,7 @@ const toggleTheme = () => {
     <!-- Right Actions -->
     <div class="flex items-center justify-end gap-2 md:gap-3 w-auto md:w-[200px]">
       <!-- Theme toggle button -->
-      <button @click="toggleTheme" class="hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-surface-base shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer">
+      <button class="hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-surface-base shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer" @click="toggleTheme">
         <Icon v-if="isLight" name="lucide:moon" class="text-[16px]" style="stroke-width: 2.5px;" />
         <Icon v-else name="lucide:sun" class="text-[16px]" style="stroke-width: 2.5px;" />
       </button>
@@ -78,23 +94,23 @@ const toggleTheme = () => {
       <ClientOnly>
         <NuxtLink v-if="authStore.isAuthenticated" to="/settings" class="flex items-center gap-2 pl-1 pr-1 sm:pr-3 py-1 bg-surface-base shadow-sm border border-border-base rounded-full cursor-pointer hover:bg-surface-high transition-colors h-9">
           <div class="w-7 h-7 rounded-full bg-brand-gold text-brand-gold-text flex items-center justify-center text-xs font-bold overflow-hidden border border-border-subtle shadow-inner">
-            <UiAppImage v-if="playerStore.currentPlayer?.profilePictureUrl" :src="`${config.public.gameOnApiUrl}/player/${playerStore.currentPlayer.id}/pp`" alt="Avatar" class="w-full h-full object-cover" />
-            <span v-else>{{ playerStore.currentPlayer?.nickname?.charAt(0).toUpperCase() || (authStore.user as any)?.profile?.preferred_username?.charAt(0).toUpperCase() || 'V' }}</span>
+            <UiAppImage v-if="avatarUrl" :src="avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+            <span v-else>{{ avatarInitial }}</span>
           </div>
           <span class="text-[13px] font-bold text-text-main hidden sm:block truncate max-w-[150px]">
-            {{ playerStore.currentPlayer?.fullName || playerStore.currentPlayer?.nickname || (authStore.user as any)?.profile?.preferred_username || 'Valentin' }}
+            {{ profileLabel }}
           </span>
         </NuxtLink>
         <button v-else class="flex items-center gap-2 px-4 py-1.5 bg-brand-gold text-brand-gold-text shadow-sm rounded-full cursor-pointer hover:opacity-90 transition-opacity h-9" @click="authStore.login()">
           <span class="text-[13px] font-bold">Se connecter</span>
         </button>
         <template #fallback>
-          <div class="w-24 h-9 bg-surface-base rounded-full animate-pulse border border-border-base"></div>
+          <div class="w-24 h-9 bg-surface-base rounded-full animate-pulse border border-border-base"/>
         </template>
       </ClientOnly>
 
       <!-- Mobile Menu Toggle -->
-      <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-surface-base shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer ml-1">
+      <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-surface-base shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer ml-1" @click="isMobileMenuOpen = !isMobileMenuOpen">
         <Icon v-if="!isMobileMenuOpen" name="lucide:menu" class="text-[18px]" style="stroke-width: 2.5px;" />
         <Icon v-else name="lucide:x" class="text-[18px]" style="stroke-width: 2.5px;" />
       </button>
@@ -107,7 +123,7 @@ const toggleTheme = () => {
     
     <div class="mt-auto pt-6 border-t border-border-base flex items-center justify-between">
       <span class="text-sm font-bold text-text-sec">Thème (Clair / Sombre)</span>
-      <button @click="toggleTheme" class="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-high shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer">
+      <button class="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-high shadow-sm border border-border-base text-text-sec hover:bg-surface-high transition-colors cursor-pointer" @click="toggleTheme">
         <Icon v-if="isLight" name="lucide:moon" class="text-[20px]" style="stroke-width: 2.5px;" />
         <Icon v-else name="lucide:sun" class="text-[20px]" style="stroke-width: 2.5px;" />
       </button>

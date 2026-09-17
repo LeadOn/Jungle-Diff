@@ -9,7 +9,7 @@
           <span
             class="h-2.5 w-2.5 shrink-0 rounded-full"
             :class="side.dotClass"
-          ></span>
+          />
           <span class="text-text-main font-semibold">{{ side.label }}</span>
           <span
             class="text-sm font-semibold"
@@ -33,7 +33,7 @@
         <span class="hidden min-[520px]:block w-[104px] shrink-0">Économie</span>
         <span class="hidden min-[1100px]:block w-[58px] shrink-0">Vision</span>
         <span class="hidden min-[660px]:block w-[196px] shrink-0">Objets</span>
-        <span class="w-7 shrink-0"></span>
+        <span class="w-7 shrink-0"/>
       </div>
 
       <div class="divide-border-base divide-y">

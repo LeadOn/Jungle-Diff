@@ -68,7 +68,7 @@ const primaryPlayer = computed(() => {
               class="group flex items-center justify-center w-8 h-8 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-0.5 hover:shadow-md"
               title="Accéder à OP.GG"
             >
-              <img src="https://www.google.com/s2/favicons?domain=op.gg&sz=64" alt="OP.GG" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              <img src="/img/external/opgg.png" alt="OP.GG" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" >
             </a>
             <a
               :href="`https://dpm.lol/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
@@ -76,7 +76,7 @@ const primaryPlayer = computed(() => {
               class="group flex items-center justify-center w-8 h-8 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-0.5 hover:shadow-md"
               title="Accéder à DPM.LoL"
             >
-              <img src="https://www.google.com/s2/favicons?domain=dpm.lol&sz=64" alt="DPM.LoL" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              <img src="/img/external/dpmlol.png" alt="DPM.LoL" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" >
             </a>
           </div>
         </div>
