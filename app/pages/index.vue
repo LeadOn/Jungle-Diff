@@ -4,40 +4,62 @@ import { useRouter, useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
 import type { LoLFunStatDto } from '~/lib/types/home'
-import type { LeaguePlayer } from '~/lib/types/player'
 import StatCard from '~/components/home/StatCard.vue'
 import LadderTable from '~/components/home/LadderTable.vue'
 import RecentGames from '~/components/home/RecentGames.vue'
 import SideCard from '~/components/home/SideCard.vue'
 import { getChampionIconUrl } from '~/utils/ddragon'
 import { AWARD_MAPPINGS, PRIORITY_KEYS } from '~/utils/lol-awards'
+import type { AwardMeta, LoLGlobalStatAwardKey } from '~/utils/lol-awards'
+import { cacheOnlyDuringHydration } from '~/utils/async-data'
+import { findPlayerByName } from '~/utils/player-search'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
 const router = useRouter()
 const searchName = ref('')
 const isSearchFocused = ref(false)
+const searchError = ref<string | null>(null)
 
-await useAsyncData('homeStats', () => store.fetchHomeStats())
-await useAsyncData('players', () => store.fetchPlayers())
-await useAsyncData('lastMatches', () => store.fetchLastMatches())
+// The handler replays on every return to the home page (see cacheOnlyDuringHydration); the store's
+// freshness window is what decides whether the API actually needs to be called again.
+const freshOnNavigation = { getCachedData: cacheOnlyDuringHydration }
+
+const { error: homeStatsError } = await useAsyncData('homeStats', () => store.fetchHomeStats(), freshOnNavigation)
+await useAsyncData('players', () => store.fetchPlayers(), freshOnNavigation)
+await useAsyncData('lastMatches', () => store.fetchLastMatches(), freshOnNavigation)
 
 useSeoMeta({
   title: 'Accueil',
   description: 'Retrouvez les statistiques, le classement et l\'historique récent du Crew JungleDiff.'
 })
 
-const hasApiError = computed(() => store.homeStats === null)
+// The error surfaced by `useAsyncData` is authoritative. The check used to be `homeStats === null`,
+// which could not tell "the API is down" apart from "the API answered, there is nothing to show".
+const hasApiError = computed(() => homeStatsError.value != null)
 
-onMounted(async () => {
-  // Ensure queues are loaded
-  await store.fetchQueues()
+onMounted(() => {
+  // Queue labels gate no blocking render, so they load off the critical path.
+  store.fetchQueues()
 })
 
+/**
+ * The GameOn API has no search-by-name (only `GET /lol/summoner/{id:int}` exists), and the crew
+ * fits in the list already loaded for the ladder, so the nickname is resolved locally before
+ * navigating. Pushing the raw nickname into the URL always led to an empty page.
+ */
 const onSearch = () => {
-  if (searchName.value.trim()) {
-    router.push(`/summoner/${encodeURIComponent(searchName.value)}`)
+  const query = searchName.value.trim()
+  searchError.value = null
+  if (!query) return
+
+  const player = findPlayerByName(store.players, query)
+  if (!player) {
+    searchError.value = `Aucun joueur du crew ne correspond à « ${query} ».`
+    return
   }
+
+  router.push(`/summoner/${player.id}`)
 }
 
 const netLpFormatted = computed(() => {
@@ -100,9 +122,9 @@ const topAwards = computed(() => {
   const records = store.homeStats?.crewRecords
   if (!records) return []
   
-  const results: Array<{ key: string, stat: LoLFunStatDto, meta: any }> = []
+  const results: Array<{ key: LoLGlobalStatAwardKey, stat: LoLFunStatDto, meta: AwardMeta }> = []
   for (const key of PRIORITY_KEYS) {
-    const stat = (records as any)[key] as LoLFunStatDto | null
+    const stat = records[key]
     const meta = AWARD_MAPPINGS[key]
     if (stat && meta) {
       results.push({ key, stat, meta })
@@ -149,23 +171,29 @@ const topChampions = computed(() => {
       <!-- Left text & search -->
       <div class="w-full md:w-2/3 flex flex-col items-start text-left">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-accent bg-surface-high text-text-ter font-mono text-[10.5px] font-bold mb-6 tracking-[0.1em] uppercase">
-          <span class="w-1.5 h-1.5 rounded-full bg-brand-gold"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-gold"/>
           EUW · PATCH {{ patchStore.currentPatch }}
         </div>
         
         <h1 class="text-[44px] md:text-7xl lg:text-[80px] font-extrabold text-text-main leading-none mb-6 tracking-[-0.03em]">
-          Dominez la Faille,<br />analysez vos résultats.
+          Dominez la Faille,<br >analysez vos résultats.
         </h1>
         
         <p class="text-lg text-text-sec mb-10 max-w-[500px] leading-relaxed font-medium">
           Ranks, forme, historique et records — mis à jour à chaque fin de partie.
         </p>
         
+        <!--
+          Search is deliberately hidden: the suggestions panel below is still placeholder content.
+          The resolution logic (`onSearch`) is however functional — removing this `v-if` and the
+          mock suggestions is all it takes to enable it.
+        -->
         <div v-if="false" class="flex items-center gap-6 w-full flex-wrap relative z-50">
           <div class="relative w-full max-w-full md:max-w-[380px]">
-            <form @submit.prevent="onSearch" 
-                  class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300"
-                  :class="isSearchFocused ? 'border-brand-gold ring-4 ring-brand-gold/10' : 'border-border-base hover:border-border-accent'">
+            <form
+class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300" 
+                  :class="isSearchFocused ? 'border-brand-gold ring-4 ring-brand-gold/10' : 'border-border-base hover:border-border-accent'"
+                  @submit.prevent="onSearch">
               <div class="pl-4 pr-2 text-text-ter flex items-center justify-center">
                 <Icon name="lucide:search" class="text-[18px] opacity-80" style="stroke-width: 2.5px;" />
               </div>
@@ -174,14 +202,18 @@ const topChampions = computed(() => {
                 type="text" 
                 placeholder="Riot ID (Pseudo#TAG)"
                 aria-label="Rechercher un invocateur par Riot ID"
+                class="flex-1 bg-transparent border-none outline-none text-text-main placeholder-text-ter px-2 font-bold text-sm w-full"
                 @focus="isSearchFocused = true"
                 @blur="isSearchFocused = false"
-                class="flex-1 bg-transparent border-none outline-none text-text-main placeholder-text-ter px-2 font-bold text-sm w-full"
               >
               <button type="submit" class="px-6 py-2 bg-brand-gold hover:opacity-90 text-brand-gold-text rounded-full font-bold transition-opacity shadow-sm text-sm">
                 Chercher
               </button>
             </form>
+
+            <p v-if="searchError" class="mt-2 px-4 text-[13px] font-medium text-brand-red">
+              {{ searchError }}
+            </p>
 
             <!-- Search Suggestions Overlay (Mock) -->
             <div v-if="isSearchFocused" class="absolute z-50 top-[calc(100%+8px)] left-0 w-full bg-surface-base border border-border-base rounded-2xl shadow-xl overflow-hidden py-2 animate-fade-in-up" style="animation-delay: 0ms;">
@@ -215,9 +247,9 @@ const topChampions = computed(() => {
       <div class="w-full md:w-1/3 flex flex-col items-center justify-center relative">
         <div class="relative w-64 h-64 md:w-[230px] md:h-[230px] flex items-center justify-center mb-8">
           <!-- Soft glow behind character -->
-          <div class="absolute inset-0 bg-brand-gold rounded-full blur-[80px] opacity-10"></div>
-          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Hero" class="relative z-10 w-full h-full object-contain drop-shadow-2xl animate-float" />
-          <div class="absolute -bottom-4 w-32 h-4 bg-(--color-mascot-shadow) blur-xl rounded-full"></div>
+          <div class="absolute inset-0 bg-brand-gold rounded-full blur-[80px] opacity-10"/>
+          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Hero" class="relative z-10 w-full h-full object-contain drop-shadow-2xl animate-float" >
+          <div class="absolute -bottom-4 w-32 h-4 bg-(--color-mascot-shadow) blur-xl rounded-full"/>
         </div>
       </div>
     </div>
@@ -250,7 +282,7 @@ const topChampions = computed(() => {
           title="WINRATE DU CREW" 
           :value="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) + ' %'" 
           :subtitle="(store.homeStats?.weeklyActivity.winsThisWeek ?? 0) + ' victoires - ' + (store.homeStats?.weeklyActivity.lossesThisWeek ?? 0) + ' défaites'" 
-          :valueClass="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) >= 50 ? 'text-brand-green' : 'text-brand-red'" 
+          :value-class="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) >= 50 ? 'text-brand-green' : 'text-brand-red'" 
         />
       </div>
       <div class="animate-fade-in-up relative" style="animation-delay: 200ms;">
@@ -258,7 +290,7 @@ const topChampions = computed(() => {
           title="LP NETS" 
           :value="netLpFormatted" 
           subtitle="Cumul du crew cette semaine" 
-          :valueClass="netLpColor" 
+          :value-class="netLpColor" 
         />
       </div>
       <div class="animate-fade-in-up relative" style="animation-delay: 250ms;">
@@ -297,7 +329,7 @@ const topChampions = computed(() => {
         
         <!-- Records du crew -->
         <div v-if="topAwards.length > 0" class="relative">
-          <SideCard title="Records de la semaine" badge="Voir tout" badgeLink="/stats">
+          <SideCard title="Records de la semaine" badge="Voir tout" badge-link="/stats">
             <div class="flex flex-col gap-4 mt-4">
               <template v-for="(award, index) in topAwards" :key="award.key">
                 <div class="flex items-center justify-between">
@@ -307,7 +339,7 @@ const topChampions = computed(() => {
                   </div>
                   <div class="text-[16px] font-black tabular-nums" :class="award.meta.color">{{ award.stat.value }}{{ award.meta.unit }}</div>
                 </div>
-                <div v-if="index < topAwards.length - 1" class="w-full h-px bg-border-subtle"></div>
+                <div v-if="index < topAwards.length - 1" class="w-full h-px bg-border-subtle"/>
               </template>
             </div>
           </SideCard>
@@ -324,7 +356,7 @@ const topChampions = computed(() => {
                 <div class="flex-grow">
                   <div class="font-extrabold text-[13px] text-text-main">{{ formatChampionName(champ.championName) }}</div>
                   <div class="w-full bg-border-subtle rounded-full h-1 mt-1.5 overflow-hidden">
-                    <div class="h-1 rounded-full" :class="champ.winRate >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: champ.winRate + '%' }"></div>
+                    <div class="h-1 rounded-full" :class="champ.winRate >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: champ.winRate + '%' }"/>
                   </div>
                 </div>
                 <div class="text-right flex flex-col justify-end h-full">

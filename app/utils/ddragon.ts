@@ -1,6 +1,6 @@
 /**
- * Transforme "14.22.x.x" en un score numérique (ex: 14022) pour calculer les distances.
- * On multiplie la majeure par 1000 pour être sûr de couvrir les mineures à 2 chiffres.
+ * Turns "14.22.x.x" into a numeric score (e.g. 14022) so distances can be compared.
+ * The major is multiplied by 1000 to be sure two-digit minors are covered.
  */
 const getPatchScore = (version: string): number => {
   const parts = version.split('.')
@@ -38,7 +38,7 @@ export function resolveDdragonPatchForGame(gameVersion: string | undefined | nul
       closestPatch = patch
     }
     
-    // Si distance 0 (majeur et mineur correspondent exactement), on arrête
+    // Distance 0 (major and minor match exactly): stop here
     if (diff === 0) {
       break
     }
@@ -48,7 +48,7 @@ export function resolveDdragonPatchForGame(gameVersion: string | undefined | nul
 }
 
 /**
- * Génère l'URL d'icône d'un champion.
+ * Builds a champion icon URL.
  */
 export function getChampionIconUrl(championName: string, patch: string): string {
   if (!championName) return ''
@@ -56,7 +56,7 @@ export function getChampionIconUrl(championName: string, patch: string): string 
 }
 
 /**
- * Génère l'URL d'icône d'un item.
+ * Builds an item icon URL.
  */
 export function getItemIconUrl(itemId: string | number, patch: string): string {
   if (!itemId || itemId === 0 || itemId === '0') return ''
@@ -64,7 +64,7 @@ export function getItemIconUrl(itemId: string | number, patch: string): string {
 }
 
 /**
- * Génère l'URL d'icône de profil d'un joueur.
+ * Builds a player profile icon URL.
  */
 export function getProfileIconUrl(iconId: string | number, patch: string): string {
   if (iconId == null) return ''

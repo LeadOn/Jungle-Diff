@@ -35,8 +35,8 @@
             <span
               class="h-2 w-2 shrink-0 rounded-full"
               :class="row.player.teamId === 100 ? 'bg-brand-green' : 'bg-brand-red'"
-            ></span>
-            <img
+            />
+            <UiAppImage
               :src="championIconUrl(row.player)"
               :alt="row.player.championName"
               class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
@@ -53,7 +53,7 @@
               class="h-full rounded-full transition-all duration-500"
               :class="row.player.teamId === 100 ? 'bg-brand-green' : 'bg-brand-red'"
               :style="{ width: `${widthPercent(row.value)}%` }"
-            ></div>
+            />
           </div>
 
           <span

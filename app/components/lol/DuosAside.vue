@@ -31,7 +31,7 @@ const duos = computed(() => props.stats?.duoStats ?? [])
     <div v-else class="flex flex-col gap-3.5">
       <div v-for="d in duos" :key="d.player.id" class="flex items-center gap-3">
         <div class="w-8 h-8 shrink-0 rounded-md overflow-hidden border border-border-subtle bg-surface-high">
-          <img v-if="d.player.lolIconId" :src="`https://ddragon.leagueoflegends.com/cdn/${patchStore.currentPatch}/img/profileicon/${d.player.lolIconId}.png`" :alt="d.player.riotGamesNickname || d.player.nickname" class="w-full h-full object-cover" >
+          <UiAppImage v-if="d.player.lolIconId" :src="`https://ddragon.leagueoflegends.com/cdn/${patchStore.currentPatch}/img/profileicon/${d.player.lolIconId}.png`" :alt="d.player.riotGamesNickname || d.player.nickname" class="w-full h-full object-cover"  />
           <div v-else class="w-full h-full bg-surface-high flex items-center justify-center">
             <Icon name="lucide:user" class="h-4 w-4 text-text-ter" />
           </div>

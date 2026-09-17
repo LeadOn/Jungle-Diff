@@ -35,7 +35,7 @@ function formatKda(value: number) {
     <div v-else class="flex flex-col gap-3.5">
       <div v-for="c in champs" :key="c.championName" class="flex items-center gap-3">
         <div class="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-border-accent bg-surface-high">
-          <img :src="getChampionIconUrl(c.championName, patchStore.currentPatch)" :alt="c.championName" class="w-full h-full object-cover" >
+          <UiAppImage :src="getChampionIconUrl(c.championName, patchStore.currentPatch)" :alt="c.championName" class="w-full h-full object-cover"  />
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex items-baseline justify-between gap-2">

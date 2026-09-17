@@ -9,7 +9,7 @@
       :class="pillClass(player)"
       @click="select(player)"
     >
-      <img
+      <UiAppImage
         :src="championIconUrl(player)"
         :alt="player.championName"
         class="h-7 w-7 shrink-0 rounded-full object-cover ring-2"

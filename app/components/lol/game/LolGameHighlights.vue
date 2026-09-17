@@ -23,7 +23,10 @@
       </div>
 
       <div v-if="!card.player">
-        <p class="text-text-ter mt-4 text-xs">Pas assez de données.</p>
+        <p class="font-heading text-text-ter mt-4 text-3xl font-bold">&mdash;</p>
+        <p class="border-border-base text-text-ter mt-4 border-t pt-3 text-xs">
+          Pas assez de données.
+        </p>
       </div>
       <div v-else>
         <p
@@ -34,7 +37,7 @@
         </p>
 
         <div class="border-border-base mt-4 flex items-center gap-2 border-t pt-3">
-          <img
+          <UiAppImage
             :src="championIconUrl(card.player)"
             :alt="card.player.championName"
             class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
@@ -166,10 +169,18 @@ interface HighlightCard {
   value: number
 }
 
-const cards = computed(() => {
+/**
+ * `bestParticipant` only sorts: when every participant scores 0 it still returns whoever ends up
+ * first, which crowned a random player. Custom games imported from the LoL client carry none of
+ * the ping or shop counters, and a Riot game where nobody bought a consumable hits the same case.
+ * A card is only awarded on a value strictly above 0; below that it stays empty.
+ */
+const cards = computed<HighlightCard[]>(() => {
   return CONFIGS.map((config) => {
     const best = bestParticipant(props.players, (p) => config.valueFn(p, props.timeline, props.durationSeconds))
-    return { config, player: best?.player, value: best?.value ?? 0 }
+    if (best == null || best.value <= 0) return { config, value: 0 }
+
+    return { config, player: best.player, value: best.value }
   })
 })
 

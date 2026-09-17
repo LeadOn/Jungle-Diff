@@ -15,7 +15,7 @@
           {{ row.rank + 1 }}
         </span>
 
-        <img
+        <UiAppImage
           :src="championIconUrl(row.player)"
           alt=""
           class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
@@ -35,7 +35,7 @@
             class="h-full rounded-full"
             :class="row.player.teamId === 100 ? 'bg-brand-green' : 'bg-brand-red'"
             :style="{ width: `${row.widthPercent}%` }"
-          ></div>
+          />
         </div>
 
         <span

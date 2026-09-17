@@ -10,16 +10,16 @@
       <!-- Queue Toggle -->
       <div class="flex bg-surface-high rounded-full p-1 border border-border-subtle w-fit">
         <button 
-          @click="activeQueue = 'solo'"
           class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
           :class="activeQueue === 'solo' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
+          @click="activeQueue = 'solo'"
         >
           Solo/Duo
         </button>
         <button 
-          @click="activeQueue = 'flex'"
           class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
           :class="activeQueue === 'flex' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
+          @click="activeQueue = 'flex'"
         >
           Flex
         </button>
@@ -40,26 +40,36 @@
           </tr>
         </thead>
         <tbody class="text-sm">
-          <tr v-for="(player, i) in sortedPlayers" :key="player.id" @click="goToPlayer(player.id)" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group cursor-pointer">
+          <tr v-for="(player, i) in sortedPlayers" :key="player.id" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group cursor-pointer" @click="goToPlayer(player.id)">
             <td class="py-3.5 font-bold" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : 'text-text-ter'">{{ i + 1 }}</td>
             <td class="py-3.5">
               <div class="flex items-center gap-3">
                 <div v-if="player.iconUrl" class="w-8 h-8 rounded-md overflow-hidden shadow-sm flex-shrink-0 border border-border-subtle">
-                  <img :src="player.iconUrl" alt="Profile Icon" class="w-full h-full object-cover" />
+                  <UiAppImage :src="player.iconUrl" alt="Profile Icon" class="w-full h-full object-cover" />
                 </div>
                 <div v-else class="w-8 h-8 rounded-md flex items-center justify-center text-xs font-black shadow-sm flex-shrink-0" :style="{ backgroundColor: getTierColor(player.queues[activeQueue]?.tier, 0.15), color: getTierColor(player.queues[activeQueue]?.tier, 1), border: `1px solid ${getTierColor(player.queues[activeQueue]?.tier, 0.3)}` }">
                   {{ player.initial }}
                 </div>
                 <div>
-                  <div class="font-bold text-[13px] text-text-main leading-tight" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : ''">{{ player.name }}</div>
+                  <div class="font-bold text-[13px] text-text-main leading-tight flex items-center gap-1.5" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : ''">
+                    {{ player.name }}
+                    <div v-if="player.isSmurf" class="group/smurf relative flex items-center cursor-help" @click.stop="goToPlayer(player.primaryPlayerId!)">
+                      <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-surface-high border border-brand-gold text-brand-gold transition-colors hover:bg-brand-gold hover:text-brand-gold-text">
+                        <Icon name="lucide:bot" class="w-2.5 h-2.5" />
+                      </span>
+                      <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/smurf:block whitespace-nowrap bg-surface-high border border-border-subtle rounded px-2 py-1 text-[10px] font-bold text-text-main z-10 shadow-lg">
+                        Smurf de <span class="text-brand-gold">{{ player.primaryPlayerName || 'Inconnu' }}</span>
+                      </div>
+                    </div>
+                  </div>
                   <div class="text-[11px] text-text-ter font-medium">{{ player.tag }}</div>
                 </div>
               </div>
             </td>
             <td class="py-3.5">
-              <div class="flex items-center gap-2.5" v-if="player.queues[activeQueue]">
+              <div v-if="player.queues[activeQueue]" class="flex items-center gap-2.5">
                 <div class="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                  <img :src="getTierIconUrl(player.queues[activeQueue]?.tier)" alt="Rank Icon" class="w-full h-full object-contain drop-shadow-sm" />
+                  <UiAppImage :src="getTierIconUrl(player.queues[activeQueue]?.tier)" alt="Rank Icon" class="w-full h-full object-contain drop-shadow-sm" />
                 </div>
                 <div>
                   <div class="font-extrabold text-[13px] text-text-main leading-tight">{{ player.queues[activeQueue]?.rankLabel }}</div>
@@ -68,7 +78,7 @@
               </div>
               <div v-else class="flex items-center gap-2.5">
                 <div class="w-8 h-8 flex items-center justify-center flex-shrink-0 opacity-50 grayscale">
-                  <img :src="getTierIconUrl('UNRANKED')" alt="Unranked" class="w-full h-full object-contain" />
+                  <UiAppImage :src="getTierIconUrl('UNRANKED')" alt="Unranked" class="w-full h-full object-contain" />
                 </div>
                 <div class="text-[13px] font-bold text-text-ter italic">
                   Non classé
@@ -76,19 +86,19 @@
               </div>
             </td>
             <td class="py-3.5">
-              <div class="flex gap-1" v-if="player.queues[activeQueue]">
-                <span v-for="(win, j) in player.queues[activeQueue]?.form" :key="j" class="w-2 h-3.5 rounded-[2px]" :class="win ? 'bg-brand-green' : 'bg-brand-red opacity-80'"></span>
+              <div v-if="player.queues[activeQueue]" class="flex gap-1">
+                <span v-for="(win, j) in player.queues[activeQueue]?.form" :key="j" class="w-2 h-3.5 rounded-[2px]" :class="win ? 'bg-brand-green' : 'bg-brand-red opacity-80'"/>
               </div>
               <div v-else class="text-text-ter">-</div>
             </td>
             <td class="py-3.5">
-              <div class="flex flex-col gap-1 w-full max-w-[100px]" v-if="player.queues[activeQueue]">
+              <div v-if="player.queues[activeQueue]" class="flex flex-col gap-1 w-full max-w-[100px]">
                 <div class="flex items-center justify-between">
                   <div class="font-extrabold text-[13px]" :class="(player.queues[activeQueue]?.winrate ?? 0) >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ player.queues[activeQueue]?.winrate }}%</div>
                   <div class="font-mono text-[10px] font-bold text-text-ter">{{ player.queues[activeQueue]?.v }}V {{ player.queues[activeQueue]?.d }}D</div>
                 </div>
                 <div class="w-full bg-border-subtle rounded-full h-1 overflow-hidden">
-                  <div class="h-1 rounded-full transition-all duration-1000 ease-out" :class="(player.queues[activeQueue]?.winrate ?? 0) >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: `${player.queues[activeQueue]?.winrate ?? 0}%` }"></div>
+                  <div class="h-1 rounded-full transition-all duration-1000 ease-out" :class="(player.queues[activeQueue]?.winrate ?? 0) >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: `${player.queues[activeQueue]?.winrate ?? 0}%` }"/>
                 </div>
               </div>
               <div v-else class="text-text-ter">-</div>
@@ -138,9 +148,14 @@ const mappedPlayers = computed(() => {
     const flex = p.leagueOfLegendsFlexRank
     
     const capitalizeTier = (tier: string) => tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase()
+    
+    const primaryPlayer = p.primaryPlayerId ? props.players?.find(pl => pl.id === p.primaryPlayerId) : null
 
     return {
       id: p.id,
+      isSmurf: !!p.primaryPlayerId && p.primaryPlayerId !== p.id && p.primaryPlayerId !== 0,
+      primaryPlayerId: p.primaryPlayerId,
+      primaryPlayerName: primaryPlayer ? (primaryPlayer.riotGamesNickname || primaryPlayer.nickname) : null,
       initial: p.nickname.charAt(0).toUpperCase(),
       iconUrl: p.lolIconId != null ? `https://ddragon.leagueoflegends.com/cdn/${patchStore.currentPatch}/img/profileicon/${p.lolIconId}.png` : null,
       name: p.riotGamesNickname || p.nickname,

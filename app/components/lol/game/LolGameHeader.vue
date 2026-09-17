@@ -3,7 +3,7 @@
     <div class="relative">
       <div class="relative p-5 rounded-2xl bg-surface-base border shadow-sm overflow-hidden" :class="frameClass">
         <template v-if="splashUrl">
-          <img
+          <UiAppImage
             :src="splashUrl"
             alt=""
             aria-hidden="true"
@@ -11,16 +11,16 @@
           />
           <div
             class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,var(--color-bg-base)_0%,var(--color-bg-base)_20%,color-mix(in_srgb,var(--color-bg-base)_60%,transparent)_46%,color-mix(in_srgb,var(--color-bg-base)_32%,transparent)_100%)]"
-          ></div>
+          />
         </template>
         <div
           class="pointer-events-none absolute inset-0"
           :class="tintClass"
-        ></div>
+        />
 
         <div class="relative flex flex-wrap items-center gap-x-5 gap-y-4">
           <div class="relative shrink-0">
-            <img
+            <UiAppImage
               :src="championIconUrlStr"
               :alt="heroPlayer?.championName"
               class="h-[72px] w-[72px] rounded-2xl border-2 border-white/25 object-cover shadow-lg"
@@ -77,7 +77,7 @@
 
     <div v-if="hasObjectives" class="rounded-2xl bg-surface-base border border-border-base shadow-sm divide-border-base mt-3 grid grid-cols-1 divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0">
       <div v-for="row in objectiveRows" :key="row.teamId" class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 p-4">
-        <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="row.dotClass"></span>
+        <span class="h-2.5 w-2.5 shrink-0 rounded-full" :class="row.dotClass"/>
         <span class="font-sans text-text-main text-xl font-bold">
           {{ row.objectives.kills }}
         </span>
@@ -88,7 +88,7 @@
           :title="badge.label"
           class="border-border-base text-text-sec inline-flex items-center gap-1 rounded-lg border bg-white/5 px-2 py-1 text-xs font-semibold"
         >
-          <img :src="badge.iconUrl" alt="" class="h-4 w-4 object-contain" />
+          <UiAppImage :src="badge.iconUrl" alt="" class="h-4 w-4 object-contain" />
           {{ badge.value }}
         </span>
       </div>
@@ -117,7 +117,6 @@ import {
   GRUB_ICON_URL,
   HERALD_ICON_URL,
   INHIBITOR_ICON_URL,
-  type TeamObjectives,
   teamObjectivesFor,
   TOWER_ICON_URL,
 } from '~/utils/lol-timeline-event'

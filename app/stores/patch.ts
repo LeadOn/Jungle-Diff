@@ -1,29 +1,21 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import { useLolStore } from '~/stores/lol'
 
+/**
+ * "Patch" facade over the Data Dragon version list.
+ *
+ * This store used to keep its own copy of the versions and reload them itself, so every SSR render
+ * fired two identical calls to Riot's CDN, one per store. There is now a single source of truth
+ * (`useLolStore`) and this store is only a view over it.
+ */
 export const usePatchStore = defineStore('patch', () => {
-  const availablePatches = ref<string[]>([])
-  
-  // Le patch courant est le plus récent (premier élément du tableau Riot)
-  const currentPatch = computed(() => {
-    return availablePatches.value[0] || '14.22.1' // Fallback d'urgence
-  })
+  const lolStore = useLolStore()
 
-  const loadPatches = async () => {
-    // Comportement idempotent pour éviter le double fetch Serveur / Client
-    if (availablePatches.value.length > 0) return true
+  const availablePatches = computed(() => lolStore.versions)
+  const currentPatch = computed(() => lolStore.currentVersion)
 
-    try {
-      const data = await $fetch<string[]>('https://ddragon.leagueoflegends.com/api/versions.json')
-      if (data && data.length > 0) {
-        availablePatches.value = data
-        return true
-      }
-    } catch (error) {
-      console.error('Failed to fetch LoL patches from Data Dragon:', error)
-    }
-    return false
-  }
+  const loadPatches = () => lolStore.loadVersions()
 
   return {
     availablePatches,

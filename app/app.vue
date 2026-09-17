@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
-import { usePatchStore } from '~/stores/patch'
-const auth = useAuthStore()
-const patchStore = usePatchStore()
-
-await useAsyncData('init-lol-patches', () => patchStore.loadPatches())
+const config = useRuntimeConfig()
 
 useHead({
   htmlAttrs: {
@@ -12,15 +7,9 @@ useHead({
   },
   titleTemplate: '%s - JungleDiff',
   script: [
-    {
-      innerHTML: `
-        try {
-          if (localStorage.getItem('theme') === 'light') {
-            document.documentElement.classList.add('light');
-          }
-        } catch (e) {}
-      `
-    }
+    // External rather than inline script: the CSP forbids `script-src 'unsafe-inline'`.
+    // `tagPosition: 'head'` places it before render, which avoids the theme flash.
+    { src: '/theme-init.js', tagPosition: 'head' }
   ],
   link: [
     { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
@@ -32,7 +21,8 @@ useHead({
   meta: [
     { name: 'apple-mobile-web-app-title', content: 'JungleDiff' },
     { name: 'description', content: 'JungleDiff - League of Legends stats tracker' },
-    { name: 'theme-color', content: '#d7bc74' }
+    { name: 'theme-color', content: '#d7bc74' },
+    { name: 'version', content: config.public.appVersion }
   ]
 })
 </script>

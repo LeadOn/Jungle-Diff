@@ -14,9 +14,11 @@ interface RankCardData {
   lpDelta: number | null
 }
 
+// The API already returns recent form from newest to oldest, in display order; the slice only
+// bounds the length, in case the API ever returns more entries.
 const cards = computed<RankCardData[]>(() => [
-  { queueLabel: 'Classée Solo/Duo', rank: props.player.leagueOfLegendsSoloRank, form: (props.player.recentFormSolo || []).slice(-8), lpDelta: props.player.lpChange7DaysSolo },
-  { queueLabel: 'Classée Flex', rank: props.player.leagueOfLegendsFlexRank, form: (props.player.recentFormFlex || []).slice(-8), lpDelta: props.player.lpChange7DaysFlex },
+  { queueLabel: 'Classée Solo/Duo', rank: props.player.leagueOfLegendsSoloRank, form: (props.player.recentFormSolo || []).slice(0, 8), lpDelta: props.player.lpChange7DaysSolo },
+  { queueLabel: 'Classée Flex', rank: props.player.leagueOfLegendsFlexRank, form: (props.player.recentFormFlex || []).slice(0, 8), lpDelta: props.player.lpChange7DaysFlex },
 ])
 
 const winRate = (rank: LeagueOfLegendsRank) => {
@@ -34,13 +36,13 @@ const winRate = (rank: LeagueOfLegendsRank) => {
       </div>
 
       <div v-if="!card.rank" class="flex items-center gap-4">
-        <img :src="tierEmblemUrl(null)" alt="" class="w-14 h-14 shrink-0 opacity-60" >
+        <UiAppImage :src="tierEmblemUrl(null)" alt="" class="w-14 h-14 shrink-0 opacity-60"  />
         <p class="text-sm font-bold text-text-sec">Non classé</p>
       </div>
 
       <template v-else>
         <div class="flex items-center gap-4">
-          <img :src="tierEmblemUrl(card.rank)" alt="" class="w-14 h-14 shrink-0" >
+          <UiAppImage :src="tierEmblemUrl(card.rank)" alt="" class="w-14 h-14 shrink-0"  />
           <div class="min-w-0">
             <div class="text-xl font-extrabold tracking-tight leading-tight text-text-main">{{ tierLabel(card.rank) }}</div>
             <div class="mt-1 font-mono text-xs font-bold text-text-sec">

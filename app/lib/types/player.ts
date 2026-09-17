@@ -26,6 +26,7 @@ export interface LeaguePlayer {
   lolSummonerLevel?: number | null;
   fullName?: string | null;
   archived?: boolean;
+  primaryPlayerId?: number | null;
   lolRefreshedOn: string | null;
   leagueOfLegendsSoloRank: LeagueOfLegendsRank | null;
   leagueOfLegendsFlexRank: LeagueOfLegendsRank | null;

@@ -116,11 +116,11 @@
       class="text-text-ter mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs"
     >
       <span class="flex items-center gap-1.5">
-        <span class="bg-brand-gold h-2.5 w-2.5 rounded-sm"></span>
+        <span class="bg-brand-gold h-2.5 w-2.5 rounded-sm"/>
         {{ playerLabel }}
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="border-text-ter w-4 border-t-2 border-dashed"></span>
+        <span class="border-text-ter w-4 border-t-2 border-dashed"/>
         Moyenne de la partie
       </span>
     </div>
