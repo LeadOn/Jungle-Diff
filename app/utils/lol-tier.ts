@@ -9,8 +9,8 @@ const TIER_BASE_POINTS: Record<string, number> = {
 const DIVISION_POINTS: Record<string, number> = { I: 300, II: 200, III: 100, IV: 0 }
 
 /**
- * Convertit un rang (palier + division + LP) en un score numérique continu,
- * utilisé pour tracer une progression (ex: sparkline LP) sur un même axe.
+ * Converts a rank (tier + division + LP) into a continuous numeric score, used to plot
+ * progression (e.g. the LP sparkline) on a single axis.
  */
 export function rankScore(rank: LeagueOfLegendsRank): number {
   const tier = rank.tier ? rank.tier.toUpperCase() : ''

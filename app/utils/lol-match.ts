@@ -84,12 +84,18 @@ export function closestDdragonVersion(
   return closest || gameVersion;
 }
 
+/** Served from `public/`, so the URL is valid from any route. */
+const FALLBACK_ICON_URL = '/img/JungleDiff_Logo.png';
+
 export function championIconUrl(
   championName: string | undefined,
   patch: string,
 ): string {
   if (championName == null || championName === '') {
-    return 'assets/img/gameon-logo.webp';
+    // Absolute path into `public/`: this used to be a relative `assets/img/gameon-logo.webp`, which
+    // the browser resolved against the current route (giving /game/<id>/assets/...) and which
+    // pointed at a file that does not exist in the repository either.
+    return FALLBACK_ICON_URL;
   }
 
   return `https://ddragon.leagueoflegends.com/cdn/${patch}/img/champion/${championName}.png`;

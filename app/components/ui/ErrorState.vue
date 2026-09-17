@@ -6,24 +6,24 @@ defineProps<{
 </script>
 
 <template>
-  <div class="rounded-lg bg-red-50 p-4 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
-    <div class="flex items-center">
-      <div class="flex-shrink-0">
-        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-        </svg>
-      </div>
-      <div class="ml-3">
-        <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
-        <div class="mt-2 text-sm text-red-700 dark:text-red-300">
-          <p>{{ message || 'An unexpected error occurred.' }}</p>
-        </div>
-        <div v-if="retry" class="mt-4">
-          <button class="text-sm font-medium text-red-800 hover:text-red-700 dark:text-red-200 dark:hover:text-red-100" @click="retry">
-            Try again
-          </button>
-        </div>
-      </div>
+  <div class="flex items-start gap-4 rounded-2xl border border-brand-red/20 bg-brand-red/10 p-6">
+    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-red/15 text-brand-red">
+      <Icon name="lucide:triangle-alert" class="text-lg" style="stroke-width: 2.5px;" />
+    </div>
+    <div class="min-w-0 flex-1">
+      <h3 class="m-0 mb-1 text-lg font-bold text-text-main">Chargement impossible</h3>
+      <p class="m-0 text-sm font-medium leading-relaxed text-text-sec">
+        {{ message || "Une erreur inattendue s'est produite." }}
+      </p>
+      <button
+        v-if="retry"
+        type="button"
+        class="mt-4 inline-flex h-[34px] items-center gap-2 rounded-full bg-brand-red/15 px-4 text-[13px] font-bold text-brand-red transition-opacity hover:opacity-80"
+        @click="retry"
+      >
+        <Icon name="lucide:rotate-cw" class="h-4 w-4" />
+        Réessayer
+      </button>
     </div>
   </div>
 </template>

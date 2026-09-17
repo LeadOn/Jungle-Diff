@@ -5,13 +5,13 @@
     </div>
     
     <!-- Loading State -->
-    <div v-if="pending && displayedMatches.length === 0" class="flex-1 flex flex-col items-center justify-center opacity-50 py-10">
+    <div v-if="isPending && displayedMatches.length === 0" class="flex-1 flex flex-col items-center justify-center opacity-50 py-10">
       <Icon name="lucide:loader-circle" class="animate-spin text-2xl text-text-sec mb-2" />
       <span class="text-sm font-bold text-text-ter">Chargement...</span>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error || (!pending && store.lastMatches === null)" class="flex-1 flex flex-col items-center justify-center py-10">
+    <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center py-10">
       <Icon name="lucide:triangle-alert" class="text-2xl text-brand-red mb-2" />
       <span class="text-sm font-bold text-brand-red text-center">Erreur lors du chargement<br>des parties récentes.</span>
     </div>
@@ -43,17 +43,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, onBeforeUnmount, watchEffect } from 'vue'
 import { useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { cacheOnlyDuringHydration } from '~/utils/async-data'
+import { isAbortError } from '~/lib/types/error'
 import type { LoLGameDto } from '~/lib/types'
 
 const store = useLolStore()
 const gameOnApi = useGameOnLol()
 
-const { pending, error } = useAsyncData('recentGames', () => store.fetchLastMatches(), { getCachedData: cacheOnlyDuringHydration })
+const { status, error } = useAsyncData('recentGames', () => store.fetchLastMatches(), { getCachedData: cacheOnlyDuringHydration })
+const isPending = computed(() => status.value === 'pending')
+
+// Pagination is aborted if the component goes away before the response arrives.
+const pagination = new AbortController()
+onBeforeUnmount(() => pagination.abort())
 
 const pageSize = 5
 const currentPage = ref(1)
@@ -78,7 +84,7 @@ async function loadMore() {
   currentPage.value++
   
   try {
-    const data = await gameOnApi.getLastMatches(currentPage.value, pageSize)
+    const data = await gameOnApi.getLastMatches(currentPage.value, pageSize, pagination.signal)
     if (data && data.results) {
       additionalMatches.value.push(...data.results)
       
@@ -87,8 +93,8 @@ async function loadMore() {
       }
     }
   } catch (e) {
-    console.error('Failed to load more games', e)
-    currentPage.value-- // rollback page
+    currentPage.value-- // roll back the increment so the next attempt starts from the right page
+    if (!isAbortError(e)) console.error('[home] Chargement de parties supplémentaires en échec:', e)
   } finally {
     loadingMore.value = false
   }

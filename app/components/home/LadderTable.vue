@@ -10,16 +10,16 @@
       <!-- Queue Toggle -->
       <div class="flex bg-surface-high rounded-full p-1 border border-border-subtle w-fit">
         <button 
-          @click="activeQueue = 'solo'"
           class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
           :class="activeQueue === 'solo' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
+          @click="activeQueue = 'solo'"
         >
           Solo/Duo
         </button>
         <button 
-          @click="activeQueue = 'flex'"
           class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
           :class="activeQueue === 'flex' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
+          @click="activeQueue = 'flex'"
         >
           Flex
         </button>
@@ -40,7 +40,7 @@
           </tr>
         </thead>
         <tbody class="text-sm">
-          <tr v-for="(player, i) in sortedPlayers" :key="player.id" @click="goToPlayer(player.id)" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group cursor-pointer">
+          <tr v-for="(player, i) in sortedPlayers" :key="player.id" class="border-b border-border-subtle last:border-0 hover:bg-surface-high transition-colors group cursor-pointer" @click="goToPlayer(player.id)">
             <td class="py-3.5 font-bold" :class="i === 0 && player.queues[activeQueue] ? 'text-brand-gold' : 'text-text-ter'">{{ i + 1 }}</td>
             <td class="py-3.5">
               <div class="flex items-center gap-3">
@@ -67,7 +67,7 @@
               </div>
             </td>
             <td class="py-3.5">
-              <div class="flex items-center gap-2.5" v-if="player.queues[activeQueue]">
+              <div v-if="player.queues[activeQueue]" class="flex items-center gap-2.5">
                 <div class="w-8 h-8 flex items-center justify-center flex-shrink-0">
                   <UiAppImage :src="getTierIconUrl(player.queues[activeQueue]?.tier)" alt="Rank Icon" class="w-full h-full object-contain drop-shadow-sm" />
                 </div>
@@ -86,19 +86,19 @@
               </div>
             </td>
             <td class="py-3.5">
-              <div class="flex gap-1" v-if="player.queues[activeQueue]">
-                <span v-for="(win, j) in player.queues[activeQueue]?.form" :key="j" class="w-2 h-3.5 rounded-[2px]" :class="win ? 'bg-brand-green' : 'bg-brand-red opacity-80'"></span>
+              <div v-if="player.queues[activeQueue]" class="flex gap-1">
+                <span v-for="(win, j) in player.queues[activeQueue]?.form" :key="j" class="w-2 h-3.5 rounded-[2px]" :class="win ? 'bg-brand-green' : 'bg-brand-red opacity-80'"/>
               </div>
               <div v-else class="text-text-ter">-</div>
             </td>
             <td class="py-3.5">
-              <div class="flex flex-col gap-1 w-full max-w-[100px]" v-if="player.queues[activeQueue]">
+              <div v-if="player.queues[activeQueue]" class="flex flex-col gap-1 w-full max-w-[100px]">
                 <div class="flex items-center justify-between">
                   <div class="font-extrabold text-[13px]" :class="(player.queues[activeQueue]?.winrate ?? 0) >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ player.queues[activeQueue]?.winrate }}%</div>
                   <div class="font-mono text-[10px] font-bold text-text-ter">{{ player.queues[activeQueue]?.v }}V {{ player.queues[activeQueue]?.d }}D</div>
                 </div>
                 <div class="w-full bg-border-subtle rounded-full h-1 overflow-hidden">
-                  <div class="h-1 rounded-full transition-all duration-1000 ease-out" :class="(player.queues[activeQueue]?.winrate ?? 0) >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: `${player.queues[activeQueue]?.winrate ?? 0}%` }"></div>
+                  <div class="h-1 rounded-full transition-all duration-1000 ease-out" :class="(player.queues[activeQueue]?.winrate ?? 0) >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: `${player.queues[activeQueue]?.winrate ?? 0}%` }"/>
                 </div>
               </div>
               <div v-else class="text-text-ter">-</div>

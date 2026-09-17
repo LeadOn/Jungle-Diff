@@ -1,9 +1,10 @@
 import { defineNuxtPlugin } from '#app'
 import { useAuthStore } from '~/stores/auth'
 
-export default defineNuxtPlugin(async (nuxtApp) => {
-  console.log('[Plugin] auth.client.ts is executing')
-  const auth = useAuthStore()
-  await auth.initAuth()
-  console.log('[Plugin] auth.client.ts finished')
+/**
+ * Resolves session state before the first client render, so the header does not flip from
+ * "Se connecter" to the user pill once the page is already on screen.
+ */
+export default defineNuxtPlugin(async () => {
+  await useAuthStore().initAuth()
 })

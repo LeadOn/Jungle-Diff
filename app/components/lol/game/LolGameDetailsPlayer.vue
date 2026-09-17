@@ -53,7 +53,7 @@
                 title="Accéder à OP.GG"
                 @click.stop
               >
-                <img src="https://www.google.com/s2/favicons?domain=op.gg&sz=32" alt="OP.GG" class="w-3 h-3 rounded-[2px] grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                <img src="/img/external/opgg.png" alt="OP.GG" class="w-3 h-3 rounded-[2px] grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" >
               </a>
               <a
                 :href="`https://dpm.lol/${player.riotIdGameName}-${player.riotIdTagLine}`"
@@ -62,7 +62,7 @@
                 title="Accéder à DPM.LoL"
                 @click.stop
               >
-                <img src="https://www.google.com/s2/favicons?domain=dpm.lol&sz=32" alt="DPM.LoL" class="w-3 h-3 rounded-[2px] grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                <img src="/img/external/dpmlol.png" alt="DPM.LoL" class="w-3 h-3 rounded-[2px] grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" >
               </a>
             </div>
 
@@ -124,12 +124,12 @@
         <div class="light:bg-[rgba(23,30,54,0.06)] h-2 flex-1 overflow-hidden rounded-full bg-white/10">
           <div class="flex h-full" :style="{ width: damageBarPercent + '%' }">
             <template v-if="damageSplit">
-              <div class="bg-brand-gold h-full" :style="{ width: damageSplit.physical + '%' }"></div>
-              <div class="bg-blue-400 h-full" :style="{ width: damageSplit.magic + '%' }"></div>
-              <div class="h-full bg-white/70" :style="{ width: damageSplit.trueDamage + '%' }"></div>
+              <div class="bg-brand-gold h-full" :style="{ width: damageSplit.physical + '%' }"/>
+              <div class="bg-blue-400 h-full" :style="{ width: damageSplit.magic + '%' }"/>
+              <div class="h-full bg-white/70" :style="{ width: damageSplit.trueDamage + '%' }"/>
             </template>
             <template v-else>
-              <div class="light:bg-[rgba(23,30,54,0.35)] h-full w-full bg-white/40"></div>
+              <div class="light:bg-[rgba(23,30,54,0.35)] h-full w-full bg-white/40"/>
             </template>
           </div>
         </div>

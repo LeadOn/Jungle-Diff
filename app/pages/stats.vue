@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter, useAsyncData, useRuntimeConfig } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { usePatchStore } from '~/stores/patch'
 import { getProfileIconUrl } from '~/utils/ddragon'
-import { AWARD_MAPPINGS, type LoLGlobalStatAwardKey } from '~/utils/lol-awards'
-import type { LoLGlobalStatsDto, LoLFunStatDto } from '~/lib/types/home'
-import type { LeaguePlayer } from '~/lib/types/player'
+import { AWARD_MAPPINGS, getPlayerName } from '~/utils/lol-awards'
+import type { PlayerDto } from '~/lib/types/home'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,10 +36,9 @@ const periodOptions = [
 const awardsList = Object.values(AWARD_MAPPINGS)
 
 const rankedOnlyLocked = computed(() => queue.value !== 'All')
-const rankedOnlyDisplay = computed(() => rankedOnlyLocked.value ? true : rankedOnly.value)
 
 // Fetch Data
-const { data: summary, pending, error, refresh } = useAsyncData(
+const { data: summary, status, error, refresh } = useAsyncData(
   'globalStats',
   () => api.getGlobalStats(
     queue.value,
@@ -77,12 +75,7 @@ useSeoMeta({
 })
 
 // UI Helpers
-const getPlayerName = (p: any) => {
-  if (!p) return 'Crew'
-  return p.riotGamesNickname || p.nickname
-}
-
-const getPlayerAvatarUrl = (p: any) => {
+const getPlayerAvatarUrl = (p: PlayerDto) => {
   if (p.lolIconId != null) {
     return getProfileIconUrl(p.lolIconId, patchStore.currentPatch)
   }
@@ -140,20 +133,20 @@ const getPlayerAvatarUrl = (p: any) => {
         <span class="text-sm font-bold text-text-main">Classées uniquement</span>
         <div class="relative">
           <input
+            v-model="rankedOnly"
             type="checkbox"
             class="peer sr-only"
-            v-model="rankedOnly"
             :disabled="rankedOnlyLocked"
-          />
+          >
           <div
             class="peer-checked:bg-brand-green h-6 w-11 rounded-full bg-surface-high border border-border-base transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-          ></div>
+          />
         </div>
       </label>
     </div>
 
     <!-- Stats Count / Meta -->
-    <div v-if="!pending && summary" class="flex flex-wrap items-center gap-3 mb-6 animate-fade-in-up">
+    <div v-if="status !== 'pending' && summary" class="flex flex-wrap items-center gap-3 mb-6 animate-fade-in-up">
       <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-surface-high border border-border-base text-xs font-bold text-text-main">
         <Icon name="lucide:swords" class="mr-2 text-brand-gold" size="14" />
         {{ summary.totalGamesAnalyzed }} parties analysées
@@ -171,22 +164,22 @@ const getPlayerAvatarUrl = (p: any) => {
         <p class="text-text-main font-bold mb-1">Impossible de charger les statistiques globales</p>
         <p class="text-text-sec text-sm">Une erreur est survenue lors de la récupération des données.</p>
       </div>
-      <button @click="() => refresh()" class="px-4 py-2 bg-brand-red hover:bg-brand-red/90 text-white rounded-xl font-bold text-sm transition-colors">
+      <button class="px-4 py-2 bg-brand-red hover:bg-brand-red/90 text-white rounded-xl font-bold text-sm transition-colors" @click="() => refresh()">
         Réessayer
       </button>
     </div>
 
     <!-- Loading State -->
-    <div v-else-if="pending" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else-if="status === 'pending'" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="i in 6" :key="i" class="bg-surface-base rounded-2xl border border-border-base p-5 animate-pulse h-40">
         <div class="flex items-center gap-4">
-          <div class="h-12 w-12 rounded-xl bg-surface-high"></div>
+          <div class="h-12 w-12 rounded-xl bg-surface-high"/>
           <div class="space-y-3 flex-1">
-            <div class="h-4 bg-surface-high rounded w-2/3"></div>
-            <div class="h-3 bg-surface-high rounded w-4/5"></div>
+            <div class="h-4 bg-surface-high rounded w-2/3"/>
+            <div class="h-3 bg-surface-high rounded w-4/5"/>
           </div>
         </div>
-        <div class="mt-6 h-6 bg-surface-high rounded w-1/3"></div>
+        <div class="mt-6 h-6 bg-surface-high rounded w-1/3"/>
       </div>
     </div>
 
@@ -204,13 +197,13 @@ const getPlayerAvatarUrl = (p: any) => {
         :key="award.key"
         class="group bg-surface-base hover:bg-surface-high transition-colors rounded-2xl border border-border-base p-5 flex flex-col shadow-sm relative overflow-hidden"
       >
-        <template v-for="stat in [summary[award.key] as any]" :key="stat ? 'has-stat' : 'no-stat'">
+        <template v-for="stat in [summary[award.key]]" :key="stat ? 'has-stat' : 'no-stat'">
           <NuxtLink
             v-if="stat?.matchId && stat?.player?.id"
             :to="`/game/${stat.matchId}/${stat.player.id}`"
             class="absolute inset-0 z-10"
             title="Voir la partie"
-          ></NuxtLink>
+          />
 
           <!-- Header: Icon + Title/Desc -->
           <div class="flex items-start gap-4 mb-5">
@@ -242,7 +235,7 @@ const getPlayerAvatarUrl = (p: any) => {
             <p v-if="stat.detail" class="text-[13px] font-medium text-text-sec mb-4">
               {{ stat.detail }}
             </p>
-            <div v-else class="mb-4"></div> <!-- Spacer -->
+            <div v-else class="mb-4"/> <!-- Spacer -->
 
             <!-- Footer: Player Info & Date -->
             <div class="mt-auto pt-4 border-t border-border-subtle flex items-center justify-between relative z-20">
@@ -252,7 +245,7 @@ const getPlayerAvatarUrl = (p: any) => {
                 class="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity"
               >
                 <div class="h-6 w-6 shrink-0 overflow-hidden rounded-full border border-border-accent bg-surface-high">
-                  <img :src="getPlayerAvatarUrl(stat.player)" class="h-full w-full object-cover" />
+                  <img :src="getPlayerAvatarUrl(stat.player)" class="h-full w-full object-cover" >
                 </div>
                 <span class="truncate text-[13px] font-bold text-text-main group-hover:text-brand-gold transition-colors">
                   {{ getPlayerName(stat.player) }}

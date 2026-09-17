@@ -1,19 +1,20 @@
+import { defineNuxtConfig } from 'nuxt/config'
 import tailwindcss from '@tailwindcss/vite'
 import pkg from './package.json'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
-export default {
+export default defineNuxtConfig({
   compatibilityDate: '2026-08-09',
   future: {
     compatibilityVersion: 4
   },
   ssr: true,
-  
+
   modules: [
     '@pinia/nuxt',
-    '@nuxtjs/i18n',
     '@nuxt/eslint',
-    '@nuxt/icon'
+    '@nuxt/icon',
+    '@nuxt/fonts'
   ],
 
   icon: {
@@ -25,20 +26,13 @@ export default {
     }
   },
 
-  i18n: {
-    defaultLocale: 'fr',
-    locales: [
-      { code: 'fr', iso: 'fr-FR', name: 'Français' },
-      { code: 'en', iso: 'en-US', name: 'English' }
-    ],
-    // Disabled: the null-prototype objects this optimization produces break
-    // the SSR payload serialization (crashes @pinia/nuxt's payload reducer
-    // with "obj.hasOwnProperty is not a function") on routes that hit the
-    // error page. Also recommended by the module itself, which deprecates
-    // this flag in v10.
-    bundle: {
-      optimizeTranslationDirective: false
-    }
+  fonts: {
+    // Fonts are downloaded at build time and served from our own origin: no render-blocking
+    // request to fonts.googleapis.com at runtime (performance + GDPR), and a third-party-free CSP.
+    families: [
+      { name: 'Manrope', provider: 'google', weights: [400, 500, 600, 700, 800] },
+      { name: 'IBM Plex Mono', provider: 'google', weights: [400, 500, 600, 700] }
+    ]
   },
 
   vite: {
@@ -49,14 +43,39 @@ export default {
 
   css: ['~/assets/css/main.css'],
 
+  routeRules: {
+    // Listing pages are identical for every visitor: serve them from the Nitro cache and
+    // revalidate in the background instead of replaying the API calls on each visit.
+    '/': { swr: 60 },
+    '/stats': { swr: 60 },
+    // Authenticated pages must never be cached.
+    '/settings': { swr: false, headers: { 'cache-control': 'no-store' } },
+    '/api/auth/**': { headers: { 'cache-control': 'no-store' } }
+  },
+
+  nitro: {
+    compressPublicAssets: { gzip: true, brotli: true }
+  },
+
   runtimeConfig: {
+    // --- Private (server only) ---
+    // Target of the `/api/gameon` proxy. Falls back to the public URL when unset.
+    gameOnApiUrl: '',
+    keycloak: {
+      // Optional: only set this when the Keycloak client is confidential.
+      // Empty = public client, the code exchange relies on PKCE alone.
+      clientSecret: ''
+    },
+    // --- Public (exposed to the browser) ---
     public: {
       appVersion: pkg.version,
-      gameOnApiUrl: process.env.NUXT_PUBLIC_GAME_ON_API_URL,
+      // Only used to build image URLs (<img src>), which are anonymous.
+      // Data calls go through the `/api/gameon` proxy.
+      gameOnApiUrl: '',
       keycloak: {
-        authority: process.env.NUXT_PUBLIC_KEYCLOAK_AUTHORITY,
-        clientId: process.env.NUXT_PUBLIC_KEYCLOAK_CLIENT_ID,
-        realm: process.env.NUXT_PUBLIC_KEYCLOAK_REALM
+        authority: '',
+        clientId: '',
+        realm: ''
       }
     }
   },
@@ -65,4 +84,4 @@ export default {
     strict: true,
     typeCheck: true
   }
-}
+})

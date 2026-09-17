@@ -10,8 +10,8 @@ defineProps<{
   <div class="flex items-center gap-4 bg-surface-base pl-4 pr-3 py-2.5 rounded-full border border-border-base shadow-sm animate-fade-in-up hover:border-border-accent transition-colors relative">
     <!-- Live Indicator (Red Dot) -->
     <div class="flex h-2 w-2 relative">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75" style="animation-duration: 1.5s;"></span>
-      <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-red animate-blink-live"></span>
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75" style="animation-duration: 1.5s;"/>
+      <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-red animate-blink-live"/>
     </div>
     
     <!-- Info -->

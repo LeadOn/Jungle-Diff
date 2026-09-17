@@ -1,32 +1,48 @@
-FROM node:23.6.1-alpine AS builder
+# syntax=docker/dockerfile:1
+
+# Node 24 is the current LTS line. The previous image pinned 23.6.1 — an odd-numbered release that
+# never had long-term support and is now end-of-life, so it stopped receiving security patches.
+# The major is pinned rather than the patch, so rebuilds pick up Node security fixes automatically.
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm install
+# `npm ci` rather than `npm install`: it installs exactly what the lockfile pins and fails if the
+# two disagree, so the image cannot silently drift to different dependency versions between builds.
+# `--ignore-scripts` is deliberately NOT used: Nuxt's postinstall (`nuxt prepare`) is required.
+RUN npm ci
 
-# Copy source code
 COPY . .
 
-# Build the Nuxt application
-# Force prepare after all files are copied so tsconfig.json has the correct aliases for Nuxt 4 (app/ directory)
+# `nuxi prepare` runs after all sources are copied so tsconfig.json carries the right aliases for the
+# Nuxt 4 `app/` directory before the build.
 RUN npx nuxi prepare && npm run build
 
-# Production image
-FROM node:23.6.1-alpine AS runner
+# --- Runtime image -----------------------------------------------------------------------------
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
-# Copy only the output from builder
-COPY --from=builder /app/.output ./
-
-# Expose the port Nuxt uses
-EXPOSE 3000
-ENV PORT=3000
 ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
 
-# Run the server
+# Nitro bundles every server dependency into .output, so the runtime image needs no node_modules
+# and no package manager at all.
+COPY --from=builder --chown=node:node /app/.output ./
+
+# Drop root. The previous image ran the server as uid 0, which meant a remote code execution in the
+# app would have started with full privileges inside the container.
+USER node
+
+EXPOSE 3000
+
+# Hits the dependency-free liveness route. It deliberately does not probe the GameOn API: a probe
+# that failed whenever the backend had an incident would restart JungleDiff during that incident and
+# make the outage worse.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 CMD ["node", "server/index.mjs"]

@@ -35,7 +35,7 @@
             class="h-full rounded-full"
             :class="row.player.teamId === 100 ? 'bg-brand-green' : 'bg-brand-red'"
             :style="{ width: `${row.widthPercent}%` }"
-          ></div>
+          />
         </div>
 
         <span

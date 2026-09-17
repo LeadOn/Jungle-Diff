@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from '#app'
+import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
+import { useRoute, useRouter, useAsyncData } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
+import { AppError, isAbortError } from '~/lib/types/error'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
 import { roleIconUrl } from '~/utils/lol-role'
-import type { LeaguePlayer, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
+import type { LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
 import LolPlayerHeader from '~/components/lol/LolPlayerHeader.vue'
 import LolPlayerRanks from '~/components/lol/LolPlayerRanks.vue'
 import PerformanceKpis from '~/components/lol/PerformanceKpis.vue'
@@ -28,19 +29,46 @@ const gameOnApi = useGameOnLol()
 const patchStore = usePatchStore()
 const lolStore = useLolStore()
 
+/**
+ * The API only exposes `GET /lol/summoner/{id:int}`, so a non-numeric segment cannot designate any
+ * player. Deciding that here yields a genuine 404 instead of a call doomed to fail.
+ */
 const playerId = route.params.id as string
+const isValidPlayerId = /^\d+$/.test(playerId)
 
-// Player
-const loading = ref(true)
-const hasError = ref(false)
-const player = ref<LeaguePlayer | null>(null)
 const isRefreshing = ref(false)
 
-// Performances / LP progression period (partagé entre le panneau KPI et le sparkline LP)
+/**
+ * Secondary requests (ranks, queues, match history) are triggered by hand and must be cancelled
+ * when the page is left or a filter changes, otherwise a late response overwrites the state of a
+ * more recent one.
+ */
+let pageRequests = new AbortController()
+
+const restartRequests = () => {
+  pageRequests.abort()
+  pageRequests = new AbortController()
+  return pageRequests.signal
+}
+
+onBeforeUnmount(() => pageRequests.abort())
+
+/**
+ * Registered before the `await` below on purpose: in `<script setup>`, everything after a top-level
+ * await runs without an active component instance, so a lifecycle hook declared there is silently
+ * dropped. `loadSecondaryData` is a hoisted function declaration, so referencing it here is safe.
+ */
+onMounted(async () => {
+  // Data Dragon versions are already loaded by `plugins/init.ts`; only the queues remain.
+  await lolStore.fetchQueues()
+  await loadSecondaryData()
+})
+
+// Performance / LP progression period (shared by the KPI panel and the LP sparkline)
 const initialPeriod = route.query.period as Period
 const period = ref<Period>(['7j', '30j', 'all-time'].includes(initialPeriod) ? initialPeriod : '30j')
 
-// Rank history (alimente uniquement le sparkline LP, données réelles)
+// Rank history (feeds the LP sparkline only, real data)
 const rankHistoryLoading = ref(false)
 const rankHistory = ref<LeagueOfLegendsRank[]>([])
 
@@ -74,81 +102,94 @@ function updateQueryParams() {
   router.replace({ query })
 }
 
+// --- Player ---
+/**
+ * The profile is loaded through `useAsyncData` instead of `onMounted`: the page used to be rendered
+ * entirely client-side, so it was served empty to crawlers, and `useSeoMeta` described a player
+ * still unknown at render time.
+ */
+const { data: player, status, error, refresh: reloadPlayer } = await useAsyncData(
+  `summoner-${playerId}`,
+  () => {
+    if (!isValidPlayerId) throw new AppError('Invocateur introuvable', 404)
+
+    const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
+    const role = selectedRole.value || undefined
+
+    return gameOnApi.getPlayerById(playerId, toApiPeriod(period.value), queueIds, role)
+  }
+)
+
+/**
+ * A non-existent player is a genuine 404, and the error has to be raised *here* rather than inside
+ * the handler above: `useAsyncData` captures anything the handler throws into `error`, so a
+ * `createError` raised in there never reaches Nuxt and the response stays 200 — exactly the
+ * behaviour we set out to fix, where crawlers and monitoring probes read an error page as valid.
+ *
+ * Every other failure (silent API, 5xx) is transient and deliberately left in `error`, so the page
+ * can offer a retry instead of disappearing.
+ */
+if (error.value?.statusCode === 404 || (!player.value && !error.value)) {
+  throw createError({ statusCode: 404, statusMessage: 'Invocateur introuvable', fatal: true })
+}
+
+const loading = computed(() => status.value === 'pending')
+const hasError = computed(() => error.value != null)
+
+/**
+ * Declared after `player` on purpose: it reads `player.value`, and while it sat above the
+ * `useAsyncData` call it hit the constant's temporal dead zone. The resulting ReferenceError left
+ * unhead without a head entry, which then crashed on unmount and broke hydration for the page.
+ */
 useSeoMeta({
-  title: computed(() => player.value ? `${player.value.riotGamesNickname || player.value.nickname} · Profil` : 'Profil joueur'),
-  description: computed(() => player.value
+  title: () => (player.value ? `${player.value.riotGamesNickname || player.value.nickname} · Profil` : 'Profil joueur'),
+  description: () => (player.value
     ? `Statistiques, rangs et historique de parties de ${player.value.riotGamesNickname || player.value.nickname} sur JungleDiff.`
     : 'Statistiques, rangs et historique de parties League of Legends sur JungleDiff.'),
 })
 
-onMounted(async () => {
-  await Promise.all([patchStore.loadPatches(), lolStore.fetchQueues()])
-  await loadPlayer()
-  if (player.value) {
-    const pId = player.value.id.toString()
-    await Promise.all([
-      loadRankHistory(pId),
-      loadQueueOptions(pId),
-      loadGames(pId),
-    ])
-  }
-})
-
-// --- Player ---
-async function loadPlayer() {
-  loading.value = true
-  hasError.value = false
-  try {
-    const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
-    const role = selectedRole.value || undefined
-    player.value = await gameOnApi.getPlayerById(playerId, toApiPeriod(period.value), queueIds, role)
-  } catch (e) {
-    console.error(e)
-    hasError.value = true
-  } finally {
-    loading.value = false
-  }
+/** Ranks, queues and history: secondary data, loaded after render and cancellable. */
+async function loadSecondaryData() {
+  if (!player.value) return
+  const pId = player.value.id.toString()
+  const signal = restartRequests()
+  await Promise.all([
+    loadRankHistory(pId, signal),
+    loadQueueOptions(pId, signal),
+    loadGames(pId, false, signal)
+  ])
 }
 
 async function retryLoadPlayer() {
-  await loadPlayer()
-  if (player.value) {
-    const pId = player.value.id.toString()
-    await Promise.all([
-      loadRankHistory(pId),
-      loadQueueOptions(pId),
-      loadGames(pId),
-    ])
-  }
+  await reloadPlayer()
+  await loadSecondaryData()
 }
 
 async function handleRefresh() {
   if (!player.value) return
   isRefreshing.value = true
   try {
-    await gameOnApi.refreshPlayer(player.value.id)
-    await loadPlayer()
-    if (player.value) {
-      const pId = player.value.id.toString()
-      await Promise.all([loadRankHistory(pId), loadGames(pId)])
-    }
+    await gameOnApi.refreshPlayer(player.value.id, pageRequests.signal)
+    await reloadPlayer()
+    await loadSecondaryData()
   } catch (e) {
-    console.error(e)
+    console.error('[summoner] Rafraîchissement du profil en échec:', e)
   } finally {
     isRefreshing.value = false
   }
 }
 
-// --- LP progression (réel, via l'historique de rangs) ---
+// --- LP progression (real, derived from rank history) ---
 const rankHistoryGranularity = computed<LoLRankHistoryGranularity>(() => (period.value === 'all-time' ? 'Month' : 'Day'))
 const rankHistoryDays = computed(() => (period.value === '7j' ? 7 : period.value === '30j' ? 30 : undefined))
 
-async function loadRankHistory(pId: string) {
+async function loadRankHistory(pId: string, signal?: AbortSignal) {
   rankHistoryLoading.value = true
   try {
-    rankHistory.value = await gameOnApi.getRankHistory(pId, rankHistoryGranularity.value, rankHistoryDays.value)
+    rankHistory.value = await gameOnApi.getRankHistory(pId, rankHistoryGranularity.value, rankHistoryDays.value, signal)
   } catch (e) {
-    console.error(e)
+    if (isAbortError(e)) return
+    console.error('[summoner] Historique de rangs indisponible:', e)
   } finally {
     rankHistoryLoading.value = false
   }
@@ -160,10 +201,11 @@ async function refreshPerformanceStats() {
   try {
     const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
     const role = selectedRole.value || undefined
-    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(period.value), queueIds, role)
+    const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(period.value), queueIds, role, pageRequests.signal)
     if (player.value) player.value.performanceStats = updated.performanceStats
   } catch (e) {
-    console.error(e)
+    if (isAbortError(e)) return
+    console.error('[summoner] Statistiques de performance indisponibles:', e)
   }
 }
 
@@ -172,7 +214,8 @@ async function onPeriodChange(next: Period) {
   updateQueryParams()
   if (!player.value) return
   const pId = player.value.id.toString()
-  loadRankHistory(pId)
+  const signal = restartRequests()
+  loadRankHistory(pId, signal)
   refreshPerformanceStats()
 }
 
@@ -181,7 +224,8 @@ async function onRoleChange(role: string | null) {
   updateQueryParams()
   if (!player.value) return
   const pId = player.value.id.toString()
-  loadGames(pId)
+  const signal = restartRequests()
+  loadGames(pId, false, signal)
   refreshPerformanceStats()
 }
 
@@ -189,16 +233,17 @@ const soloRankHistory = computed(() => rankHistory.value.filter((h) => h.queueTy
 const flexRankHistory = computed(() => rankHistory.value.filter((h) => h.queueType === 'RANKED_FLEX_SR'))
 
 // --- Match history ---
-async function loadQueueOptions(pId: string) {
+async function loadQueueOptions(pId: string, signal?: AbortSignal) {
   try {
-    const data = await gameOnApi.getQueuesForPlayer(pId)
+    const data = await gameOnApi.getQueuesForPlayer(pId, signal)
     queueOptions.value = data.map((q) => ({ id: q.id, label: q.description || q.map || `File ${q.id}` }))
   } catch (e) {
-    console.error(e)
+    if (isAbortError(e)) return
+    console.error('[summoner] Files de jeu du joueur indisponibles:', e)
   }
 }
 
-async function loadGames(pId: string, append = false) {
+async function loadGames(pId: string, append = false, signal?: AbortSignal) {
   if (append) {
     loadingMoreGames.value = true
   } else {
@@ -208,12 +253,13 @@ async function loadGames(pId: string, append = false) {
   try {
     const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
     const role = selectedRole.value || undefined
-    const data = await gameOnApi.getLastGamesPlayedByPlayer(pId, currentPage.value, pageSize, false, queueIds, undefined, undefined, role)
+    const data = await gameOnApi.getLastGamesPlayedByPlayer(pId, currentPage.value, pageSize, false, queueIds, undefined, undefined, role, signal)
     gamesPlayed.value = append ? [...gamesPlayed.value, ...data.results] : data.results
     totalItems.value = data.total
     totalPages.value = Math.max(1, Math.ceil(totalItems.value / (data.resultsPerPage || pageSize)))
   } catch (e) {
-    console.error(e)
+    if (isAbortError(e)) return
+    console.error('[summoner] Historique de parties indisponible:', e)
   } finally {
     gameHistoryLoading.value = false
     loadingMoreGames.value = false
@@ -223,7 +269,7 @@ async function loadGames(pId: string, append = false) {
 function loadMoreGames() {
   if (!player.value || currentPage.value >= totalPages.value) return
   currentPage.value++
-  loadGames(player.value.id.toString(), true)
+  loadGames(player.value.id.toString(), true, pageRequests.signal)
 }
 
 function toggleQueueFilter(id: number, checked: boolean) {
@@ -234,7 +280,7 @@ function toggleQueueFilter(id: number, checked: boolean) {
   }
   updateQueryParams()
   if (player.value) {
-    loadGames(player.value.id.toString())
+    loadGames(player.value.id.toString(), false, restartRequests())
     refreshPerformanceStats()
   }
 }
@@ -244,7 +290,7 @@ function clearQueueFilter() {
   queueFilterOpen.value = false
   updateQueryParams()
   if (player.value) {
-    loadGames(player.value.id.toString())
+    loadGames(player.value.id.toString(), false, restartRequests())
     refreshPerformanceStats()
   }
 }
@@ -351,7 +397,7 @@ const groupedGames = computed(() => {
               </div>
 
               <div class="flex items-center gap-2">
-                <!-- Filtre de rôle -->
+                <!-- Role filter -->
                 <div class="flex items-center rounded-full bg-surface-high border border-border-subtle p-0.5">
                   <button
                     v-for="role in ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']"

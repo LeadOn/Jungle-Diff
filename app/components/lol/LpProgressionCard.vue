@@ -19,7 +19,7 @@ const PERIOD_CAPTION: Record<string, string> = {
 };
 
 // L'utilisateur peut choisir sa file manuellement ; tant qu'il ne l'a pas fait,
-// on retombe sur la première file qui a des données (Solo/Duo en priorité).
+// fall back to the first queue that has data (Solo/Duo first).
 const userSelectedQueue = ref<Queue | null>(null);
 const selectedQueue = computed<Queue>(
   () =>
@@ -109,7 +109,7 @@ const hoveredPoint = computed(() =>
   hoveredIndex.value != null ? points.value[hoveredIndex.value] : null,
 );
 
-// Évite que la tooltip ne déborde de la carte près des bords gauche/droite du graphe
+// Keeps the tooltip from overflowing the card near the left/right edges of the chart
 const tooltipStyle = computed(() => {
   const edgeMargin = 56;
   let translateX = "-50%";
