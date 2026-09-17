@@ -20,6 +20,12 @@ export interface RequestOptions {
   /** Overrides the per-verb default (1 for reads, 0 for writes). */
   retry?: number
   headers?: Record<string, string>
+  /**
+   * Overrides `DEFAULT_TIMEOUT_MS`. Only for endpoints whose upstream work is genuinely longer than
+   * a database read — the coach generation holds the connection while the model writes — never to
+   * paper over a slow endpoint.
+   */
+  timeout?: number
 }
 
 interface FetchErrorShape {
@@ -63,7 +69,7 @@ export class BaseApiService {
         headers: options.headers,
         // Without an explicit timeout, a request to a silent upstream hangs indefinitely: on SSR
         // that ties up a Nitro worker, on the client it freezes a loading screen forever.
-        timeout: DEFAULT_TIMEOUT_MS,
+        timeout: options.timeout ?? DEFAULT_TIMEOUT_MS,
         retry: options.retry ?? defaultRetry,
         retryDelay: 300,
         retryStatusCodes: RETRYABLE_STATUS

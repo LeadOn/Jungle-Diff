@@ -4,6 +4,7 @@ presents ladders, player profiles and per-match analysis. The interface is Frenc
 public sign-up — authentication exists so a crew member can edit their own profile.
 
 # Technology Stack
+
 - Nuxt 4.5.2, SSR enabled, `app/` directory structure, Nitro server routes under `server/`
 - Vue Composition API, `<script setup>` only
 - TypeScript strict; `any` is a lint error
@@ -14,11 +15,13 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - Playwright for end-to-end tests, ESLint via `@nuxt/eslint`
 
 # Language Policy
+
 - **All source code and code comments are written in English**, without exception.
 - User-facing strings stay **French**: UI labels, error messages rendered in the interface, and
   `useSeoMeta` content. The product is French; the code is not.
 
 # Features
+
 - `/` — crew dashboard: weekly activity tiles, full ladder (`LadderTable`), recent games, "fact of
   the week", and the top crew records. A summoner search box exists but is deliberately hidden
   behind `v-if="false"` (see Known Gaps).
@@ -28,14 +31,22 @@ public sign-up — authentication exists so a crew member can edit their own pro
   performance KPI panel, an LP progression sparkline, a filterable and paginated match history, and
   Champions / Rôles / Duos side panels. Server-rendered.
 - `/game/[id]/[playerId]` — match detail: win/loss-tinted header with MVP/ACE accolade, per-team
-  objectives, key moments, then four tabs — Vue d'ensemble (scoreboards + highlights), Film de la
+  objectives, key moments, then five tabs — Vue d'ensemble (scoreboards + highlights), Film de la
   partie (a timeline scrubber driving minimap, gold race, kill feed and charts), Performance (player
-  picker, KPI tiles, radar and damage/gold/ranking charts), and a collapsible Données brutes table.
+  picker, KPI tiles, radar and damage/gold/ranking charts), rAImmus (the AI coach report), and a
+  collapsible Données brutes table.
+- **rAImmus** — the AI coach, named after Rammus, rendered by
+  `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
+  neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
+  model, never from the front end. `GET` returns the stored report or `404`; `POST` is authenticated
+  and writes it. The component owns four states — not generated yet, generating, report, error — and
+  the tab is only offered when the route carries a usable `playerId`.
 - `/settings` — the only authenticated page (`definePageMeta({ auth: true })`): edit nickname, full
   name, Riot ID and avatar; shows an admin panel to holders of the `gameon_admin` realm role.
 - `/healthz` — liveness probe, not a user-facing page.
 
 # Directory Layout
+
 - `app/pages/` — orchestrate data loading with `useAsyncData` and own the page layout.
 - `app/components/ui/` — generic, domain-free UI.
 - `app/components/home/`, `app/components/lol/`, `app/components/lol/game/` — business components.
@@ -49,6 +60,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - `tests/` — Playwright specs.
 
 # Naming Conventions
+
 - **Components**: PascalCase filenames. Nuxt auto-imports every component under `app/components/`
   using its directory path as a prefix, de-duplicating overlap — `ui/AppImage.vue` becomes
   `<UiAppImage>`, `lol/game/LolGameDetailsPlayer.vue` stays `<LolGameDetailsPlayer>`. In practice
@@ -79,6 +91,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
   `text-text-main`, `text-brand-gold` — never a raw hex in a component.
 
 # Authentication (no token ever reaches the browser)
+
 - Tokens live in `httpOnly` + `SameSite=Lax` cookies set by Nitro. The browser never reads one.
 - `offline_access` is requested on purpose: it backs the ~30-day persistent session so users are not
   asked to sign in again every day. It is safe here **because** the refresh token stays server-side.
@@ -92,11 +105,15 @@ public sign-up — authentication exists so a crew member can edit their own pro
   `gameon_admin` realm role.
 
 # Data Flow
+
 - The browser and SSR both talk to Nitro, never to an upstream directly. `server/api/gameon/` proxies
   the GameOn API with the session bearer; `server/api/ddragon/versions.get.ts` serves Riot's version
   list from a one-hour server cache with a 24-hour stale window.
 - `app/lib/api/BaseApiService` gives every call an 8 s timeout, one retry on reads and none on
-  writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`.
+  writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`. A call may
+  raise its own ceiling through `RequestOptions.timeout`; only `generateCoachReport` does, and the
+  proxy grants the same window to `SLOW_UPSTREAM_PREFIXES`. Both halves are required — raising one
+  alone still gets the call cut at 8 s by the other.
 - Data that must stay fresh (`lol` store: home stats, ladder players, last matches) is cached behind
   a 60 s window rather than for the whole SPA session, and its `useAsyncData` callers pass
   `getCachedData: cacheOnlyDuringHydration` (`app/utils/async-data.ts`) so the handler is replayed on
@@ -108,6 +125,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
   explicitly `no-store`.
 
 # Design System
+
 - Dark is the default theme: `:root` tokens are dark, and the `.light` class on `<html>` switches to
   the light palette. `public/theme-init.js` applies the stored choice before first paint.
 - The Tailwind variant is `light:`, **not** `dark:`. A `dark:` utility does nothing, because the
@@ -118,6 +136,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
   top-right). Never present fabricated data as if it were live. Nothing currently needs it.
 
 # Code Quality Constraints
+
 - Always use `import type` for type-only imports.
 - Prioritise Tailwind utility classes over inline styles.
 - Avoid heavy transformations in templates; use computed properties or composables.
@@ -127,6 +146,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - `eslint .` and `vue-tsc --noEmit` must both be clean before a change is considered done.
 
 # Build, Checks & Tests
+
 There is **no CI pipeline**: delivery is manual, so these checks only run when someone runs them.
 Treat the list below as the gate before any deploy, and run all of it — nothing else will.
 
@@ -154,7 +174,9 @@ npm run test:e2e
   start, so one image is promotable across environments. Do not reintroduce build args for them.
 
 # Pitfalls
+
 Each of these is easy to reintroduce and hard to diagnose.
+
 - **`useSeoMeta` must come after the refs it reads.** Placing it above a `const` it dereferences hits
   the temporal dead zone; unhead then has no head entry and crashes on unmount with
   `Cannot read properties of undefined (reading 'dispose')`, taking hydration down with it.
@@ -186,8 +208,23 @@ Each of these is easy to reintroduce and hard to diagnose.
   way through to a raw `Queue <id>`.
 - **Percent-encoded path traversal is the case that matters.** HTTP clients collapse a literal `../`
   before sending, so only `%2f`-encoded separators reach the proxy's guard.
+- **The coach's `404` is nominal, not an error.** It means "nobody has asked for this analysis yet"
+  and is the state that offers the button. `BaseApiService` turns it into an `AppError`, so map
+  `statusCode === 404` onto `null` inside the `useAsyncData` handler or the tab reads as broken.
+- **Generating a coach report blocks for ~15 s.** It is a strictly client-side `POST` — never inside
+  a handler that runs during SSR — and it needs both the client and proxy timeout overrides above.
+  A second `POST` is cheap (the API returns the stored report), so the button may stay live, but
+  label it as reloading rather than promising a fresh opinion.
+- **rAImmus' `noteSur10` is not the header's rating.** The header shows
+  `LoLGameParticipantStat.Rating`, computed and reproducible; the coach's is editorial and can
+  diverge by several points on the same game. Render it explicitly as rAImmus' opinion, or not at all.
+- **`pointsForts` is legitimately empty sometimes.** The coach is told not to invent a compliment, so
+  an empty array is an answer: render a sentence for it rather than an empty list.
+- **The coach keys on the route's `playerId`, not the selected player.** The Performance picker walks
+  all ten participants, but eight of them have no GameOn `playerId` and the API answers 404.
 
 # Known Gaps
+
 - **No search by name on the API.** Only `GET /lol/summoner/{id:int}` exists, so nicknames are
   resolved locally against the loaded ladder (`app/utils/player-search.ts`). This is also why the
   home page search box stays hidden: the logic works, but its suggestions panel is still placeholder
@@ -196,7 +233,16 @@ Each of these is easy to reintroduce and hard to diagnose.
   run when someone runs them. Nothing verifies the Docker image builds or boots.
 - **No error tracking.** Failures are reported through `console.error` only, which in production goes
   to stdout and is lost. This is the largest remaining hole.
-- **No rate limiting on `/api/gameon`.** The allowlist bounds paths, not request volume.
+- **No rate limiting on `/api/gameon`.** The allowlist bounds paths, not request volume. The coach
+  `POST` is the one endpoint where that actually costs money, and only the crew's own authentication
+  stands in front of it.
+- **The front end never regenerates a coach report.** The API takes `?force=true` on the `POST` but
+  honours it only for `gameon_admin`; nothing in the UI sends it, so a report written from a bad
+  payload stays as it is and the button only ever reloads the stored one.
+- **A `404` on the coach `POST` means the API does not have that match**, or that player did not play
+  it — not that the endpoint is missing. Check which API the server is actually proxying before
+  reading it as a front-end bug: `NUXT_PUBLIC_GAME_ON_API_URL` in the process environment wins over
+  the one in `.env`, and an older deployment answers `404` to the coach routes at every verb.
 - **No sitemap; `robots.txt` allows everything.** No image optimisation pipeline either.
 - **`app/components/home/LiveGameCard.vue` is unreferenced.** Left in place because the name suggests
   an in-progress feature; ask before deleting.
@@ -204,6 +250,7 @@ Each of these is easy to reintroduce and hard to diagnose.
   of scope — `GameOn-Front` consumes it too, so changes there need its own discussion.
 
 # Environment
+
 Required: `NUXT_PUBLIC_GAME_ON_API_URL`, `NUXT_PUBLIC_KEYCLOAK_AUTHORITY`,
 `NUXT_PUBLIC_KEYCLOAK_CLIENT_ID`, `NUXT_PUBLIC_KEYCLOAK_REALM`.
 Optional: `NUXT_GAME_ON_API_URL` (overrides the proxy target server-side),
@@ -215,7 +262,9 @@ declares `typescript >=4.8.4 <6.1.0` and crashes under the v7 "Corsa" line. Re-c
 before bumping.
 
 # IMPORTANT META-RULE: Synchronization
+
 At every major modification (adding a feature, technical change, etc.), you MUST:
+
 1. Edit `.agents/instructions.base.md` — the single source of truth — then run `npm run sync:rules`
    to regenerate `.cursorrules`, `.windsurfrules`, `CLAUDE.md`, `.github/copilot-instructions.md`
    and `.agents/AGENTS.md`. Never edit those five by hand; they are generated and will be overwritten.

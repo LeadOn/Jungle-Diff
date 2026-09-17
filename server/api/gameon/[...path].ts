@@ -14,6 +14,16 @@ const ALLOWED_PREFIXES = ['lol/', 'player/']
 const UPSTREAM_TIMEOUT_MS = 8000
 
 /**
+ * Prefixes whose upstream work is a model generation rather than a database read. The coach writes
+ * its report while the connection is held open — roughly 15 s — so the default timeout would abort
+ * every generation and leave the user with a failure the API did not actually return.
+ *
+ * Keep this list as short as the allowlist above: a slow endpoint is not a reason to be here.
+ */
+const SLOW_UPSTREAM_PREFIXES = ['lol/coach/']
+const SLOW_UPSTREAM_TIMEOUT_MS = 60000
+
+/**
  * Authenticating proxy to the GameOn API.
  *
  * The browser calls `/api/gameon/...` and never handles a token; Nitro reads the httpOnly session
@@ -61,12 +71,14 @@ export default defineEventHandler(async (event) => {
 
   const body = method === 'GET' ? undefined : await readRawBody(event, false)
 
+  const isSlowUpstream = SLOW_UPSTREAM_PREFIXES.some(prefix => `${path}/`.toLowerCase().startsWith(prefix))
+
   const response = await $fetch.raw<ArrayBuffer>(url.toString(), {
     method: method as 'GET' | 'POST' | 'PUT' | 'PATCH',
     headers,
     body,
     responseType: 'arrayBuffer',
-    timeout: UPSTREAM_TIMEOUT_MS,
+    timeout: isSlowUpstream ? SLOW_UPSTREAM_TIMEOUT_MS : UPSTREAM_TIMEOUT_MS,
     // One retry, and only on reads: replaying a POST or PATCH would duplicate a side effect.
     retry: method === 'GET' ? 1 : 0,
     retryDelay: 300,

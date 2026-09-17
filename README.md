@@ -16,22 +16,27 @@ OIDC authentication.
 ## 📂 Architecture
 
 ### Application (`app/`)
+
 - `app/pages/` — page components and data orchestration via `useAsyncData`.
 - `app/components/` — reusable components, split into `ui/` and `lol/` domains.
 - `app/composables/` — reusable logic, including API client injection.
 - `app/stores/` — Pinia stores. `usePatchStore` is a read-only view over `useLolStore.versions`, so
   there is exactly one Data Dragon version list per request.
 - `app/lib/api/` — typed HTTP services. Every call carries an 8 s timeout, retries once on reads
-  only (never on writes), maps failures to `AppError`, and encodes path segments.
+  only (never on writes), maps failures to `AppError`, and encodes path segments. A call can raise
+  its own ceiling through `RequestOptions.timeout`; only the coach generation does.
 - `app/utils/async-data.ts` — `cacheOnlyDuringHydration`, a `getCachedData` helper for data that must
   be re-fetched on client navigation instead of being pinned to the first page load.
 - `app/utils/theme.ts` — single entry point for reading and applying the theme.
 
 ### Server (`server/`)
+
 - `server/api/auth/*` — the complete OIDC Authorization Code + PKCE flow: `login`, `callback`,
   `session`, `logout`.
 - `server/api/gameon/[...path].ts` — authenticating proxy to the GameOn API. Reads the session
-  cookies, attaches the bearer, and bounds reachable paths through an allowlist.
+  cookies, attaches the bearer, and bounds reachable paths through an allowlist. A second, much
+  shorter list (`SLOW_UPSTREAM_PREFIXES`) grants the coach endpoint a 60 s window, because its
+  upstream work is a model writing rather than a database read.
 - `server/api/ddragon/versions.get.ts` — Data Dragon versions, cached server-side for an hour with a
   24 h stale window.
 - `server/middleware/security-headers.ts` and `server/plugins/csp.ts` — security headers and the
@@ -39,6 +44,7 @@ OIDC authentication.
 - `server/routes/healthz.get.ts` — dependency-free liveness probe for orchestrators.
 
 ### Shared (`shared/`)
+
 Contracts used by both Nitro and the app (e.g. `SessionState`), imported via `#shared`.
 
 ## 📐 Conventions
@@ -76,7 +82,7 @@ the `.light` class switches; the Tailwind variant is `light:`, **not** `dark:`.
 ## 🔑 Authentication
 
 Tokens never reach the browser. The OIDC flow runs entirely in Nitro and stores both the access and
-refresh tokens in `httpOnly` + `SameSite=Lax` cookies; the client only ever learns *whether* it is
+refresh tokens in `httpOnly` + `SameSite=Lax` cookies; the client only ever learns _whether_ it is
 signed in and as whom.
 
 `offline_access` is requested deliberately — it backs the ~30-day persistent session so returning
@@ -86,6 +92,34 @@ most valuable thing an XSS could steal.
 
 Data calls go to `/api/gameon/...` and the proxy authenticates them. The only direct hits to the
 GameOn API are anonymous `<img src>` URLs built from `config.public.gameOnApiUrl`.
+
+## 🧠 rAImmus, the AI coach
+
+rAImmus — Rammus + AI — is the coach on the match detail page, behind its own tab. He reads the game
+and answers with a synthesis, what went well, what to work on, and a mark out of ten.
+
+The name is a **UI skin, nothing more**: the routes stay neutral
+(`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the model, so
+the persona lives only in `LolGameCoachReport.vue`'s French labels.
+
+Four things shape the implementation:
+
+- **The `GET`'s 404 is nominal.** It means "nobody has asked for this analysis yet" — the state that
+  offers the button. `BaseApiService` turns every failure into an `AppError`, so the handler maps
+  `statusCode === 404` onto `null` rather than letting `useAsyncData` treat it as an error.
+- **The `POST` blocks for ~15 s** while the model writes. It is authenticated, strictly client-side,
+  and needs the raised timeout on both the client and the proxy. A second `POST` costs nothing — the
+  API returns the stored report — so the button stays live but is labelled as a reload, not as a new
+  opinion.
+- **`noteSur10` is not the rating in the page header.** That one comes from
+  `LoLGameParticipantStat.Rating`, computed and reproducible; rAImmus' is editorial and can land
+  several points away on the same game. It is rendered as "l'avis de rAImmus", with the distinction
+  spelled out next to it.
+- **The report keys on the route's `playerId`**, never on the player picked in the Performance tab:
+  eight of the ten participants have no GameOn id and would come back 404.
+
+`generatedOn` and `modelName` are shown in the card's footer, alongside a plain statement that the
+text was written by an AI.
 
 ## 🛡️ Security Posture
 
@@ -103,14 +137,14 @@ GameOn API are anonymous `<img src>` URLs built from `config.public.gameOnApiUrl
 
 Copy `.env.example` to `.env`:
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `NUXT_PUBLIC_GAME_ON_API_URL` | yes | GameOn API base URL (proxy target and image host) |
-| `NUXT_PUBLIC_KEYCLOAK_AUTHORITY` | yes | Realm issuer URL |
-| `NUXT_PUBLIC_KEYCLOAK_CLIENT_ID` | yes | Keycloak client id |
-| `NUXT_PUBLIC_KEYCLOAK_REALM` | yes | Realm name |
-| `NUXT_GAME_ON_API_URL` | no | Overrides the proxy target server-side; defaults to the public URL |
-| `NUXT_KEYCLOAK_CLIENT_SECRET` | no | Only for a confidential Keycloak client; empty means public client + PKCE |
+| Variable                         | Required | Purpose                                                                   |
+| -------------------------------- | -------- | ------------------------------------------------------------------------- |
+| `NUXT_PUBLIC_GAME_ON_API_URL`    | yes      | GameOn API base URL (proxy target and image host)                         |
+| `NUXT_PUBLIC_KEYCLOAK_AUTHORITY` | yes      | Realm issuer URL                                                          |
+| `NUXT_PUBLIC_KEYCLOAK_CLIENT_ID` | yes      | Keycloak client id                                                        |
+| `NUXT_PUBLIC_KEYCLOAK_REALM`     | yes      | Realm name                                                                |
+| `NUXT_GAME_ON_API_URL`           | no       | Overrides the proxy target server-side; defaults to the public URL        |
+| `NUXT_KEYCLOAK_CLIENT_SECRET`    | no       | Only for a confidential Keycloak client; empty means public client + PKCE |
 
 The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 
@@ -121,7 +155,7 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   console.
 - **Auth** reworked into the server-side flow described above; `oidc-client-ts` removed.
 - **Resilience:** timeouts and bounded retries on every outbound call. Data Dragon versions are
-  cached server-side — previously *two* uncached CDN calls fired on every SSR render, so any Riot CDN
+  cached server-side — previously _two_ uncached CDN calls fired on every SSR render, so any Riot CDN
   slowdown propagated to every page.
 - **Correct HTTP semantics:** unknown players and matches now return a real 404 with the branded
   error page instead of a 200 carrying an error panel.
@@ -138,6 +172,9 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   `typescript-eslint` (via `@nuxt/eslint-config`), which requires `typescript >=4.8.4 <6.1.0`.
   `npm audit` reports 0 vulnerabilities.
 - **Pages:** Home, Summoner Profile and Game Detail are wired to real GameOn API data.
+- **rAImmus** (2026-09-17): the AI coach tab on the match detail page, backed by the GameOn
+  `/lol/coach` endpoints. Generation is authenticated and on demand — nothing is written unless a
+  crew member asks for it.
 - **Tests & container:** 15 Playwright tests, 14 of which need no upstream, plus a non-root Node 24
   image with a health probe. `vue` is pinned to `^3.5.42`; it was `latest`, which let two installs a
   week apart produce different builds. Delivery is manual — see "Checks Before Deploying".
@@ -145,6 +182,12 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   suggestions panel is still placeholder content. The resolution logic itself works (see below).
 
 ## 🧩 Backend Gaps
+
+**No rate limiting in front of the coach.** The proxy's allowlist bounds paths, not request volume,
+and the coach `POST` is the one endpoint where a request costs real money. Only the crew's own
+authentication stands in front of it today. The API does accept `?force=true` on the `POST` to
+rewrite a report, but honours it for `gameon_admin` only and nothing in the UI sends it — so from the
+front end a report is written once and a poor one stays as it is.
 
 **No search by name.** The only profile route is `GET /lol/summoner/{id:int}`, so nicknames are
 resolved client-side against the already-loaded ladder (`app/utils/player-search.ts`). That works for
@@ -203,6 +246,7 @@ included, so rebuild before a run whose result has to be trusted.
   docker run --rm -p 3000:3000 --env-file .env junglediff
   curl -fsS http://localhost:3000/healthz
   ```
+
 - No `NUXT_PUBLIC_*` value is baked in at build time — every one is read from the environment at
   container start, so a single image is promotable across environments.
 

@@ -30,9 +30,16 @@ public sign-up — authentication exists so a crew member can edit their own pro
   performance KPI panel, an LP progression sparkline, a filterable and paginated match history, and
   Champions / Rôles / Duos side panels. Server-rendered.
 - `/game/[id]/[playerId]` — match detail: win/loss-tinted header with MVP/ACE accolade, per-team
-  objectives, key moments, then four tabs — Vue d'ensemble (scoreboards + highlights), Film de la
+  objectives, key moments, then five tabs — Vue d'ensemble (scoreboards + highlights), Film de la
   partie (a timeline scrubber driving minimap, gold race, kill feed and charts), Performance (player
-  picker, KPI tiles, radar and damage/gold/ranking charts), and a collapsible Données brutes table.
+  picker, KPI tiles, radar and damage/gold/ranking charts), rAImmus (the AI coach report), and a
+  collapsible Données brutes table.
+- **rAImmus** — the AI coach, named after Rammus, rendered by
+  `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
+  neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
+  model, never from the front end. `GET` returns the stored report or `404`; `POST` is authenticated
+  and writes it. The component owns four states — not generated yet, generating, report, error — and
+  the tab is only offered when the route carries a usable `playerId`.
 - `/settings` — the only authenticated page (`definePageMeta({ auth: true })`): edit nickname, full
   name, Riot ID and avatar; shows an admin panel to holders of the `gameon_admin` realm role.
 - `/healthz` — liveness probe, not a user-facing page.
@@ -98,7 +105,10 @@ public sign-up — authentication exists so a crew member can edit their own pro
   the GameOn API with the session bearer; `server/api/ddragon/versions.get.ts` serves Riot's version
   list from a one-hour server cache with a 24-hour stale window.
 - `app/lib/api/BaseApiService` gives every call an 8 s timeout, one retry on reads and none on
-  writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`.
+  writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`. A call may
+  raise its own ceiling through `RequestOptions.timeout`; only `generateCoachReport` does, and the
+  proxy grants the same window to `SLOW_UPSTREAM_PREFIXES`. Both halves are required — raising one
+  alone still gets the call cut at 8 s by the other.
 - Data that must stay fresh (`lol` store: home stats, ladder players, last matches) is cached behind
   a 60 s window rather than for the whole SPA session, and its `useAsyncData` callers pass
   `getCachedData: cacheOnlyDuringHydration` (`app/utils/async-data.ts`) so the handler is replayed on
@@ -188,6 +198,20 @@ Each of these is easy to reintroduce and hard to diagnose.
   way through to a raw `Queue <id>`.
 - **Percent-encoded path traversal is the case that matters.** HTTP clients collapse a literal `../`
   before sending, so only `%2f`-encoded separators reach the proxy's guard.
+- **The coach's `404` is nominal, not an error.** It means "nobody has asked for this analysis yet"
+  and is the state that offers the button. `BaseApiService` turns it into an `AppError`, so map
+  `statusCode === 404` onto `null` inside the `useAsyncData` handler or the tab reads as broken.
+- **Generating a coach report blocks for ~15 s.** It is a strictly client-side `POST` — never inside
+  a handler that runs during SSR — and it needs both the client and proxy timeout overrides above.
+  A second `POST` is cheap (the API returns the stored report), so the button may stay live, but
+  label it as reloading rather than promising a fresh opinion.
+- **rAImmus' `noteSur10` is not the header's rating.** The header shows
+  `LoLGameParticipantStat.Rating`, computed and reproducible; the coach's is editorial and can
+  diverge by several points on the same game. Render it explicitly as rAImmus' opinion, or not at all.
+- **`pointsForts` is legitimately empty sometimes.** The coach is told not to invent a compliment, so
+  an empty array is an answer: render a sentence for it rather than an empty list.
+- **The coach keys on the route's `playerId`, not the selected player.** The Performance picker walks
+  all ten participants, but eight of them have no GameOn `playerId` and the API answers 404.
 
 # Known Gaps
 - **No search by name on the API.** Only `GET /lol/summoner/{id:int}` exists, so nicknames are
@@ -198,7 +222,16 @@ Each of these is easy to reintroduce and hard to diagnose.
   run when someone runs them. Nothing verifies the Docker image builds or boots.
 - **No error tracking.** Failures are reported through `console.error` only, which in production goes
   to stdout and is lost. This is the largest remaining hole.
-- **No rate limiting on `/api/gameon`.** The allowlist bounds paths, not request volume.
+- **No rate limiting on `/api/gameon`.** The allowlist bounds paths, not request volume. The coach
+  `POST` is the one endpoint where that actually costs money, and only the crew's own authentication
+  stands in front of it.
+- **The front end never regenerates a coach report.** The API takes `?force=true` on the `POST` but
+  honours it only for `gameon_admin`; nothing in the UI sends it, so a report written from a bad
+  payload stays as it is and the button only ever reloads the stored one.
+- **A `404` on the coach `POST` means the API does not have that match**, or that player did not play
+  it — not that the endpoint is missing. Check which API the server is actually proxying before
+  reading it as a front-end bug: `NUXT_PUBLIC_GAME_ON_API_URL` in the process environment wins over
+  the one in `.env`, and an older deployment answers `404` to the coach routes at every verb.
 - **No sitemap; `robots.txt` allows everything.** No image optimisation pipeline either.
 - **`app/components/home/LiveGameCard.vue` is unreferenced.** Left in place because the name suggests
   an in-progress feature; ask before deleting.
