@@ -1,13 +1,24 @@
 import { BaseApiService, encodePathSegment as segment } from './BaseApiService'
 import type { RequestOptions } from './BaseApiService'
-import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto } from '../types'
+import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto } from '../types'
 
 /**
- * Generating a coach report blocks while the model writes — around 15 s, well past the 8 s default.
- * The Nitro proxy grants the same endpoint a matching window, otherwise it would cut the call short
- * before this one ever expires.
+ * What either coach route may answer.
+ *
+ * Neither one generates during the request any more: the API queues the work behind a single
+ * consumer, so a `202` carrying a `LoLCoachQueueStatusDto` is as ordinary as a `200` carrying the
+ * report. `$fetch` resolves on both and hands back the body either way.
  */
-const COACH_GENERATION_TIMEOUT_MS = 60_000
+export type LoLCoachResponse = LoLCoachReportDto | LoLCoachQueueStatusDto
+
+/**
+ * Discriminates the two answers by shape.
+ *
+ * `BaseApiService` deliberately does not surface the status code — the two DTOs share no field, so
+ * widening the whole client to carry a status for this one pair of endpoints buys nothing.
+ */
+export const isCoachQueued = (response: LoLCoachResponse): response is LoLCoachQueueStatusDto =>
+  'position' in response
 
 /**
  * GameOn API client.
@@ -111,22 +122,24 @@ export class GameOnClient extends BaseApiService {
   }
 
   /**
-   * Reads the stored coach report. A `404` here is nominal, not a failure: it means nobody has
-   * asked for this analysis yet. Callers are expected to map it onto `null` rather than an error.
+   * Reads the coach's answer for a match, and never triggers anything. Three outcomes, two of which
+   * are nominal: the report (`200`), a queue slot (`202`), or a `404` meaning nobody has asked yet.
+   * Callers map that `404` onto `null` rather than an error, and poll this route while queued.
    */
   public getCoachReport(matchId: string, playerId: string | number, signal?: AbortSignal) {
-    return this.get<LoLCoachReportDto>(`/lol/coach/${segment(matchId)}/player/${segment(playerId)}`, GameOnClient.opts(signal))
+    return this.get<LoLCoachResponse>(`/lol/coach/${segment(matchId)}/player/${segment(playerId)}`, GameOnClient.opts(signal))
   }
 
   /**
-   * Asks for the analysis to be written. Authenticated, slow, and idempotent in practice: once a
-   * report exists the API returns it as-is instead of paying for a second generation.
+   * Asks for the analysis to be written. Authenticated, and immediate: it either hands back the
+   * report already in cache or enqueues the work and returns the slot. The API deduplicates on
+   * `(matchId, playerId)`, so a second click returns the existing position instead of a new one.
    */
   public generateCoachReport(matchId: string, playerId: string | number, signal?: AbortSignal) {
-    return this.post<LoLCoachReportDto>(
+    return this.post<LoLCoachResponse>(
       `/lol/coach/${segment(matchId)}/player/${segment(playerId)}`,
       null,
-      { ...GameOnClient.opts(signal), timeout: COACH_GENERATION_TIMEOUT_MS }
+      GameOnClient.opts(signal)
     )
   }
 

@@ -24,7 +24,8 @@ OIDC authentication.
   there is exactly one Data Dragon version list per request.
 - `app/lib/api/` — typed HTTP services. Every call carries an 8 s timeout, retries once on reads
   only (never on writes), maps failures to `AppError`, and encodes path segments. A call can raise
-  its own ceiling through `RequestOptions.timeout`; only the coach generation does.
+  its own ceiling through `RequestOptions.timeout`; nothing does today, the coach having moved its
+  generation onto a server-side queue.
 - `app/utils/async-data.ts` — `cacheOnlyDuringHydration`, a `getCachedData` helper for data that must
   be re-fetched on client navigation instead of being pinned to the first page load.
 - `app/utils/theme.ts` — single entry point for reading and applying the theme.
@@ -34,9 +35,9 @@ OIDC authentication.
 - `server/api/auth/*` — the complete OIDC Authorization Code + PKCE flow: `login`, `callback`,
   `session`, `logout`.
 - `server/api/gameon/[...path].ts` — authenticating proxy to the GameOn API. Reads the session
-  cookies, attaches the bearer, and bounds reachable paths through an allowlist. A second, much
-  shorter list (`SLOW_UPSTREAM_PREFIXES`) grants the coach endpoint a 60 s window, because its
-  upstream work is a model writing rather than a database read.
+  cookies, attaches the bearer, and bounds reachable paths through an allowlist. One timeout for
+  every route (8 s): the coach used to need a longer one and no longer does, since its generation
+  happens on the API's own queue rather than while the connection is held open.
 - `server/api/ddragon/versions.get.ts` — Data Dragon versions, cached server-side for an hour with a
   24 h stale window.
 - `server/middleware/security-headers.ts` and `server/plugins/csp.ts` — security headers and the
@@ -102,15 +103,26 @@ The name is a **UI skin, nothing more**: the routes stay neutral
 (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the model, so
 the persona lives only in `LolGameCoachReport.vue`'s French labels.
 
-Four things shape the implementation:
+Five things shape the implementation:
 
-- **The `GET`'s 404 is nominal.** It means "nobody has asked for this analysis yet" — the state that
-  offers the button. `BaseApiService` turns every failure into an `AppError`, so the handler maps
-  `statusCode === 404` onto `null` rather than letting `useAsyncData` treat it as an error.
-- **The `POST` blocks for ~15 s** while the model writes. It is authenticated, strictly client-side,
-  and needs the raised timeout on both the client and the proxy. A second `POST` costs nothing — the
-  API returns the stored report — so the button stays live but is labelled as a reload, not as a new
-  opinion.
+- **Generation is queued, not synchronous.** A report takes ~50 s to write and the model's free tier
+  allows 5 requests a minute, so the API serialises the work behind a single consumer. Both routes
+  answer immediately: `200` with the report, or `202` with a `LoLCoachQueueStatusDto` carrying the
+  position, the queue length and a server-computed estimate. `$fetch` resolves on a `202` like any
+  other body, so both client methods return the `LoLCoachResponse` union and every call site
+  discriminates through `isCoachQueued`. While queued, the component polls the `GET` every 5 s and
+  shows the position and the remaining wait rather than an opaque spinner. `estimatedWaitSeconds` is
+  a rolling average of the last ten real generations, so it moves from poll to poll and is rendered
+  as it arrives.
+- **The `GET`'s first 404 is nominal, a later one is not.** On the initial read it means "nobody has
+  asked for this analysis yet" — the state that offers the button — so the handler maps
+  `statusCode === 404` onto `null` rather than letting `useAsyncData` treat it as an error. The same
+  404 arriving *while polling a queued slot* means the API gave up after five consecutive refusals
+  from the model; it stops the poll and shows a failure with its own wording, because otherwise an
+  abandoned generation is indistinguishable from the starting state.
+- **The `POST` is authenticated, client-side and instant.** It either hands back a cached report or
+  takes the slot, and the API deduplicates on `(matchId, playerId)`, so clicking twice returns the
+  same position instead of buying a second generation.
 - **`noteSur10` is not the rating in the page header.** That one comes from
   `LoLGameParticipantStat.Rating`, computed and reproducible; rAImmus' is editorial and can land
   several points away on the same game. It is rendered as "l'avis de rAImmus", with the distinction
@@ -174,8 +186,9 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 - **Pages:** Home, Summoner Profile and Game Detail are wired to real GameOn API data.
 - **rAImmus** (2026-09-17): the AI coach tab on the match detail page, backed by the GameOn
   `/lol/coach` endpoints. Generation is authenticated and on demand — nothing is written unless a
-  crew member asks for it.
-- **Tests & container:** 15 Playwright tests, 14 of which need no upstream, plus a non-root Node 24
+  crew member asks for it. Since the API moved generation onto a queue, the tab shows the position
+  in that queue and the estimated wait, polling until the report lands.
+- **Tests & container:** 18 Playwright tests, 14 of which need no upstream, plus a non-root Node 24
   image with a health probe. `vue` is pinned to `^3.5.42`; it was `latest`, which let two installs a
   week apart produce different builds. Delivery is manual — see "Checks Before Deploying".
 - **Known gap:** the search bar on the home page is intentionally hidden behind `v-if="false"` — its
@@ -184,8 +197,9 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 ## 🧩 Backend Gaps
 
 **No rate limiting in front of the coach.** The proxy's allowlist bounds paths, not request volume,
-and the coach `POST` is the one endpoint where a request costs real money. Only the crew's own
-authentication stands in front of it today. The API does accept `?force=true` on the `POST` to
+and the coach `POST` is the one endpoint where a request costs real money. The API's queue and its
+`(matchId, playerId)` deduplication now bound the spend, but only the crew's own authentication
+stands in front of the endpoint itself. The API does accept `?force=true` on the `POST` to
 rewrite a report, but honours it for `gameon_admin` only and nothing in the UI sends it — so from the
 front end a report is written once and a poor one stays as it is.
 

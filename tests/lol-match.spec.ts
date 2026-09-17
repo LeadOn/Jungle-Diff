@@ -104,6 +104,78 @@ test.describe("match detail page", () => {
     expect(consoleErrors).toEqual([]);
   });
 
+  /**
+   * The coach no longer generates during the request: the API queues the work and both routes
+   * answer immediately, so the front end has to read a `202` as a state of its own and poll until
+   * the report lands. Only the coach routes are stubbed — the page around them still renders from
+   * live data, which is what makes this an integration check rather than a unit test.
+   */
+  test("shows the queue position, then swaps it for the report", async ({
+    page,
+    request,
+  }) => {
+    const match = await crewMatch(request);
+    test.skip(!match, "the API returned no crew match to exercise");
+
+    const queued = {
+      matchId: match!.matchId,
+      playerId: match!.playerId,
+      position: 3,
+      queueLength: 4,
+      estimatedWaitSeconds: 120,
+      enqueuedOn: new Date().toISOString(),
+    };
+
+    const report = {
+      matchId: match!.matchId,
+      playerId: match!.playerId,
+      analysis: {
+        synthese: "Synthèse de test rAImmus.",
+        pointsForts: ["Point fort de test"],
+        axesProgression: [
+          {
+            titre: "Axe de test",
+            explication: "Explication de test.",
+            actionConcrete: "Action de test.",
+          },
+        ],
+        noteSur10: 7.5,
+      },
+      modelName: "test-model",
+      generatedOn: new Date().toISOString(),
+    };
+
+    // First read is still queued, every one after it carries the report: that is exactly the
+    // transition the polling loop exists for.
+    let reads = 0;
+    await page.route("**/api/gameon/lol/coach/**", async (route) => {
+      reads += 1;
+      await route.fulfill(
+        reads === 1
+          ? {status: 202, json: queued}
+          : {status: 200, json: report},
+      );
+    });
+
+    await page.goto(`/game/${match!.matchId}/${match!.playerId}`);
+
+    // The component is mounted by the tab, not by the page: the coach GET is client-side only.
+    await page
+      .getByRole("tablist")
+      .getByRole("tab", {name: "rAImmus"})
+      .click();
+
+    await expect(page.getByText("3ᵉ dans la file.")).toBeVisible();
+    await expect(page.getByText("Encore ~2 min")).toBeVisible();
+
+    // The poll runs every 5 s, so allow for one tick plus the round trip.
+    await expect(page.getByText("Synthèse de test rAImmus.")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByText("3ᵉ dans la file.")).toBeHidden();
+    expect(reads).toBeGreaterThan(1);
+  });
+
   test("an unknown match id yields a real 404", async ({page}) => {
     // The GameOn API answers 204 No Content for an unknown id, which reaches the page as a
     // successful call carrying nothing — it has to be translated into a 404 explicitly.

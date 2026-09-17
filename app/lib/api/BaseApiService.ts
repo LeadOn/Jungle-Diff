@@ -22,8 +22,8 @@ export interface RequestOptions {
   headers?: Record<string, string>
   /**
    * Overrides `DEFAULT_TIMEOUT_MS`. Only for endpoints whose upstream work is genuinely longer than
-   * a database read — the coach generation holds the connection while the model writes — never to
-   * paper over a slow endpoint.
+   * a database read, never to paper over a slow endpoint. Nothing needs it today: the coach routes
+   * used to, and now queue their work instead of holding the connection open.
    */
   timeout?: number
 }

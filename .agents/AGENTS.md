@@ -51,8 +51,10 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - **rAImmus** — the AI coach, named after Rammus, rendered by
   `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
   neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
-  model, never from the front end. `GET` returns the stored report or `404`; `POST` is authenticated
-  and writes it. The component owns four states — not generated yet, generating, report, error — and
+  model, never from the front end. Generation is queued server-side, so neither route blocks:
+  `GET` answers `200` with the report, `202` with a `LoLCoachQueueStatusDto`, or `404` when nobody
+  has asked; `POST` is authenticated and answers `200` or `202`. The component owns five states —
+  not generated yet, queued, report, abandoned, error — polls the `GET` every 5 s while queued, and
   the tab is only offered when the route carries a usable `playerId`.
 - `/settings` — the only authenticated page (`definePageMeta({ auth: true })`): edit nickname, full
   name, Riot ID and avatar; shows an admin panel to holders of the `gameon_admin` realm role.
@@ -124,9 +126,10 @@ public sign-up — authentication exists so a crew member can edit their own pro
   list from a one-hour server cache with a 24-hour stale window.
 - `app/lib/api/BaseApiService` gives every call an 8 s timeout, one retry on reads and none on
   writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`. A call may
-  raise its own ceiling through `RequestOptions.timeout`; only `generateCoachReport` does, and the
-  proxy grants the same window to `SLOW_UPSTREAM_PREFIXES`. Both halves are required — raising one
-  alone still gets the call cut at 8 s by the other.
+  raise its own ceiling through `RequestOptions.timeout`, and nothing does today: the coach routes
+  were the only holder and now queue their work instead of holding the connection. Any future user
+  needs the proxy widened to match — raising one half alone still gets the call cut at 8 s by the
+  other.
 - Data that must stay fresh (`lol` store: home stats, ladder players, last matches) is cached behind
   a 60 s window rather than for the whole SPA session, and its `useAsyncData` callers pass
   `getCachedData: cacheOnlyDuringHydration` (`app/utils/async-data.ts`) so the handler is replayed on
@@ -221,13 +224,23 @@ Each of these is easy to reintroduce and hard to diagnose.
   way through to a raw `Queue <id>`.
 - **Percent-encoded path traversal is the case that matters.** HTTP clients collapse a literal `../`
   before sending, so only `%2f`-encoded separators reach the proxy's guard.
-- **The coach's `404` is nominal, not an error.** It means "nobody has asked for this analysis yet"
-  and is the state that offers the button. `BaseApiService` turns it into an `AppError`, so map
-  `statusCode === 404` onto `null` inside the `useAsyncData` handler or the tab reads as broken.
-- **Generating a coach report blocks for ~15 s.** It is a strictly client-side `POST` — never inside
-  a handler that runs during SSR — and it needs both the client and proxy timeout overrides above.
-  A second `POST` is cheap (the API returns the stored report), so the button may stay live, but
-  label it as reloading rather than promising a fresh opinion.
+- **The coach's first `404` is nominal, a later one is a failure.** On the initial read it means
+  "nobody has asked for this analysis yet" and is the state that offers the button, so map
+  `statusCode === 404` onto `null` inside the `useAsyncData` handler or the tab reads as broken. The
+  same `404` seen *while polling a queued slot* means the opposite: the API gave up after five
+  consecutive refusals from the model. Render the two differently, or an abandoned generation is
+  indistinguishable from the starting state and the player re-clicks forever.
+- **The coach queues, it no longer generates during the request.** A generation takes ~50 s and the
+  model's free tier allows 5 requests/minute, so the API serialises the work behind one consumer.
+  Both routes answer immediately; a `202` carries `LoLCoachQueueStatusDto` and `$fetch` resolves on
+  it like any other body, which is why `getCoachReport`/`generateCoachReport` return the
+  `LoLCoachResponse` union and every call site discriminates through `isCoachQueued`. The API
+  deduplicates on `(matchId, playerId)`, so a second click returns the existing position.
+- **`estimatedWaitSeconds` moves between polls.** It is a rolling average of the last ten real
+  generations, not a constant: render whatever the latest poll carried instead of freezing the first
+  value. Below ~90 s show seconds, above it minutes.
+- **A `setInterval` poll must die with the component.** `onBeforeUnmount` clears the interval as well
+  as calling `abort()`; an interval that survives keeps hitting the API for a destroyed view.
 - **rAImmus' `noteSur10` is not the header's rating.** The header shows
   `LoLGameParticipantStat.Rating`, computed and reproducible; the coach's is editorial and can
   diverge by several points on the same game. Render it explicitly as rAImmus' opinion, or not at all.
@@ -247,13 +260,14 @@ Each of these is easy to reintroduce and hard to diagnose.
 - **No error tracking.** Failures are reported through `console.error` only, which in production goes
   to stdout and is lost. This is the largest remaining hole.
 - **No rate limiting on `/api/gameon`.** The allowlist bounds paths, not request volume. The coach
-  `POST` is the one endpoint where that actually costs money, and only the crew's own authentication
-  stands in front of it.
+  `POST` is the one endpoint where that actually costs money; the API's own queue and its
+  `(matchId, playerId)` deduplication now bound the spend, and only the crew's own authentication
+  stands in front of the endpoint itself.
 - **The front end never regenerates a coach report.** The API takes `?force=true` on the `POST` but
   honours it only for `gameon_admin`; nothing in the UI sends it, so a report written from a bad
   payload stays as it is and the button only ever reloads the stored one.
 - **A `404` on the coach `POST` means the API does not have that match**, or that player did not play
-  it — not that the endpoint is missing. Check which API the server is actually proxying before
+  it — not that the endpoint is missing, and not the abandoned-generation `404` the poll can see. Check which API the server is actually proxying before
   reading it as a front-end bug: `NUXT_PUBLIC_GAME_ON_API_URL` in the process environment wins over
   the one in `.env`, and an older deployment answers `404` to the coach routes at every verb.
 - **No sitemap; `robots.txt` allows everything.** No image optimisation pipeline either.

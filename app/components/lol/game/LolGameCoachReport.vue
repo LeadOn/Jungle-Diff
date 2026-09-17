@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import {computed, onBeforeUnmount, ref} from "vue";
 import {useAsyncData} from "#app";
-import type {LoLCoachReportDto} from "~/lib/types";
+import type {LoLCoachQueueStatusDto, LoLCoachReportDto} from "~/lib/types";
+import type {LoLCoachResponse} from "~/lib/api/GameOnClient";
+import {isCoachQueued} from "~/lib/api/GameOnClient";
 import {AppError, isAbortError} from "~/lib/types/error";
 import {useGameOnLol} from "~/composables/useGameOnLol";
 import {useAuthStore} from "~/stores/auth";
@@ -14,6 +16,10 @@ import {decimalLabel, formatDateTime} from "~/utils/lol-match";
  *
  * `playerId` is the one from the route, never the player picked in the Performance tab: eight of
  * the ten participants have no GameOn `playerId` and the API would answer 404 for them.
+ *
+ * The API queues generations behind a single consumer instead of writing during the request, so
+ * both routes answer immediately and the wait is watched from here: a `202` carries a queue slot,
+ * which this component polls until the report lands.
  */
 const props = defineProps<{
   matchId: string;
@@ -23,13 +29,15 @@ const props = defineProps<{
 const gameOnApi = useGameOnLol();
 const authStore = useAuthStore();
 
+/** Fast enough to feel live, slow enough to stay negligible against a ~50 s generation. */
+const POLL_INTERVAL_MS = 5000;
+
 /**
  * Cancels whatever is in flight when the tab is left — a response landing in an unmounted component
- * is at best wasted, at worst a late write over newer state. A generation already started keeps
+ * is at best wasted, at worst a late write over newer state. A generation already queued keeps
  * running upstream, so the report is simply there on the next visit.
  */
 const controller = new AbortController();
-onBeforeUnmount(() => controller.abort());
 
 const statusCodeOf = (error: unknown): number => {
   if (error instanceof AppError) return error.statusCode;
@@ -40,6 +48,33 @@ const statusCodeOf = (error: unknown): number => {
   return 0;
 };
 
+/** Set as soon as either route answers `202`; cleared the moment the report arrives. */
+const queueStatus = ref<LoLCoachQueueStatusDto | null>(null);
+
+/**
+ * The server gave up on this analysis — five consecutive refusals from the model. It is only ever
+ * set from a `404` seen *while polling*, which is the one place that 404 cannot mean "not asked
+ * for yet": see `pollOnce`.
+ */
+const hasBeenAbandoned = ref(false);
+
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+const stopPolling = () => {
+  if (pollTimer === null) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+};
+
+/**
+ * An interval outliving the component would keep polling the API for a view nobody is looking at,
+ * so it is cleared alongside the in-flight request rather than left to the garbage collector.
+ */
+onBeforeUnmount(() => {
+  stopPolling();
+  controller.abort();
+});
+
 const {
   data: report,
   status,
@@ -49,16 +84,25 @@ const {
   `coach-${props.matchId}-${props.playerId}`,
   async () => {
     try {
-      return await gameOnApi.getCoachReport(
+      const response = await gameOnApi.getCoachReport(
         props.matchId,
         props.playerId,
         controller.signal,
       );
+
+      if (isCoachQueued(response)) {
+        queueStatus.value = response;
+        startPolling();
+        return null;
+      }
+
+      queueStatus.value = null;
+      return response;
     } catch (error: unknown) {
       /**
-       * A 404 is the nominal answer, not a failure: it means nobody has asked for this analysis
-       * yet, which is exactly the state that offers the button. Left unmapped, `useAsyncData` would
-       * park it in `error` and the tab would read as broken.
+       * A 404 on the *first* read is the nominal answer, not a failure: it means nobody has asked
+       * for this analysis yet, which is exactly the state that offers the button. Left unmapped,
+       * `useAsyncData` would park it in `error` and the tab would read as broken.
        */
       if (statusCodeOf(error) === 404) return null;
       console.error("[coach] Report read failed:", error);
@@ -68,42 +112,109 @@ const {
   {lazy: true},
 );
 
-const isGenerating = ref(false);
-const generationError = ref<unknown>(null);
-
-const isLoading = computed(() => status.value === "pending");
-
-const requestAnalysis = async () => {
-  if (isGenerating.value) return;
-
-  isGenerating.value = true;
-  generationError.value = null;
-
+/** One poll tick: the same `GET`, read for the three answers it can now give. */
+const pollOnce = async () => {
   try {
-    // Strictly client-side and deliberately slow: the model writes while the request is held open.
-    report.value = await gameOnApi.generateCoachReport(
+    const response = await gameOnApi.getCoachReport(
       props.matchId,
       props.playerId,
       controller.signal,
     );
+
+    // Still waiting. The estimate is recomputed server-side from the last ten real generations, so
+    // it is re-read on every tick rather than held at the value the first answer carried.
+    if (isCoachQueued(response)) {
+      queueStatus.value = response;
+      return;
+    }
+
+    stopPolling();
+    queueStatus.value = null;
+    report.value = response;
   } catch (error: unknown) {
     if (isAbortError(error)) return;
-    console.error("[coach] Analysis generation failed:", error);
+
+    /**
+     * A 404 *here* is not the initial one. The slot existed a few seconds ago, so the API dropping
+     * it means the generation was abandoned. Falling back to the "nobody asked yet" screen would
+     * make that failure indistinguishable from the starting state, and the player would sit there
+     * re-clicking a button that can only fail again.
+     */
+    if (statusCodeOf(error) === 404) {
+      stopPolling();
+      queueStatus.value = null;
+      hasBeenAbandoned.value = true;
+      return;
+    }
+
+    // Anything else is treated as transient: the queue is still upstream and the next tick retries,
+    // which beats tearing down a two-minute wait over one failed round trip.
+    console.error("[coach] Queue poll failed:", error);
+  }
+};
+
+const startPolling = () => {
+  // Never on the server: an interval started during SSR has nothing left to update and would keep
+  // a handle alive in a render that is already serialized.
+  if (!import.meta.client || pollTimer !== null) return;
+  pollTimer = setInterval(pollOnce, POLL_INTERVAL_MS);
+};
+
+const isSubmitting = ref(false);
+const generationError = ref<unknown>(null);
+
+const isLoading = computed(() => status.value === "pending");
+
+/** Applies a `POST` answer: the report if it was already in cache, a queue slot otherwise. */
+const applyQueuedOrReport = (response: LoLCoachResponse) => {
+  if (isCoachQueued(response)) {
+    queueStatus.value = response;
+    startPolling();
+    return;
+  }
+
+  queueStatus.value = null;
+  report.value = response;
+};
+
+const requestAnalysis = async () => {
+  if (isSubmitting.value) return;
+
+  isSubmitting.value = true;
+  generationError.value = null;
+  hasBeenAbandoned.value = false;
+
+  try {
+    // Returns immediately now: the API either hands back a cached report or takes the slot. Two
+    // clicks do not buy two slots — it deduplicates on `(matchId, playerId)`.
+    applyQueuedOrReport(
+      await gameOnApi.generateCoachReport(
+        props.matchId,
+        props.playerId,
+        controller.signal,
+      ),
+    );
+  } catch (error: unknown) {
+    if (isAbortError(error)) return;
+    console.error("[coach] Analysis request failed:", error);
     generationError.value = error;
   } finally {
-    isGenerating.value = false;
+    isSubmitting.value = false;
   }
 };
 
 const retry = () => {
   generationError.value = null;
+  hasBeenAbandoned.value = false;
   return refresh();
 };
 
 /**
- * Failures are dressed in the character rather than in HTTP terms. A 500 from this endpoint almost
- * always means the model is saturated, which is a "come back in a minute", not a bug the user could
- * do anything about.
+ * Failures are dressed in the character rather than in HTTP terms.
+ *
+ * Model saturation no longer reaches the browser: the queue absorbs it through its own retries, and
+ * a failed generation surfaces as an abandoned slot (`hasBeenAbandoned`), not as a status code. A
+ * 5xx on these routes is therefore a genuine defect again, and is worded as one.
  */
 const errorCopy = computed(() => {
   const error = generationError.value ?? loadError.value;
@@ -125,13 +236,14 @@ const errorCopy = computed(() => {
       quote: "OK.",
       title: "rAImmus a calé.",
       message:
-        "Trop de monde lui demande son avis en même temps. Laissez-le rouler tranquille une minute, puis réessayez.",
+        "Sa file d'attente n'a pas répondu — ça, ce n'est pas normal. Réessayez dans un instant ; si ça recommence, c'est un bug de notre côté.",
     };
   }
 
   /**
-   * A 404 can only come from the generation here: the read maps its own onto `null` above. The API
-   * answers it when it does not know the match, or when that player did not play it.
+   * A 404 can only come from the generation here: the initial read maps its own onto `null`, and a
+   * 404 seen while polling lands in `hasBeenAbandoned`. The API answers it when it does not know
+   * the match, or when that player did not play it.
    */
   if (code === 404) {
     return {
@@ -150,6 +262,37 @@ const errorCopy = computed(() => {
     message:
       "Quelque chose s'est mal passé de son côté. Réessayez dans un instant.",
   };
+});
+
+/**
+ * Position 1 is not "first in line", it is the one being written: saying so is more informative
+ * than a rank, and it is the only position the player cannot shorten by waiting.
+ */
+const queueTitle = computed(() => {
+  const position = queueStatus.value?.position ?? 0;
+  if (position <= 1) return "rAImmus analyse votre partie.";
+  return `${position}ᵉ dans la file.`;
+});
+
+/**
+ * Below ~90 s the seconds say something a minute count cannot: "~40 s" is a wait you sit through,
+ * "~1 min" is not. Above it, minutes read better than a three-digit second count. Values are
+ * rounded to 5 s steps so a moving server-side estimate does not flicker digit by digit.
+ */
+const formatWait = (seconds: number): string => {
+  if (seconds < 90) return `~${Math.max(5, Math.round(seconds / 5) * 5)} s`;
+  return `~${Math.round(seconds / 60)} min`;
+};
+
+const waitLabel = computed(() =>
+  queueStatus.value ? formatWait(queueStatus.value.estimatedWaitSeconds) : "",
+);
+
+/** Context for the estimate: it is long because others are ahead, not because it is slow. */
+const queueLengthLabel = computed(() => {
+  const length = queueStatus.value?.queueLength ?? 0;
+  if (length <= 1) return "Il n'a que celle-ci sur le feu.";
+  return `${length} analyses sur le feu, celle en cours comprise.`;
 });
 
 const noteLabel = computed(() =>
@@ -191,17 +334,32 @@ const generatedOnLabel = computed(() =>
       </span>
     </header>
 
-    <!-- Generation in progress: the model writes while the request is held open, ~15 s. -->
+    <!--
+      Waiting its turn. The API writes reports on a single consumer, one at a time, so this is the
+      whole point of the queue: telling the player where they stand instead of showing an opaque
+      spinner for two minutes. Position and estimate are re-read on every poll.
+    -->
     <div
-      v-if="isGenerating"
+      v-if="queueStatus"
       class="flex flex-col items-center gap-3 px-5 py-12 text-center">
       <Icon name="lucide:brain" class="text-brand-gold h-8 w-8 animate-pulse" />
-      <p class="text-text-main text-sm font-semibold">
-        rAImmus regarde la partie…
+
+      <p class="text-text-main m-0 text-sm font-semibold">
+        {{ queueTitle }}
       </p>
-      <p class="text-text-ter max-w-md text-[13px]">
-        Il repasse les moments clés, puis il écrit. Comptez une quinzaine de
-        secondes — inutile de recliquer.
+
+      <p class="text-text-ter m-0 max-w-md text-[13px] leading-relaxed">
+        Il prend les demandes une par une. {{ queueLengthLabel }}
+      </p>
+
+      <span
+        class="border-brand-gold/45 bg-brand-gold/15 text-brand-gold inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-semibold">
+        <Icon name="lucide:hourglass" class="h-4 w-4" />
+        Encore {{ waitLabel }}
+      </span>
+
+      <p class="text-text-ter m-0 text-xs">
+        Cette page se met à jour toute seule — inutile de recliquer.
       </p>
     </div>
 
@@ -331,6 +489,35 @@ const generatedOnLabel = computed(() =>
       </div>
     </template>
 
+    <!--
+      The slot existed a moment ago and the API dropped it: the model refused five times in a row
+      and the generation was abandoned. Rendering the "nobody asked yet" screen below would make
+      this indistinguishable from the starting state, so it gets its own wording — and its own
+      button, because re-asking is the right move here, just not immediately.
+    -->
+    <div
+      v-else-if="hasBeenAbandoned"
+      class="flex flex-col items-center gap-3 px-5 py-12 text-center">
+      <p class="font-heading text-text-main m-0 text-xl font-bold">« OK. »</p>
+      <p class="text-text-main m-0 text-sm font-semibold">
+        rAImmus n'a pas réussi à analyser cette partie.
+      </p>
+      <p class="text-text-ter m-0 max-w-md text-[13px] leading-relaxed">
+        Il a tourné autour un moment, puis il a lâché l'affaire. Ça arrive sur
+        les parties qui sortent de l'ordinaire — redemandez-lui plus tard.
+      </p>
+
+      <button
+        v-if="authStore.isAuthenticated"
+        type="button"
+        class="bg-brand-gold text-brand-gold-text mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        :disabled="isSubmitting"
+        @click="requestAnalysis">
+        <Icon name="lucide:rotate-cw" class="h-4 w-4" />
+        Redemander l'analyse
+      </button>
+    </div>
+
     <div
       v-else-if="errorCopy"
       class="flex flex-col items-center gap-3 px-5 py-12 text-center">
@@ -366,13 +553,15 @@ const generatedOnLabel = computed(() =>
       </p>
       <p class="text-text-ter m-0 max-w-md text-[13px] leading-relaxed">
         Il veut bien s'en occuper : une synthèse, ce qui a marché, et ce qu'il y
-        a à travailler. Il lui faut une quinzaine de secondes pour dérouler.
+        a à travailler. Il traite les demandes une par une — vous verrez votre
+        place dans sa file.
       </p>
 
       <button
         v-if="authStore.isAuthenticated"
         type="button"
-        class="bg-brand-gold text-brand-gold-text mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-opacity hover:opacity-90"
+        class="bg-brand-gold text-brand-gold-text mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        :disabled="isSubmitting"
         @click="requestAnalysis">
         <Icon name="lucide:brain" class="h-4 w-4" />
         Demander l'analyse
