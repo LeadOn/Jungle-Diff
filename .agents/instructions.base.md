@@ -175,6 +175,15 @@ Each of these is easy to reintroduce and hard to diagnose.
   links from a tracked player's own match list, not from `/lol/match/last`.
 - **The game tabs are `<button role="tab">`.** Query them with the `tab` role; `getByRole('button')`
   finds nothing.
+- **Custom games carry a poorer payload than match-v5.** They are imported from the LoL client, so
+  ping counters, `consumablesPurchased` and the timeline's `championStats` are simply absent and
+  read back as 0. A 0 from one of those fields means "never recorded", not "none": hide the value
+  rather than rendering it. `bestParticipant` only sorts, so it happily crowns a random player when
+  every score is 0 — guard on a value strictly above 0 before awarding anything.
+- **Queue ids above 3000 are custom lobbies.** Riot does not document them, so only `QUEUE_LABELS`
+  in `app/lib/utils/lol.ts` can name them. The `queues` fallback behind it needs `fetchQueues()` to
+  have run on the current page — it is not loaded globally, and a page that forgets it falls all the
+  way through to a raw `Queue <id>`.
 - **Percent-encoded path traversal is the case that matters.** HTTP clients collapse a literal `../`
   before sending, so only `%2f`-encoded separators reach the proxy's guard.
 

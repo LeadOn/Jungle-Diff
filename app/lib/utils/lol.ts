@@ -22,6 +22,13 @@ const QUEUE_LABELS: Record<number, string> = {
   1710: 'Arena (16 joueurs)', 
   1900: 'URF', 
   2000: 'Tutoriel',
+  // Custom lobbies, as reported by the LoL client import. Riot's own queue list does not
+  // document them, so only the local table can name them.
+  3100: 'Personnalisée (Aveugle)',
+  3110: 'Personnalisée (Draft)',
+  3140: 'Outil d\'entraînement',
+  3200: 'Personnalisée ARAM (Aveugle)',
+  3210: 'Personnalisée ARAM (Draft)',
 }
 
 export const formatQueue = (queueId: number, queues?: LoLQueue[]): string => {

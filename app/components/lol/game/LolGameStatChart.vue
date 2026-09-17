@@ -1,91 +1,96 @@
 <template>
-  <div class="border-border-base flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
-    <div>
-      <p class="font-heading text-text-main text-base font-semibold">
-        Stats du champion
-      </p>
-      <p class="text-text-ter mt-0.5 text-[13px]">
-        {{ selectedPlayerLabel }} — snapshots minute par minute
-      </p>
-    </div>
-
-    <select
-      class="border-border-base text-text-main rounded-lg border bg-white/5 px-2.5 py-1.5 text-xs font-medium light:bg-black/5"
-      :value="statKey"
-      @change="onStatKeyChange"
-    >
-      <optgroup v-for="group in groups" :key="group" :label="group">
-        <option
-          v-for="option in optionsFor(group)"
-          :key="option.key"
-          :value="option.key"
-        >
-          {{ option.label }}
-        </option>
-      </optgroup>
-    </select>
-  </div>
-
-  <div class="p-5">
-    <div class="relative">
-      <div
-        v-if="hoverIndex != null"
-        class="border-border-base bg-surface-base pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs shadow-lg"
-        :style="{ left: `${hoverPercent}%` }"
-      >
-        <p class="text-text-ter">{{ hoverTimeLabel }}</p>
-        <p class="text-text-main font-semibold">{{ hoverValueLabel }}</p>
+  <div
+    v-if="hasChampionStats"
+    class="rounded-2xl bg-surface-base border border-border-base shadow-sm"
+  >
+    <div class="border-border-base flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+      <div>
+        <p class="font-heading text-text-main text-base font-semibold">
+          Stats du champion
+        </p>
+        <p class="text-text-ter mt-0.5 text-[13px]">
+          {{ selectedPlayerLabel }} — snapshots minute par minute
+        </p>
       </div>
 
-      <svg
-        :viewBox="`0 0 ${width} ${height}`"
-        preserveAspectRatio="none"
-        class="h-56 w-full cursor-crosshair"
-        @mousemove="onChartMouseMove"
-        @mouseleave="onChartMouseLeave"
+      <select
+        class="border-border-base text-text-main rounded-lg border bg-white/5 px-2.5 py-1.5 text-xs font-medium light:bg-black/5"
+        :value="statKey"
+        @change="onStatKeyChange"
       >
-        <path :d="areaPath" fill="rgba(94,163,255,0.3)" />
-        <path
-          :d="linePath"
-          fill="none"
-          class="stroke-blue-400"
-          stroke-width="2"
-        />
-
-        <line
-          v-if="frames.length > 1"
-          :x1="playheadX"
-          :x2="playheadX"
-          y1="0"
-          :y2="height"
-          class="stroke-[rgba(255,255,255,0.45)] light:stroke-[rgba(0,0,0,0.3)]"
-          stroke-width="1.5"
-          stroke-dasharray="4 4"
-        />
-
-        <template v-if="hoverIndex != null">
-          <line
-            :x1="hoverX"
-            :x2="hoverX"
-            y1="0"
-            :y2="height"
-            class="stroke-brand-gold"
-            stroke-width="1"
-          />
-          <circle
-            :cx="hoverX"
-            :cy="hoverY"
-            r="4"
-            class="fill-brand-gold"
-          />
-        </template>
-      </svg>
+        <optgroup v-for="group in groups" :key="group" :label="group">
+          <option
+            v-for="option in optionsFor(group)"
+            :key="option.key"
+            :value="option.key"
+          >
+            {{ option.label }}
+          </option>
+        </optgroup>
+      </select>
     </div>
 
-    <div class="text-text-ter mt-1 flex items-center justify-between text-xs">
-      <span>{{ startLabel }}</span>
-      <span class="text-text-secondary font-medium">{{ centerLabel }}</span>
-      <span>{{ endLabel }}</span>
+    <div class="p-5">
+      <div class="relative">
+        <div
+          v-if="hoverIndex != null"
+          class="border-border-base bg-surface-base pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs shadow-lg"
+          :style="{ left: `${hoverPercent}%` }"
+        >
+          <p class="text-text-ter">{{ hoverTimeLabel }}</p>
+          <p class="text-text-main font-semibold">{{ hoverValueLabel }}</p>
+        </div>
+
+        <svg
+          :viewBox="`0 0 ${width} ${height}`"
+          preserveAspectRatio="none"
+          class="h-56 w-full cursor-crosshair"
+          @mousemove="onChartMouseMove"
+          @mouseleave="onChartMouseLeave"
+        >
+          <path :d="areaPath" fill="rgba(94,163,255,0.3)" />
+          <path
+            :d="linePath"
+            fill="none"
+            class="stroke-blue-400"
+            stroke-width="2"
+          />
+
+          <line
+            v-if="frames.length > 1"
+            :x1="playheadX"
+            :x2="playheadX"
+            y1="0"
+            :y2="height"
+            class="stroke-[rgba(255,255,255,0.45)] light:stroke-[rgba(0,0,0,0.3)]"
+            stroke-width="1.5"
+            stroke-dasharray="4 4"
+          />
+
+          <template v-if="hoverIndex != null">
+            <line
+              :x1="hoverX"
+              :x2="hoverX"
+              y1="0"
+              :y2="height"
+              class="stroke-brand-gold"
+              stroke-width="1"
+            />
+            <circle
+              :cx="hoverX"
+              :cy="hoverY"
+              r="4"
+              class="fill-brand-gold"
+            />
+          </template>
+        </svg>
+      </div>
+
+      <div class="text-text-ter mt-1 flex items-center justify-between text-xs">
+        <span>{{ startLabel }}</span>
+        <span class="text-text-secondary font-medium">{{ centerLabel }}</span>
+        <span>{{ endLabel }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -200,6 +205,23 @@ const onStatKeyChange = (event: Event) => {
 }
 
 const frames = computed(() => props.timeline ?? [])
+
+/**
+ * A custom game imported from the LoL client ships a timeline without `championStats`, so every
+ * option of the picker draws a flat line at 0 and the block reads as real, uniformly null data.
+ * Nothing but zeros across every frame and every stat means there is nothing to plot at all.
+ */
+const hasChampionStats = computed(() => {
+  return frames.value.some((frame) => {
+    const stats = frameStatsFor(frame, props.selectedPlayer?.puuid)
+    if (stats == null) return false
+
+    return options.some((option) => {
+      const value = stats[option.key]
+      return typeof value === 'number' && value !== 0
+    })
+  })
+})
 
 const series = computed(() => {
   return frames.value.map(

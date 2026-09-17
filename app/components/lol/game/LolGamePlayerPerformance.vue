@@ -55,7 +55,8 @@
             </div>
           </div>
 
-          <p class="text-text-ter mt-2 text-[11px]">
+          <!-- Custom games carry no shop counter at all, so a 0 here means "unknown", not "none". -->
+          <p v-if="consumablesPurchased > 0" class="text-text-ter mt-2 text-[11px]">
             {{ consumablesPurchased }} consommable{{
               consumablesPurchased > 1 ? "s" : ""
             }}
@@ -268,7 +269,11 @@ const tiles = computed<StatTile[]>(() => {
     {
       label: 'Contrôle infligé',
       value: `${crowdControl(p)}s`,
-      detail: `${rankLabel(p, (x) => crowdControl(x))} · ${pings(p)} pings envoyés`,
+      // Ping counters are absent from custom games: 0 would read as "sent none" instead of
+      // "never recorded", so the mention is dropped entirely rather than shown at zero.
+      detail: [rankLabel(p, (x) => crowdControl(x)), pings(p) > 0 ? `${pings(p)} pings envoyés` : '']
+        .filter((part) => part !== '')
+        .join(' · '),
     },
   ]
 })

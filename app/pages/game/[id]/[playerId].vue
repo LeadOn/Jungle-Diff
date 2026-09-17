@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import { useRoute, useAsyncData } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
@@ -83,6 +83,17 @@ const patch = computed(() => {
 const queueLabel = computed(() => {
   if (!match.value || match.value.queueId == null) return ''
   return formatQueue(match.value.queueId, lolStore.queues)
+})
+
+onMounted(() => {
+  /**
+   * `formatQueue` falls back to the queue list for ids the local table does not know, but this page
+   * never populated it: only `/` and `/summoner/[id]` call `fetchQueues`, which is why a direct
+   * landing here showed a raw `Queue <id>` while `LolGameCard` — only ever rendered on those two
+   * pages — resolved the same id. The label gates no blocking render, so it loads off the critical
+   * path, and the store keeps the call to one per session.
+   */
+  lolStore.fetchQueues()
 })
 
 const isMvp = computed(() => match.value?.mvpParticipantId === heroPlayer.value?.id)
@@ -313,13 +324,13 @@ watch(timeline, (newVal) => {
                 />
               </div>
 
-              <div class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-                <LolGameStatChart
-                  :timeline="timeline || undefined"
-                  :selected-player="selectedPlayer"
-                  :current-frame-index="currentFrameIndex"
-                />
-              </div>
+              <!-- Carries its own card chrome: it hides itself whole when the timeline has no
+                   champion stats, and an empty bordered box would remain otherwise. -->
+              <LolGameStatChart
+                :timeline="timeline || undefined"
+                :selected-player="selectedPlayer"
+                :current-frame-index="currentFrameIndex"
+              />
             </div>
           </div>
         </div>
