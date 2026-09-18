@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, watchEffect } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, watchEffect } from 'vue'
 import { useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
 import { useGameOnLol } from '~/composables/useGameOnLol'
@@ -51,10 +51,20 @@ import { cacheOnlyDuringHydration } from '~/utils/async-data'
 import { isAbortError } from '~/lib/types/error'
 import type { LoLGameDto } from '~/lib/types'
 
+const props = withDefaults(defineProps<{
+  /** Owned by the page, shared with the ladder. Forwarded to the API rather than applied here: it
+   *  refills the page with older matches, which a client-side filter cannot do. */
+  includeSmurfs?: boolean
+}>(), { includeSmurfs: false })
+
 const store = useLolStore()
 const gameOnApi = useGameOnLol()
 
-const { status, error } = useAsyncData('recentGames', () => store.fetchLastMatches(), { getCachedData: cacheOnlyDuringHydration })
+const { status, error } = useAsyncData(
+  'recentGames',
+  () => store.fetchLastMatches(props.includeSmurfs),
+  { getCachedData: cacheOnlyDuringHydration, watch: [() => props.includeSmurfs] }
+)
 const isPending = computed(() => status.value === 'pending')
 
 // Pagination is aborted if the component goes away before the response arrives.
@@ -77,6 +87,17 @@ const displayedMatches = computed(() => {
   return [...(store.lastMatches || []), ...additionalMatches.value]
 })
 
+/**
+ * Pages already loaded were fetched under the previous flag, so they have to go: keeping them would
+ * leave smurf-only games stranded in the list after the toggle excluded them, and would make the
+ * next `loadMore` resume from the wrong offset.
+ */
+watch(() => props.includeSmurfs, () => {
+  additionalMatches.value = []
+  currentPage.value = 1
+  hasMore.value = true
+})
+
 async function loadMore() {
   if (loadingMore.value || !hasMore.value) return
   
@@ -84,7 +105,7 @@ async function loadMore() {
   currentPage.value++
   
   try {
-    const data = await gameOnApi.getLastMatches(currentPage.value, pageSize, pagination.signal)
+    const data = await gameOnApi.getLastMatches(currentPage.value, pageSize, props.includeSmurfs, pagination.signal)
     if (data && data.results) {
       additionalMatches.value.push(...data.results)
       

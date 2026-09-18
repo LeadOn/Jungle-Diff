@@ -35,8 +35,17 @@ export class GameOnClient extends BaseApiService {
     return signal ? { signal } : {}
   }
 
-  public getHomeStats(signal?: AbortSignal) {
-    return this.get<LoLHomeStatsDto>('/lol/Home', GameOnClient.opts(signal))
+  /**
+   * The home dashboard's pre-aggregated figures. `includeSmurfs` reaches the weekly activity, the
+   * fact of the week and the `crewRecords` alike, so one flag moves the whole page. Written only
+   * when `false`, like `getGlobalStats`, since the API defaults it to `true`. `includeOutOfCrew` is
+   * pinned for the same reason as in `getLeaguePlayers`: the dashboard is the crew's, and that
+   * assumption belongs in the call rather than in an upstream default.
+   */
+  public getHomeStats(includeSmurfs?: boolean, signal?: AbortSignal) {
+    const params = new URLSearchParams({ includeOutOfCrew: 'false' })
+    if (includeSmurfs === false) params.set('includeSmurfs', 'false')
+    return this.get<LoLHomeStatsDto>(`/lol/Home?${params.toString()}`, GameOnClient.opts(signal))
   }
 
   public getQueues(signal?: AbortSignal) {
@@ -47,8 +56,16 @@ export class GameOnClient extends BaseApiService {
     return this.get<LoLGameDto>(`/lol/match/${segment(matchId)}`, GameOnClient.opts(signal))
   }
 
+  /**
+   * The crew's accounts. `includeOutOfCrew=false` is pinned rather than left to the API's default,
+   * which happens to agree today: every consumer of this list assumes crew membership — `LolGameCard`
+   * uses it to tell a crew participant from an outsider — so the assumption belongs in the call, not
+   * in an upstream default that could flip. Smurfs are deliberately NOT filtered here: `LolPlayerHeader`
+   * and `LolGameDetailsPlayer` walk this list to climb from a smurf to its main, and the ladder hides
+   * them with a view filter of its own.
+   */
   public getLeaguePlayers(archived: boolean = false, signal?: AbortSignal) {
-    return this.get<LeaguePlayer[]>(`/lol/summoner?archived=${archived}`, GameOnClient.opts(signal))
+    return this.get<LeaguePlayer[]>(`/lol/summoner?archived=${archived}&includeOutOfCrew=false`, GameOnClient.opts(signal))
   }
 
   public getPlayerById(id: string | number, period?: LoLStatsPeriod, queueIds?: number[] | null, teamPosition?: string, signal?: AbortSignal) {
@@ -96,8 +113,16 @@ export class GameOnClient extends BaseApiService {
     return this.get<PaginatedMatchResponse>(`/lol/match/player/${segment(playerId)}?${params.toString()}`, GameOnClient.opts(signal))
   }
 
-  public getLastMatches(page: number = 1, size: number = 10, signal?: AbortSignal) {
-    return this.get<PaginatedMatchResponse>(`/lol/match/last?page=${page}&size=${size}`, GameOnClient.opts(signal))
+  /**
+   * The crew's latest games. `includeSmurfs=false` drops a match only when every crew participant in
+   * it is a secondary account — a smurf playing alongside a main keeps the game — and the page is
+   * refilled with older matches, so a page of `size` stays a page of `size`. That refill is why this
+   * is worth asking the API rather than filtering the page client side.
+   */
+  public getLastMatches(page: number = 1, size: number = 10, includeSmurfs?: boolean, signal?: AbortSignal) {
+    const params = new URLSearchParams({ page: String(page), size: String(size), includeOutOfCrew: 'false' })
+    if (includeSmurfs === false) params.set('includeSmurfs', 'false')
+    return this.get<PaginatedMatchResponse>(`/lol/match/last?${params.toString()}`, GameOnClient.opts(signal))
   }
 
   public getQueuesForPlayer(playerId: string | number, signal?: AbortSignal) {
@@ -112,11 +137,21 @@ export class GameOnClient extends BaseApiService {
     return this.post<LoLGameDto>(`/lol/match/${segment(matchId)}/update`, null, GameOnClient.opts(signal))
   }
 
-  public getGlobalStats(queue?: string, period?: string, rankedOnly?: boolean, signal?: AbortSignal) {
+  /**
+   * Crew records. Every filter is written to the query string only when it departs from the API's
+   * own default, so the URL stays minimal and two equivalent calls hit the same SWR cache entry.
+   * `includeSmurfs` defaults to `true` upstream: at `false` the secondary accounts leave the records
+   * entirely — no participations, no rank snapshots — and `totalGamesAnalyzed`, `totalPlayersTracked`
+   * and `topChampions` move with them.
+   */
+  public getGlobalStats(queue?: string, period?: string, rankedOnly?: boolean, includeSmurfs?: boolean, signal?: AbortSignal) {
     const params = new URLSearchParams()
     if (queue && queue !== 'All') params.set('queue', queue)
     if (period && period !== 'AllTime') params.set('period', period)
     if (rankedOnly) params.set('rankedOnly', 'true')
+    // Mirror of `rankedOnly`: written only when it differs from the upstream default, which is `true`
+    // here. `=== false` rather than `!includeSmurfs`, so an omitted argument stays out of the query.
+    if (includeSmurfs === false) params.set('includeSmurfs', 'false')
     const query = params.toString()
     return this.get<LoLGlobalStatsDto>(`/lol/Stats/global${query ? `?${query}` : ''}`, GameOnClient.opts(signal))
   }
