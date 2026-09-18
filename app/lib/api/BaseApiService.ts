@@ -1,7 +1,15 @@
 import { AppError } from '../types/error'
 
-/** Past this point we treat the upstream as lost rather than holding the request open forever. */
-const DEFAULT_TIMEOUT_MS = 8000
+/**
+ * Past this point we treat the upstream as lost rather than holding the request open forever.
+ *
+ * Deliberately generous: the GameOn API is slow on some aggregates and is expected to stay that way
+ * (`/lol/Stats/global` unfiltered measures 65-73 s, `/lol/Home` 7-13 s). At the previous 8 s the
+ * proxy aborted mid-flight and the front end reported "API injoignable" for an API that was merely
+ * answering slowly. This ceiling only bounds a genuinely dead upstream, so it must stay in step with
+ * `UPSTREAM_TIMEOUT_MS` in `server/api/gameon/[...path].ts`: lowering one alone reintroduces the bug.
+ */
+const DEFAULT_TIMEOUT_MS = 120000
 
 /** Statuses where another attempt has a chance of succeeding (transient unavailability). */
 const RETRYABLE_STATUS = [408, 425, 429, 500, 502, 503, 504]
@@ -21,9 +29,9 @@ export interface RequestOptions {
   retry?: number
   headers?: Record<string, string>
   /**
-   * Overrides `DEFAULT_TIMEOUT_MS`. Only for endpoints whose upstream work is genuinely longer than
-   * a database read, never to paper over a slow endpoint. Nothing needs it today: the coach routes
-   * used to, and now queue their work instead of holding the connection open.
+   * Overrides `DEFAULT_TIMEOUT_MS`. Nothing needs it today: the default is now wide enough for the
+   * slowest aggregate the API serves. Useful mainly to *shorten* the ceiling on a call that must
+   * fail fast; raising it above the default also needs the proxy widened, or the call is cut there.
    */
   timeout?: number
 }

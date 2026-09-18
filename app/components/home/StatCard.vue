@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps<{
   title: string
@@ -20,41 +20,62 @@ const props = defineProps<{
   valueClass?: string
 }>()
 
+// Seeded with the real value so the server renders the final number: the count-up is a mount-time
+// flourish, not the source of truth.
 const displayValue = ref<string | number>(props.value)
 let timer: ReturnType<typeof setInterval> | null = null
 
-onMounted(() => {
-  const strVal = String(props.value)
-  const numMatch = strVal.match(/(\d+)/)
-  if (numMatch && numMatch[1]) {
-    const target = parseInt(numMatch[1], 10)
-    let current = 0
-    const duration = 800
-    const steps = 30
-    const stepTime = Math.max(16, duration / steps)
-    const increment = Math.max(1, Math.floor(target / steps))
-    
-    const index = numMatch.index ?? 0
-    const prefix = strVal.substring(0, index)
-    const suffix = strVal.substring(index + numMatch[1].length)
-    
-    displayValue.value = `${prefix}0${suffix}`
-    
-    timer = setInterval(() => {
-      current += increment
-      if (current >= target) {
-        displayValue.value = props.value
-        if (timer) clearInterval(timer)
-      } else {
-        displayValue.value = `${prefix}${current}${suffix}`
-      }
-    }, stepTime)
-  }
-})
-
-onBeforeUnmount(() => {
+const stopTimer = () => {
   if (timer) {
     clearInterval(timer)
+    timer = null
   }
-})
+}
+
+/**
+ * Counts up to `value`, or shows it as-is when it holds no number.
+ *
+ * Re-run on every `value` change, not only on mount. The card used to snapshot the prop into
+ * `displayValue` once and never look at it again, which froze it for good: harmless while the home
+ * page loaded its figures a single time, wrong as soon as a filter could re-query them.
+ */
+const animateTo = (value: string | number) => {
+  stopTimer()
+
+  const strVal = String(value)
+  const numMatch = strVal.match(/(\d+)/)
+  if (!numMatch || !numMatch[1]) {
+    displayValue.value = value
+    return
+  }
+
+  const target = parseInt(numMatch[1], 10)
+  let current = 0
+  const duration = 800
+  const steps = 30
+  const stepTime = Math.max(16, duration / steps)
+  const increment = Math.max(1, Math.floor(target / steps))
+
+  const index = numMatch.index ?? 0
+  const prefix = strVal.substring(0, index)
+  const suffix = strVal.substring(index + numMatch[1].length)
+
+  displayValue.value = `${prefix}0${suffix}`
+
+  timer = setInterval(() => {
+    current += increment
+    if (current >= target) {
+      displayValue.value = value
+      stopTimer()
+    } else {
+      displayValue.value = `${prefix}${current}${suffix}`
+    }
+  }, stepTime)
+}
+
+onMounted(() => animateTo(props.value))
+
+watch(() => props.value, newValue => animateTo(newValue))
+
+onBeforeUnmount(stopTimer)
 </script>

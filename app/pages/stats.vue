@@ -17,6 +17,10 @@ const api = useGameOnLol()
 const queue = ref<string>((route.query.queue as string) || 'Solo')
 const period = ref<string>((route.query.period as string) || 'Month')
 const rankedOnly = ref<boolean>(route.query.rankedOnly ? route.query.rankedOnly === 'true' : true)
+// Defaults to `false`, against the API's own default of `true`: the records are meant to rank the
+// crew's main accounts, and a smurf sitting in a low-elo bracket distorts every award it touches.
+// Opting back in is one click, and that opt-in is what reaches the URL.
+const includeSmurfs = ref<boolean>(route.query.includeSmurfs ? route.query.includeSmurfs === 'true' : false)
 
 // Options
 const queueOptions = [
@@ -43,9 +47,10 @@ const { data: summary, status, error, refresh } = useAsyncData(
   () => api.getGlobalStats(
     queue.value,
     period.value,
-    queue.value === 'All' && rankedOnly.value
+    queue.value === 'All' && rankedOnly.value,
+    includeSmurfs.value
   ),
-  { watch: [queue, period, rankedOnly] }
+  { watch: [queue, period, rankedOnly, includeSmurfs] }
 )
 
 const hasNoGames = computed(() => summary.value?.totalGamesAnalyzed === 0)
@@ -61,11 +66,14 @@ const syncUrl = () => {
   if (period.value !== 'Month') query.period = period.value
   // rankedOnly default is true, so only put it in URL if it's explicitly false when queue is All
   if (queue.value === 'All' && !rankedOnly.value) query.rankedOnly = 'false'
-  
+  // Same rule, mirrored: this page defaults to excluding smurfs, so only a deliberate opt-IN is
+  // worth carrying in the URL.
+  if (includeSmurfs.value) query.includeSmurfs = 'true'
+
   router.replace({ query })
 }
 
-watch([queue, period, rankedOnly], () => {
+watch([queue, period, rankedOnly, includeSmurfs], () => {
   syncUrl()
 })
 
@@ -125,24 +133,43 @@ const getPlayerAvatarUrl = (p: PlayerDto) => {
         </option>
       </select>
 
-      <!-- Ranked Only Toggle -->
-      <label
-        class="flex items-center gap-3 ml-auto"
-        :class="rankedOnlyLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
-      >
-        <span class="text-sm font-bold text-text-main">Classées uniquement</span>
-        <div class="relative">
-          <input
-            v-model="rankedOnly"
-            type="checkbox"
-            class="peer sr-only"
-            :disabled="rankedOnlyLocked"
-          >
-          <div
-            class="peer-checked:bg-brand-green h-6 w-11 rounded-full bg-surface-high border border-border-base transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-          />
-        </div>
-      </label>
+      <!-- Toggles. A single `ml-auto` on the group rather than one per toggle: two competing
+           `ml-auto` push each other apart and strand the first one mid-row. -->
+      <div class="ml-auto flex flex-wrap items-center gap-6">
+        <!-- Ranked Only Toggle -->
+        <label
+          class="flex items-center gap-3"
+          :class="rankedOnlyLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
+        >
+          <span class="text-sm font-bold text-text-main">Classées uniquement</span>
+          <div class="relative">
+            <input
+              v-model="rankedOnly"
+              type="checkbox"
+              class="peer sr-only"
+              :disabled="rankedOnlyLocked"
+            >
+            <div
+              class="peer-checked:bg-brand-green h-6 w-11 rounded-full bg-surface-high border border-border-base transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+            />
+          </div>
+        </label>
+
+        <!-- Include Smurfs Toggle -->
+        <label class="flex cursor-pointer items-center gap-3">
+          <span class="text-sm font-bold text-text-main">Inclure les smurfs</span>
+          <div class="relative">
+            <input
+              v-model="includeSmurfs"
+              type="checkbox"
+              class="peer sr-only"
+            >
+            <div
+              class="peer-checked:bg-brand-green h-6 w-11 rounded-full bg-surface-high border border-border-base transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+            />
+          </div>
+        </label>
+      </div>
     </div>
 
     <!-- Stats Count / Meta -->

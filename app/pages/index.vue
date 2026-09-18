@@ -16,6 +16,17 @@ import { findPlayerByName } from '~/utils/player-search'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
+
+/**
+ * Owned by the page because it governs the whole dashboard, not just the ladder. Three different
+ * mechanisms answer to it: `/lol/Home` re-queried with `includeSmurfs` (weekly tiles, fact of the
+ * week, crew records), the ladder filtered in place from the full roster, and the recent-games list
+ * filtered client side because `/lol/Match/last` still takes no such parameter.
+ *
+ * Defaults to excluding smurfs, like `/stats`.
+ */
+const includeSmurfs = ref(false)
+
 const router = useRouter()
 const searchName = ref('')
 const isSearchFocused = ref(false)
@@ -25,9 +36,24 @@ const searchError = ref<string | null>(null)
 // freshness window is what decides whether the API actually needs to be called again.
 const freshOnNavigation = { getCachedData: cacheOnlyDuringHydration }
 
-const { error: homeStatsError } = await useAsyncData('homeStats', () => store.fetchHomeStats(), freshOnNavigation)
+// `watch` is what makes the toggle reach the dashboard: the key stays static because there is only
+// ever one home page in flight, and the store's own guard is what prevents a stale answer being
+// served for the other flag value. `getCachedData` returns nothing outside hydration, so the
+// handler really does replay here.
+const { error: homeStatsError } = await useAsyncData(
+  'homeStats',
+  () => store.fetchHomeStats(includeSmurfs.value),
+  { ...freshOnNavigation, watch: [includeSmurfs] }
+)
 await useAsyncData('players', () => store.fetchPlayers(), freshOnNavigation)
-await useAsyncData('lastMatches', () => store.fetchLastMatches(), freshOnNavigation)
+// Server-side preload for `RecentGames`, which asks for the same window under its own key: the
+// store's freshness guard makes the second call a cache hit. It takes the flag for the same reason
+// the component does — without it the SSR pass would warm the store with the wrong filter.
+await useAsyncData(
+  'lastMatches',
+  () => store.fetchLastMatches(includeSmurfs.value),
+  { ...freshOnNavigation, watch: [includeSmurfs] }
+)
 
 useSeoMeta({
   title: 'Accueil',
@@ -307,10 +333,10 @@ class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border tra
       <!-- Left Column: Ladder & Recent Games -->
       <div class="flex-1 relative animate-fade-in-up" style="animation-delay: 300ms;">
         <div class="relative mb-6">
-          <LadderTable :players="store.players" />
+          <LadderTable v-model:include-smurfs="includeSmurfs" :players="store.players" />
         </div>
         <div class="relative">
-          <RecentGames />
+          <RecentGames :include-smurfs="includeSmurfs" />
         </div>
       </div>
       
