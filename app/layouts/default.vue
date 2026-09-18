@@ -22,6 +22,16 @@
           JUNGLEDIFF &middot; V{{ config.public.appVersion }}
         </div>
         
+        <a
+          href="https://www.paypal.me/ValentinVirot"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border-subtle/50 px-3 py-1.5 text-[12px] font-medium text-text-ter hover:border-brand-gold/50 hover:text-brand-gold transition-colors"
+        >
+          <Icon name="lucide:heart-handshake" class="w-3.5 h-3.5" />
+          <span>Soutenir le projet</span>
+        </a>
+
         <div class="text-[12px] font-medium text-text-ter flex items-center gap-1">
           <span>Created with</span>
           <span class="text-brand-red">❤️</span>
