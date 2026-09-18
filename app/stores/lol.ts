@@ -30,6 +30,19 @@ export const useLolStore = defineStore('lol', () => {
   const playersFetchedAt = ref(0)
   const lastMatchesFetchedAt = ref(0)
 
+  /**
+   * The `includeSmurfs` value `homeStats` was loaded with.
+   *
+   * `isFresh` only looks at the clock, so without this the freshness window would answer a toggle
+   * flip with the previous answer for up to a minute — the cache would silently ignore the very
+   * argument that changed. Returned with the rest of the state so the client agrees with the SSR
+   * payload instead of re-fetching right after hydration.
+   */
+  const homeStatsIncludeSmurfs = ref<boolean | null>(null)
+
+  /** Same guard as `homeStatsIncludeSmurfs`, for the last-matches window. */
+  const lastMatchesIncludeSmurfs = ref<boolean | null>(null)
+
   const isFresh = (fetchedAt: number) => fetchedAt > 0 && Date.now() - fetchedAt < FRESHNESS_MS
 
   /** Current Data Dragon version: the most recent one Riot returns. */
@@ -71,12 +84,17 @@ export const useLolStore = defineStore('lol', () => {
    * They used to swallow them and return `null`, which made failures invisible: `useAsyncData` saw
    * no error at all and the UI rendered zeros as though they were real statistics.
    */
-  const fetchHomeStats = async (signal?: AbortSignal): Promise<LoLHomeStatsDto> => {
-    if (homeStats.value && isFresh(homeStatsFetchedAt.value)) return homeStats.value
+  const fetchHomeStats = async (includeSmurfs: boolean, signal?: AbortSignal): Promise<LoLHomeStatsDto> => {
+    // Both halves matter: the value must be fresh *and* have been loaded with the flag being asked
+    // for, or toggling smurfs on and off inside the window would be a no-op.
+    if (homeStats.value && homeStatsIncludeSmurfs.value === includeSmurfs && isFresh(homeStatsFetchedAt.value)) {
+      return homeStats.value
+    }
 
-    const data = await useGameOnLol().getHomeStats(signal)
+    const data = await useGameOnLol().getHomeStats(includeSmurfs, signal)
     homeStats.value = data
     homeStatsFetchedAt.value = Date.now()
+    homeStatsIncludeSmurfs.value = includeSmurfs
     return data
   }
 
@@ -89,13 +107,16 @@ export const useLolStore = defineStore('lol', () => {
     return data
   }
 
-  const fetchLastMatches = async (signal?: AbortSignal): Promise<LoLGameDto[]> => {
-    if (lastMatches.value.length > 0 && isFresh(lastMatchesFetchedAt.value)) return lastMatches.value
+  const fetchLastMatches = async (includeSmurfs: boolean, signal?: AbortSignal): Promise<LoLGameDto[]> => {
+    if (lastMatches.value.length > 0 && lastMatchesIncludeSmurfs.value === includeSmurfs && isFresh(lastMatchesFetchedAt.value)) {
+      return lastMatches.value
+    }
 
-    const data = await useGameOnLol().getLastMatches(1, 5, signal)
+    const data = await useGameOnLol().getLastMatches(1, 5, includeSmurfs, signal)
     const results = data?.results ?? []
     lastMatches.value = results
     lastMatchesFetchedAt.value = Date.now()
+    lastMatchesIncludeSmurfs.value = includeSmurfs
     return results
   }
 
@@ -107,8 +128,10 @@ export const useLolStore = defineStore('lol', () => {
     players,
     lastMatches,
     homeStatsFetchedAt,
+    homeStatsIncludeSmurfs,
     playersFetchedAt,
     lastMatchesFetchedAt,
+    lastMatchesIncludeSmurfs,
     loadVersions,
     fetchQueues,
     fetchHomeStats,

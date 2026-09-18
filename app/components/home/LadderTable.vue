@@ -4,25 +4,43 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
         <h2 class="text-[16px] font-extrabold text-text-main leading-tight">Classement général</h2>
-        <p class="font-mono text-[11px] text-text-ter font-bold tracking-[0.1em] uppercase mt-0.5">{{ players?.length || 0 }} JOUEURS</p>
+        <p class="font-mono text-[11px] text-text-ter font-bold tracking-[0.1em] uppercase mt-0.5">{{ visiblePlayers.length }} JOUEURS</p>
       </div>
-      
-      <!-- Queue Toggle -->
-      <div class="flex bg-surface-high rounded-full p-1 border border-border-subtle w-fit">
-        <button 
-          class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
-          :class="activeQueue === 'solo' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
-          @click="activeQueue = 'solo'"
-        >
-          Solo/Duo
-        </button>
-        <button 
-          class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
-          :class="activeQueue === 'flex' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
-          @click="activeQueue = 'flex'"
-        >
-          Flex
-        </button>
+
+      <div class="flex flex-wrap items-center gap-4">
+        <!-- Include Smurfs Toggle -->
+        <label class="flex cursor-pointer items-center gap-2.5">
+          <span class="text-xs font-bold text-text-sec">Inclure les smurfs</span>
+          <div class="relative">
+            <input
+              :checked="includeSmurfs"
+              type="checkbox"
+              class="peer sr-only"
+              @change="onIncludeSmurfsChange"
+            >
+            <div
+              class="peer-checked:bg-brand-green h-5 w-9 rounded-full bg-surface-high border border-border-subtle transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+            />
+          </div>
+        </label>
+
+        <!-- Queue Toggle -->
+        <div class="flex bg-surface-high rounded-full p-1 border border-border-subtle w-fit">
+          <button
+            class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
+            :class="activeQueue === 'solo' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
+            @click="activeQueue = 'solo'"
+          >
+            Solo/Duo
+          </button>
+          <button
+            class="px-5 py-1.5 text-xs font-bold rounded-full transition-all"
+            :class="activeQueue === 'flex' ? 'bg-surface-base shadow-sm text-text-main border border-border-accent' : 'text-text-sec hover:text-text-main'"
+            @click="activeQueue = 'flex'"
+          >
+            Flex
+          </button>
+        </div>
       </div>
     </div>
     
@@ -128,15 +146,26 @@ import { ref, computed } from 'vue'
 import { useRouter } from '#app'
 import type { LeaguePlayer } from '~/lib/types'
 import { usePatchStore } from '~/stores/patch'
+import { isSmurf } from '~/utils/lol-smurf'
 
 const router = useRouter()
 const goToPlayer = (id: string | number) => {
   router.push(`/summoner/${id}`)
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   players?: LeaguePlayer[]
+  /** Owned by the page: the same flag drives the recent-games list, so it cannot live here. */
+  includeSmurfs?: boolean
+}>(), { players: () => [], includeSmurfs: false })
+
+const emit = defineEmits<{
+  (e: 'update:includeSmurfs', value: boolean): void
 }>()
+
+const onIncludeSmurfsChange = (event: Event) => {
+  emit('update:includeSmurfs', (event.target as HTMLInputElement).checked)
+}
 
 const activeQueue = ref<'solo'|'flex'>('solo')
 const patchStore = usePatchStore()
@@ -153,7 +182,7 @@ const mappedPlayers = computed(() => {
 
     return {
       id: p.id,
-      isSmurf: !!p.primaryPlayerId && p.primaryPlayerId !== p.id && p.primaryPlayerId !== 0,
+      isSmurf: isSmurf(p),
       primaryPlayerId: p.primaryPlayerId,
       primaryPlayerName: primaryPlayer ? (primaryPlayer.riotGamesNickname || primaryPlayer.nickname) : null,
       initial: p.nickname.charAt(0).toUpperCase(),
@@ -232,8 +261,24 @@ const getDeltaColor = (delta: number | undefined) => {
   return 'text-text-ter'
 }
 
+/**
+ * Purely a view filter. The store keeps loading every account on purpose: `lolStore.players` is not
+ * just the ladder — `LolPlayerHeader` and `LolGameDetailsPlayer` walk it to climb from a smurf to
+ * its main, and `LolGameCard` uses it to tell a crew participant from an outsider. Dropping smurfs
+ * from that array would break the smurf badge, the link to the main account, and would make a
+ * smurf's games read as non-crew. The store's cache is temporal and ignores its arguments
+ * (`FRESHNESS_MS`), so a `fetchPlayers(includeSmurfs)` would also serve the previous call's list for
+ * a minute. Twenty-odd rows: filtering here costs nothing.
+ *
+ * Filtered after the mapping, never before: `mappedPlayers` resolves each smurf's main against the
+ * full `props.players`.
+ */
+const visiblePlayers = computed(() => (
+  props.includeSmurfs ? mappedPlayers.value : mappedPlayers.value.filter(p => !p.isSmurf)
+))
+
 const sortedPlayers = computed(() => {
-  return [...mappedPlayers.value].sort((a, b) => {
+  return [...visiblePlayers.value].sort((a, b) => {
     const qA = a.queues[activeQueue.value]
     const qB = b.queues[activeQueue.value]
     

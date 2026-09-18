@@ -22,10 +22,10 @@ OIDC authentication.
 - `app/composables/` — reusable logic, including API client injection.
 - `app/stores/` — Pinia stores. `usePatchStore` is a read-only view over `useLolStore.versions`, so
   there is exactly one Data Dragon version list per request.
-- `app/lib/api/` — typed HTTP services. Every call carries an 8 s timeout, retries once on reads
-  only (never on writes), maps failures to `AppError`, and encodes path segments. A call can raise
-  its own ceiling through `RequestOptions.timeout`; nothing does today, the coach having moved its
-  generation onto a server-side queue.
+- `app/lib/api/` — typed HTTP services. Every call carries a 120 s timeout, retries once on reads
+  only (never on writes), maps failures to `AppError`, and encodes path segments. The ceiling is wide
+  because the API is slow on its aggregates; it has to stay in step with the proxy's own timeout. A
+  call can override through `RequestOptions.timeout`; nothing does today.
 - `app/utils/async-data.ts` — `cacheOnlyDuringHydration`, a `getCachedData` helper for data that must
   be re-fetched on client navigation instead of being pinned to the first page load.
 - `app/utils/theme.ts` — single entry point for reading and applying the theme.
@@ -36,8 +36,8 @@ OIDC authentication.
   `session`, `logout`.
 - `server/api/gameon/[...path].ts` — authenticating proxy to the GameOn API. Reads the session
   cookies, attaches the bearer, and bounds reachable paths through an allowlist. One timeout for
-  every route (8 s): the coach used to need a longer one and no longer does, since its generation
-  happens on the API's own queue rather than while the connection is held open.
+  every route (120 s), matching `BaseApiService`. An upstream that never answers yields `502`, one
+  that blows the ceiling `504`, so a slow API is not reported as a dead one.
 - `server/api/ddragon/versions.get.ts` — Data Dragon versions, cached server-side for an hour with a
   24 h stale window.
 - `server/middleware/security-headers.ts` and `server/plugins/csp.ts` — security headers and the

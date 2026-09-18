@@ -12,11 +12,23 @@ const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH'])
 const ALLOWED_PREFIXES = ['lol/', 'player/']
 
 /**
- * Every upstream call is a database read or a queue acknowledgement now: the coach routes return
- * immediately and the generation happens on the API's own consumer, so nothing here legitimately
- * holds a connection past this window.
+ * Ceiling for a single upstream call. Wide on purpose: the GameOn API is slow on its aggregates and
+ * is expected to stay that way (`/lol/Stats/global` unfiltered measures 65-73 s, `/lol/Home` 7-13 s).
+ * At the previous 8 s this proxy aborted calls the API was about to answer and reported them as
+ * `502 unreachable`, which is what surfaced as "Erreur de connexion a l'API" on a perfectly live API.
+ *
+ * Must stay in step with `DEFAULT_TIMEOUT_MS` in `app/lib/api/BaseApiService.ts`: whichever of the
+ * two is lower is the one that actually cuts the call.
  */
-const UPSTREAM_TIMEOUT_MS = 8000
+const UPSTREAM_TIMEOUT_MS = 120000
+
+/** Tells ofetch's own timeout apart from a genuinely unreachable upstream (see the `.catch` below). */
+function isTimeout(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const cause = error.cause
+  if (cause instanceof Error && (cause.name === 'TimeoutError' || cause.name === 'AbortError')) return true
+  return error.name === 'TimeoutError' || error.name === 'AbortError'
+}
 
 /**
  * Authenticating proxy to the GameOn API.
@@ -79,9 +91,17 @@ export default defineEventHandler(async (event) => {
     // Relay the upstream status as-is instead of turning every 404 into a 500.
     ignoreResponseError: true
   }).catch((error: unknown) => {
-    // Timeout, DNS, connection refused: the API is unreachable, which is not the client's fault.
-    console.error(`[gameon-proxy] ${method} ${path} unreachable:`, error)
-    throw createError({ statusCode: 502, statusMessage: 'GameOn API unreachable' })
+    // Timeout, DNS, connection refused: the API did not answer, which is not the client's fault.
+    // A timeout is reported separately from a dead upstream: at this ceiling it means the API spent
+    // over two minutes on the query, not that it is down, and the two send you looking in different
+    // places. ofetch surfaces its own timeout as a `FetchError` wrapping a `TimeoutError` cause, so
+    // the name has to be read off `cause` — the outer error is always named `FetchError`.
+    const timedOut = isTimeout(error)
+    console.error(`[gameon-proxy] ${method} ${path} ${timedOut ? `timed out after ${UPSTREAM_TIMEOUT_MS}ms` : 'unreachable'}:`, error)
+    throw createError({
+      statusCode: timedOut ? 504 : 502,
+      statusMessage: timedOut ? 'GameOn API timed out' : 'GameOn API unreachable'
+    })
   })
 
   setResponseStatus(event, response.status)

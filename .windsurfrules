@@ -27,8 +27,8 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - `/` — crew dashboard: weekly activity tiles, full ladder (`LadderTable`), recent games, "fact of
   the week", and the top crew records. A summoner search box exists but is deliberately hidden
   behind `v-if="false"` (see Known Gaps).
-- `/stats` — global crew records, filterable by queue, period and ranked-only, with one card per
-  award defined in `app/utils/lol-awards.ts`.
+- `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
+  with one card per award defined in `app/utils/lol-awards.ts`.
 - `/summoner/[id]` — player profile: identity card, Solo/Duo and Flex rank cards, a period-filtered
   performance KPI panel, an LP progression sparkline, a filterable and paginated match history, and
   Champions / Rôles / Duos side panels. Server-rendered.
@@ -113,12 +113,14 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - The browser and SSR both talk to Nitro, never to an upstream directly. `server/api/gameon/` proxies
   the GameOn API with the session bearer; `server/api/ddragon/versions.get.ts` serves Riot's version
   list from a one-hour server cache with a 24-hour stale window.
-- `app/lib/api/BaseApiService` gives every call an 8 s timeout, one retry on reads and none on
-  writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`. A call may
-  raise its own ceiling through `RequestOptions.timeout`, and nothing does today: the coach routes
-  were the only holder and now queue their work instead of holding the connection. Any future user
-  needs the proxy widened to match — raising one half alone still gets the call cut at 8 s by the
-  other.
+- `app/lib/api/BaseApiService` gives every call a 120 s timeout, one retry on reads and none on
+  writes, maps failures to `AppError`, and encodes path segments via `encodePathSegment`. The ceiling
+  is deliberately wide: the GameOn API is slow on its aggregates and is expected to stay that way
+  (`/lol/Stats/global` unfiltered measures 65–73 s, `/lol/Home` 7–13 s). The former 8 s cut those
+  calls mid-flight and the UI reported an unreachable API for one that was merely answering slowly.
+  The same 120 s is set as `UPSTREAM_TIMEOUT_MS` in the proxy, and **the two must move together** —
+  whichever is lower is the one that actually cuts the call. A single call may still override through
+  `RequestOptions.timeout`, and nothing does today; it is now mainly useful to *shorten* a ceiling.
 - Data that must stay fresh (`lol` store: home stats, ladder players, last matches) is cached behind
   a 60 s window rather than for the whole SPA session, and its `useAsyncData` callers pass
   `getCachedData: cacheOnlyDuringHydration` (`app/utils/async-data.ts`) so the handler is replayed on
@@ -235,6 +237,64 @@ Each of these is easy to reintroduce and hard to diagnose.
   diverge by several points on the same game. Render it explicitly as rAImmus' opinion, or not at all.
 - **`pointsForts` is legitimately empty sometimes.** The coach is told not to invent a compliment, so
   an empty array is an answer: render a sentence for it rather than an empty list.
+- **The two "inclure les smurfs" toggles are not the same mechanism, on purpose.** On `/stats` it is
+  a real API parameter (`includeSmurfs`; at `false` the secondary accounts leave the records
+  entirely, and `totalGamesAnalyzed` / `totalPlayersTracked` / `topChampions` move with them). **Both
+  toggles default to excluding smurfs**, against the API's own default of `true`: the records rank
+  the crew's main accounts, and a smurf in a low-elo bracket distorts every award it touches. Because
+  the front-end default is the opposite of the API's, the query string carries the opt-**in**
+  (`includeSmurfs=true`) while the client always sends `includeSmurfs=false` upstream — the two
+  directions are easy to confuse. On `/` it is a
+  **view filter inside `LadderTable`** and must stay one: `useLolStore.fetchPlayers()` has to keep
+  returning every account, because `LolPlayerHeader` and `LolGameDetailsPlayer` walk `players` to
+  climb from a smurf to its main and `LolGameCard` uses it to tell a crew participant from an
+  outsider — filtering the store breaks the smurf badge and makes a smurf's games read as non-crew.
+  The store's cache is temporal and ignores its arguments, so a `fetchPlayers(includeSmurfs)` would
+  additionally serve the previous call's list for a minute. `/lol/Home` has no such parameter at all:
+  its `crewRecords` always include smurfs, and passing one does nothing.
+- **Crew scoping is already total; there is nothing to filter.** `GET /lol/summoner` takes
+  `includeOutOfCrew` and defaults it to `false`, and `GameOnClient.getLeaguePlayers` pins it anyway so
+  the assumption lives in the call. `GET /lol/Stats/global` has no crew parameter at all **because it
+  needs none**: its records already contain only crew members (verified — none of the out-of-crew ids
+  appears in any award). Do not add an `inCrew` filter on either side; there is nothing for it to
+  remove, and on `/stats` no parameter exists to carry it.
+- **A component that copies a prop into a `ref` freezes on the first value.** `home/StatCard.vue` did
+  exactly that for its count-up animation and never watched `value` again, so it kept rendering the
+  first figure it was mounted with. Invisible while the home page loaded its numbers once, plainly
+  wrong as soon as a filter could re-query them: the store held the new value and the card showed the
+  old one. It now re-runs the animation from a `watch` on the prop. Look for this pattern before
+  blaming reactivity on the store or on `useAsyncData`.
+- **The smurf predicate lives in `app/utils/lol-smurf.ts` (`isSmurf` / `smurfIds`) and is the only
+  copy.** It reads `!!primaryPlayerId && primaryPlayerId !== id && primaryPlayerId !== 0`; the two
+  extra guards are load-bearing, because the API returns a self-referencing or zeroed
+  `primaryPlayerId` on some mains and the short `!!primaryPlayerId` form would crown them smurfs.
+  Import it, never re-inline it.
+- **The home's smurf toggle is page state, not component state.** It lives in `index.vue` and reaches
+  `LadderTable` through `v-model:include-smurfs` and `RecentGames` through a plain prop, because one
+  click has to move the whole dashboard. Only the ladder is still filtered in the browser, and only
+  because the store has to keep every account for the smurf badge and the main-account links;
+  `/lol/Home` and `/lol/Match/last` are both re-queried instead.
+- **`/lol/Match/last` takes `includeSmurfs` and refills the page.** It drops a match only when
+  **every** crew participant in it is a secondary account — a smurf playing alongside a main is still
+  that main's game — and then tops the page back up with older matches, so a page of `size` stays a
+  page of `size`. That refill is exactly what the earlier client-side filter could not do, and the
+  reason this belongs in the request.
+- **Changing that flag must reset the component's pagination.** `RecentGames` keeps its extra pages
+  in a local `additionalMatches`; those rows were fetched under the previous flag, so a `watch` on the
+  prop clears them and sends `currentPage` back to 1. Without it, smurf-only games stay stranded in
+  the list after being excluded and the next `loadMore` resumes from the wrong offset. `loadMore`
+  forwards the flag too, or page 2 silently contradicts page 1.
+- **`GET /lol/Home` now takes `includeSmurfs` (default `true`) and `includeOutOfCrew` (default
+  `false`)**, and the flag reaches the weekly activity, the fact of the week *and* `crewRecords`, so
+  one re-query moves the whole dashboard. Note the API's Swagger document can lag behind the running
+  build — the parameter bound and worked while `/swagger/v1/swagger.json` still listed none. Test the
+  behaviour, not the schema.
+- **A store loader that takes a filter must memoize that filter next to its timestamp.** `isFresh`
+  only looks at the clock, so `fetchHomeStats` and `fetchLastMatches` each compare a stored flag
+  (`homeStatsIncludeSmurfs`, `lastMatchesIncludeSmurfs`) as well; without it a toggle flip inside the
+  60 s window is answered with the previous flag's data and the UI silently does nothing. The flag is returned from the store like the
+  timestamps, so the hydrated client agrees with the SSR payload. The `useAsyncData` key stays static
+  and `watch: [includeSmurfs]` is what re-runs the handler.
 - **The coach keys on the route's `playerId`, not the selected player.** The Performance picker walks
   all ten participants, but eight of them have no GameOn `playerId` and the API answers 404.
 

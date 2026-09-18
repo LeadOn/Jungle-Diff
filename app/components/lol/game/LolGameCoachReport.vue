@@ -314,7 +314,7 @@ const generatedOnLabel = computed(() =>
         <img
           src="~/assets/img/JungleDiff_Logo.png"
           alt="rAImmus"
-          class="h-8 w-8 object-contain" />
+          class="h-8 w-8 object-contain" >
       </div>
 
       <div class="min-w-[12rem] flex-1">
@@ -546,7 +546,7 @@ const generatedOnLabel = computed(() =>
         src="~/assets/img/JungleDiff_Logo.png"
         alt=""
         aria-hidden="true"
-        class="h-20 w-20 object-contain opacity-80" />
+        class="h-20 w-20 object-contain opacity-80" >
 
       <p class="text-text-main m-0 text-sm font-semibold">
         rAImmus n'a pas encore vu cette partie.
