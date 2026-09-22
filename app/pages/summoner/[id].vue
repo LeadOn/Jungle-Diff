@@ -202,7 +202,11 @@ async function refreshPerformanceStats() {
     const queueIds = selectedQueueIds.value.length > 0 ? selectedQueueIds.value : undefined
     const role = selectedRole.value || undefined
     const updated = await gameOnApi.getPlayerById(pId, toApiPeriod(period.value), queueIds, role, pageRequests.signal)
-    if (player.value) player.value.performanceStats = updated.performanceStats
+    // `useAsyncData` defaults to `deep: false` (a shallowRef), so mutating a nested property like
+    // `player.value.performanceStats` is invisible to Vue's reactivity — it silently applies and
+    // only surfaces on some later, unrelated re-render. Reassigning `.value` is what a shallowRef
+    // actually tracks.
+    if (player.value) player.value = { ...player.value, performanceStats: updated.performanceStats }
   } catch (e) {
     if (isAbortError(e)) return
     console.error('[summoner] Statistiques de performance indisponibles:', e)
