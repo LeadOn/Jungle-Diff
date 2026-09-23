@@ -1,4 +1,5 @@
 import type { LoLChampionStatDto, PlayerDto } from './home'
+import type { LoLGameParticipantRankChange } from './match'
 
 export interface LeagueOfLegendsRank {
   id: number;
@@ -38,6 +39,24 @@ export interface LeaguePlayer {
 }
 
 export type LoLRankHistoryGranularity = 'Day' | 'Week' | 'Month';
+
+export type LoLRankChangeQueue = 'All' | 'Solo' | 'Flex';
+
+/**
+ * One ranked game of `GET /lol/summoner/{id}/rank/changes`, which lists them oldest first. The game
+ * was played even when `rankChange` is `null` — only its LP are unknown — so it keeps its slot.
+ */
+export interface LoLRankChangeEntryDto {
+  matchId: string;
+  queueId: number; // 420 Solo/Duo, 440 Flex
+  gameStart: string; // ISO 8601 UTC
+  win: boolean;
+  championName: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  rankChange: LoLGameParticipantRankChange | null;
+}
 
 export type LoLStatsPeriod = 'AllTime' | 'Week' | 'Month' | 'ThreeMonths' | 'SixMonths';
 

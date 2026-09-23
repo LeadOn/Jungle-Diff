@@ -373,7 +373,12 @@ class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border tra
 
         <!-- Champions du crew -->
         <div v-if="topChampions.length > 0" class="relative">
-          <SideCard title="Champions - 7 jours">
+          <!--
+            `crewRecords` (and its `topChampions`) is fetched by the API over a rolling month, not a
+            calendar week, deliberately: a single week rarely holds enough ranked games for the
+            awards to be meaningful. See GetLoLHomeStatsQueryHandler.Handle in the GameOn API.
+          -->
+          <SideCard title="Champions - 30 derniers jours">
             <div class="flex flex-col gap-3 mt-4">
               <div v-for="champ in topChampions" :key="champ.championName" class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-surface-high overflow-hidden flex-shrink-0 border border-border-accent">

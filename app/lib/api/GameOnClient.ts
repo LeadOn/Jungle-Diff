@@ -1,6 +1,6 @@
 import { BaseApiService, encodePathSegment as segment } from './BaseApiService'
 import type { RequestOptions } from './BaseApiService'
-import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto } from '../types'
+import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLRankChangeEntryDto, LoLRankChangeQueue, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto } from '../types'
 
 /**
  * What either coach route may answer.
@@ -81,6 +81,13 @@ export class GameOnClient extends BaseApiService {
     const params = new URLSearchParams({ granularity })
     if (days != null) params.set('days', String(days))
     return this.get<LeagueOfLegendsRank[]>(`/lol/summoner/${segment(id)}/rank?${params.toString()}`, GameOnClient.opts(signal))
+  }
+
+  /** The player's last ranked games with the LP each one moved, oldest first. */
+  public getRankChanges(id: string | number, queue: LoLRankChangeQueue, limit: number, days?: number, signal?: AbortSignal) {
+    const params = new URLSearchParams({ queue, limit: String(limit) })
+    if (days != null) params.set('days', String(days))
+    return this.get<LoLRankChangeEntryDto[]>(`/lol/summoner/${segment(id)}/rank/changes?${params.toString()}`, GameOnClient.opts(signal))
   }
 
   public refreshPlayer(id: string | number, signal?: AbortSignal) {
