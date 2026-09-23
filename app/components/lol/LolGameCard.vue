@@ -8,7 +8,7 @@
     <div class="absolute -left-[1px] top-0 bottom-0 w-1.5" :class="getResultColor(computedStatus)"/>
     
     <div class="flex items-center justify-between w-full sm:w-auto pl-2">
-      <div class="flex items-center gap-3 sm:gap-4">
+      <div class="flex min-w-0 items-center gap-3 sm:gap-4">
         <!-- Champion icon & badge -->
         <div class="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0">
           <div class="w-full h-full rounded-full overflow-hidden border-2" :class="getAvatarBorderColor(computedStatus)">
@@ -37,12 +37,17 @@
         </div>
         
         <div class="flex flex-col justify-center min-w-0">
-          <div class="text-[13px] sm:text-[14px] font-extrabold mb-0.5 truncate" :class="getResultTextColor(computedStatus)">
-            {{ getResultText(computedStatus) }}
-            <template v-if="summonerName && showSummonerName">
-              <span class="text-text-ter font-normal mx-1">·</span>
-              <span class="text-text-sec font-semibold">{{ summonerName }}</span>
-            </template>
+          <!-- The LP badge sits outside the truncated text and wraps below it on a narrow card
+               rather than squeezing the result or pushing the KDA out of the card. -->
+          <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-0.5 min-w-0">
+            <div class="text-[13px] sm:text-[14px] font-extrabold truncate min-w-0 max-w-full" :class="getResultTextColor(computedStatus)">
+              {{ getResultText(computedStatus) }}
+              <template v-if="summonerName && showSummonerName">
+                <span class="text-text-ter font-normal mx-1">·</span>
+                <span class="text-text-sec font-semibold">{{ summonerName }}</span>
+              </template>
+            </div>
+            <LolRankChangeBadge v-if="rankChange" :change="rankChange" compact class="shrink-0" />
           </div>
           <div class="text-[11px] sm:text-[12px] font-bold text-text-main mb-0.5 truncate">
             {{ queueName }} <span class="text-text-ter font-normal mx-0.5">·</span> {{ duration }}
@@ -149,6 +154,9 @@ const computedStatus = computed(() => {
 const championName = computed(() => participant.value?.championName || '')
 const champLevel = computed(() => participant.value?.champLevel || '??')
 const summonerName = computed(() => participant.value?.riotIdGameName || '')
+// Null means the LP could not be pinned to this game, not a 0: nothing is shown then.
+// `?? null` also covers an API build that predates the field.
+const rankChange = computed(() => participant.value?.rankChange ?? null)
 
 // Tracked player's role (absent in modes without assigned lanes: ARAM, Arena, ...)
 const ROLE_ICON_KEYS: Record<string, string> = {

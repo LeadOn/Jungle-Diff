@@ -9,18 +9,34 @@ const TIER_BASE_POINTS: Record<string, number> = {
 const DIVISION_POINTS: Record<string, number> = { I: 300, II: 200, III: 100, IV: 0 }
 
 /**
+ * The part of a rank these helpers read. A full `LeagueOfLegendsRank` satisfies it, and so does a
+ * position rebuilt from a match's `rankChange`, which carries no queue, wins or losses.
+ */
+export type RankPosition = Pick<LeagueOfLegendsRank, 'tier' | 'rank' | 'leaguePoints'>
+
+/**
+ * Places a tier + division on the ladder, ignoring LP — two ranks with the same score are the same
+ * division. The division is ignored from Master upwards, where it carries no meaning. `null` for a
+ * tier this table does not know, so an unexpected value is never mistaken for Iron.
+ */
+export function divisionScore(rank: Pick<RankPosition, 'tier' | 'rank'>): number | null {
+  const tier = rank.tier ? rank.tier.toUpperCase() : ''
+  const division = rank.rank ? rank.rank.toUpperCase() : ''
+  const base = TIER_BASE_POINTS[tier]
+  if (base === undefined) return null
+  const divisionPoints = APEX_TIERS.has(tier) ? 0 : (DIVISION_POINTS[division] ?? 0)
+  return base + divisionPoints
+}
+
+/**
  * Converts a rank (tier + division + LP) into a continuous numeric score, used to plot
  * progression (e.g. the LP sparkline) on a single axis.
  */
-export function rankScore(rank: LeagueOfLegendsRank): number {
-  const tier = rank.tier ? rank.tier.toUpperCase() : ''
-  const division = rank.rank ? rank.rank.toUpperCase() : ''
-  const base = TIER_BASE_POINTS[tier] ?? 0
-  const divisionPoints = APEX_TIERS.has(tier) ? 0 : (DIVISION_POINTS[division] ?? 0)
-  return base + divisionPoints + rank.leaguePoints
+export function rankScore(rank: RankPosition): number {
+  return (divisionScore(rank) ?? 0) + rank.leaguePoints
 }
 
-export function tierLabel(rank?: LeagueOfLegendsRank | null): string {
+export function tierLabel(rank?: Pick<RankPosition, 'tier' | 'rank'> | null): string {
   if (!rank) return 'Non classé'
   const tierStr = rank.tier ? rank.tier.toLowerCase() : ''
   const capitalizedTier = tierStr.charAt(0).toUpperCase() + tierStr.slice(1)
@@ -32,12 +48,12 @@ export function tierLabel(rank?: LeagueOfLegendsRank | null): string {
   return `${capitalizedTier} ${rank.rank}`
 }
 
-export function tierEmblemUrl(rank?: LeagueOfLegendsRank | null): string {
+export function tierEmblemUrl(rank?: Pick<RankPosition, 'tier'> | null): string {
   const t = rank ? rank.tier.toLowerCase() : 'unranked'
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-shared-components/global/default/${t}.png`
 }
 
-export function tierGlowShadow(rank?: LeagueOfLegendsRank | null): string {
+export function tierGlowShadow(rank?: Pick<RankPosition, 'tier'> | null): string {
   if (!rank) return 'none'
   
   switch (rank.tier.toUpperCase()) {
@@ -55,7 +71,7 @@ export function tierGlowShadow(rank?: LeagueOfLegendsRank | null): string {
   }
 }
 
-export function tierGlowBackground(rank?: LeagueOfLegendsRank | null): string {
+export function tierGlowBackground(rank?: Pick<RankPosition, 'tier'> | null): string {
   if (!rank) return 'transparent'
   
   switch (rank.tier.toUpperCase()) {

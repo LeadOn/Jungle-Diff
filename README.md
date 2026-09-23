@@ -188,6 +188,13 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   `/lol/coach` endpoints. Generation is authenticated and on demand — nothing is written unless a
   crew member asks for it. Since the API moved generation onto a queue, the tab shows the position
   in that queue and the estimated wait, polling until the report lands.
+- **LP per game** (2026-09-23): the GameOn API now carries a nullable `rankChange` on each match
+  participant. The match history cards and the match page scoreboards show the LP won or lost on the
+  game, with the rank before and after on hover and a highlighted chip when the game promoted or
+  demoted the player. `null` (LP not attributable to a single game) renders nothing; 0 is shown.
+  On the profile, the "Progression classement" card adds a bar per ranked game under the rank
+  sparkline (`GET /lol/summoner/{id}/rank/changes`), with the average gain on wins and loss on
+  defeats; a game with unknown LP stays on the axis as a grey bar.
 - **Tests & container:** 18 Playwright tests, 14 of which need no upstream, plus a non-root Node 24
   image with a health probe. `vue` is pinned to `^3.5.42`; it was `latest`, which let two installs a
   week apart produce different builds. Delivery is manual — see "Checks Before Deploying".

@@ -88,6 +88,9 @@
             >
               ACE
             </span>
+
+            <!-- Only tracked players on a ranked game carry one; null means unknown, never 0. -->
+            <LolRankChangeBadge v-if="player.rankChange != null" :change="player.rankChange" />
           </div>
 
           <p

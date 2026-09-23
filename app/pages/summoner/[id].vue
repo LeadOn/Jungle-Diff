@@ -6,7 +6,7 @@ import { AppError, isAbortError } from '~/lib/types/error'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
 import { roleIconUrl } from '~/utils/lol-role'
-import type { LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
+import type { LeagueOfLegendsRank, LoLRankChangeEntryDto, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
 import LolPlayerHeader from '~/components/lol/LolPlayerHeader.vue'
 import LolPlayerRanks from '~/components/lol/LolPlayerRanks.vue'
 import PerformanceKpis from '~/components/lol/PerformanceKpis.vue'
@@ -64,13 +64,19 @@ onMounted(async () => {
   await loadSecondaryData()
 })
 
-// Performance / LP progression period (shared by the KPI panel and the LP sparkline)
+// Performance / LP progression period (shared by the KPI panel, the LP sparkline and the per-game LP bars)
 const initialPeriod = route.query.period as Period
 const period = ref<Period>(['7j', '30j', 'all-time'].includes(initialPeriod) ? initialPeriod : '30j')
 
 // Rank history (feeds the LP sparkline only, real data)
 const rankHistoryLoading = ref(false)
 const rankHistory = ref<LeagueOfLegendsRank[]>([])
+
+// LP moved per ranked game (the bar chart under the sparkline), one list per queue
+const RANK_CHANGES_LIMIT = 50
+const rankChangesLoading = ref(false)
+const soloRankChanges = ref<LoLRankChangeEntryDto[]>([])
+const flexRankChanges = ref<LoLRankChangeEntryDto[]>([])
 
 // Match history
 const gameHistoryLoading = ref(false)
@@ -155,6 +161,7 @@ async function loadSecondaryData() {
   const signal = restartRequests()
   await Promise.all([
     loadRankHistory(pId, signal),
+    loadRankChanges(pId, signal),
     loadQueueOptions(pId, signal),
     loadGames(pId, false, signal)
   ])
@@ -195,6 +202,30 @@ async function loadRankHistory(pId: string, signal?: AbortSignal) {
   }
 }
 
+/**
+ * Both queues are fetched up front, like the rank history, so the card's Solo/Flex switch is
+ * instant. They are separate calls rather than one `queue=All`: the limit applies to the merged
+ * list, and a busy Solo queue would crowd the Flex games out of it.
+ */
+async function loadRankChanges(pId: string, signal?: AbortSignal) {
+  rankChangesLoading.value = true
+  try {
+    const [solo, flex] = await Promise.all([
+      gameOnApi.getRankChanges(pId, 'Solo', RANK_CHANGES_LIMIT, rankHistoryDays.value, signal),
+      gameOnApi.getRankChanges(pId, 'Flex', RANK_CHANGES_LIMIT, rankHistoryDays.value, signal),
+    ])
+    // The API answers `204 No Content` rather than an empty list for a player it does not know.
+    soloRankChanges.value = solo ?? []
+    flexRankChanges.value = flex ?? []
+  } catch (e) {
+    if (isAbortError(e)) return
+    console.error('[summoner] Gains de LP par partie indisponibles:', e)
+  } finally {
+    // A superseded call must not clear the spinner of the call that replaced it.
+    if (!signal?.aborted) rankChangesLoading.value = false
+  }
+}
+
 async function refreshPerformanceStats() {
   if (!player.value) return
   const pId = player.value.id.toString()
@@ -220,6 +251,7 @@ async function onPeriodChange(next: Period) {
   const pId = player.value.id.toString()
   const signal = restartRequests()
   loadRankHistory(pId, signal)
+  loadRankChanges(pId, signal)
   refreshPerformanceStats()
 }
 
@@ -497,8 +529,11 @@ const groupedGames = computed(() => {
             <LpProgressionCard
               :solo-entries="soloRankHistory"
               :flex-entries="flexRankHistory"
+              :solo-changes="soloRankChanges"
+              :flex-changes="flexRankChanges"
               :period="period"
               :loading="rankHistoryLoading"
+              :changes-loading="rankChangesLoading"
             />
             <ChampionsAside :period="period" :stats="player.performanceStats" />
             <RolesAside :stats="player.performanceStats" />
