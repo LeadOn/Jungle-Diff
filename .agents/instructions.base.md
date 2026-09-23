@@ -28,13 +28,20 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
   with one card per award defined in `app/utils/lol-awards.ts`.
 - `/summoner/[id]` — player profile: identity card, Solo/Duo and Flex rank cards, a period-filtered
-  performance KPI panel, an LP progression sparkline, a filterable and paginated match history, and
-  Champions / Rôles / Duos side panels. Server-rendered.
+  performance KPI panel, a "Progression classement" card (`LpProgressionCard`: the rank sparkline
+  from `GET /lol/summoner/{id}/rank`, and under it `LpChangesChart`, one bar per ranked game from
+  `GET /lol/summoner/{id}/rank/changes`, both behind one Solo/Flex switch), a filterable and
+  paginated match history, and Champions / Rôles / Duos side panels. Server-rendered.
 - `/game/[id]/[playerId]` — match detail: win/loss-tinted header with MVP/ACE accolade, per-team
   objectives, key moments, then five tabs — Vue d'ensemble (scoreboards + highlights), Film de la
   partie (a timeline scrubber driving minimap, gold race, kill feed and charts), Performance (player
   picker, KPI tiles, radar and damage/gold/ranking charts), rAImmus (the AI coach report), and a
   collapsible Données brutes table.
+- **LP per game** — `app/components/lol/LolRankChangeBadge.vue` renders a participant's `rankChange`
+  as "+18 LP" / "-21 LP" / "0 LP" with a "Emerald II 27 LP → Emerald II 45 LP" tooltip, plus a
+  chevron chip tinted with the reached tier when the division or tier changes. It shows beside the
+  result in `LolGameCard` (in `compact` mode: emblem and chevrons only) and in every scoreboard row
+  on the match page. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
 - **rAImmus** — the AI coach, named after Rammus, rendered by
   `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
   neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
@@ -295,6 +302,26 @@ Each of these is easy to reintroduce and hard to diagnose.
   and `watch: [includeSmurfs]` is what re-runs the handler.
 - **The coach keys on the route's `playerId`, not the selected player.** The Performance picker walks
   all ten participants, but eight of them have no GameOn `playerId` and the API answers 404.
+- **A participant's `rankChange` is `null` far more often than not, and `null` is not 0.** The API
+  sets it only for a tracked player on a Solo (420) or Flex (440) game whose LP it could pin to that
+  game; several games between two rank refreshes leave it `null`. Render nothing for `null` — 0 is a
+  genuine result (a loss at 0 LP under demotion protection) and gets its own neutral "0 LP" badge.
+  Compare promotions on `divisionScore` (tier + division), never on the LP figure: Gold I 90 LP →
+  Platinum IV 10 LP is a climb whose LP number drops. `rankBefore`/`rankAfter` are meaningless from
+  Master upwards, which `tierLabel` and `divisionScore` already ignore.
+- **The per-game LP bars keep every game, known or not.** `rank/changes` lists ranked games oldest
+  first, and an entry with `rankChange: null` was played — only its LP are unknown. It keeps its slot
+  on the axis as a grey bar straddling the baseline (a genuine 0 is a flat tick), and it is left out
+  of the win/loss averages instead of counting as 0. Solo and Flex are two calls, not one
+  `queue=All`: `limit` applies to the merged list, and a busy Solo queue would crowd Flex out of it.
+  Both follow the page period through `days` (7 / 30 / none), like the sparkline.
+- **Tier names are English on purpose.** `tierLabel` prints "Emerald II", matching the rank cards,
+  the ladder and the LP charts; the LP badge reuses it rather than introducing a second, French
+  vocabulary ("Émeraude") for the same tiers.
+- **`LolGameCard`'s text column needs its `min-w-0` chain.** Without it the result line's
+  `truncate` never engages: its min-content width propagates up, and anything added beside the
+  result (the LP badge did) pushes the mobile KDA off the card, which then scrolls sideways inside
+  its `overflow-hidden`.
 
 # Known Gaps
 

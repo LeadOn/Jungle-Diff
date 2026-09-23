@@ -54,6 +54,7 @@ export interface LoLGameParticipantDto {
   bountyLevel?: number;
   consumablesPurchased?: number;
   stats: LoLGameParticipantStats | null;
+  rankChange: LoLGameParticipantRankChange | null;
   challenges?: LoLGameParticipantChallenges | null;
 }
 
@@ -76,6 +77,25 @@ export interface LoLGameParticipantStats {
   magicDamageToChampions: number;
   trueDamageToChampions: number;
   timeCcOthersSeconds: number;
+}
+
+/**
+ * LP won or lost on this game, as attributed by the API between two rank refreshes.
+ *
+ * Only set for a tracked player on a ranked game (Solo 420 / Flex 440) whose LP could be pinned to
+ * this game. `null` means unknown — typically several games played between two refreshes — and
+ * must never be read as 0: 0 is a real value (a loss at 0 LP under demotion protection).
+ * `rankBefore` / `rankAfter` are divisions ("I" to "IV") and mean nothing from Master upwards.
+ */
+export interface LoLGameParticipantRankChange {
+  leaguePointsChange: number;
+  tierBefore: string;
+  rankBefore: string;
+  leaguePointsBefore: number;
+  tierAfter: string;
+  rankAfter: string;
+  leaguePointsAfter: number;
+  computedOn: string; // ISO 8601 UTC
 }
 
 export interface LoLGameParticipantChallenges {

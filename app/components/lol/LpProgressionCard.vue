@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import {ref, computed} from "vue";
-import type {LeagueOfLegendsRank} from "~/lib/types";
+import type {LeagueOfLegendsRank, LoLRankChangeEntryDto} from "~/lib/types";
 import {rankScore, tierLabel} from "~/utils/lol-tier";
+import LpChangesChart from "~/components/lol/LpChangesChart.vue";
 
 type Queue = "solo" | "flex";
 
 const props = defineProps<{
   soloEntries: LeagueOfLegendsRank[];
   flexEntries: LeagueOfLegendsRank[];
+  soloChanges: LoLRankChangeEntryDto[];
+  flexChanges: LoLRankChangeEntryDto[];
   period: "7j" | "30j" | "all-time";
   loading?: boolean;
+  changesLoading?: boolean;
 }>();
 
 const PERIOD_CAPTION: Record<string, string> = {
@@ -18,12 +22,13 @@ const PERIOD_CAPTION: Record<string, string> = {
   'all-time': "Depuis toujours",
 };
 
-// L'utilisateur peut choisir sa file manuellement ; tant qu'il ne l'a pas fait,
-// fall back to the first queue that has data (Solo/Duo first).
+// The user may pick a queue; until they do, fall back to the first queue that has data (Solo/Duo
+// first). One selector drives both charts, so the line and the bars always show the same queue.
 const userSelectedQueue = ref<Queue | null>(null);
 const selectedQueue = computed<Queue>(
   () =>
-    userSelectedQueue.value ?? (props.soloEntries.length > 0 ? "solo" : "flex"),
+    userSelectedQueue.value ??
+    (props.soloEntries.length > 0 || props.soloChanges.length > 0 ? "solo" : "flex"),
 );
 const selectQueue = (q: Queue) => {
   userSelectedQueue.value = q;
@@ -31,6 +36,9 @@ const selectQueue = (q: Queue) => {
 
 const entries = computed(() =>
   selectedQueue.value === "solo" ? props.soloEntries : props.flexEntries,
+);
+const changes = computed(() =>
+  selectedQueue.value === "solo" ? props.soloChanges : props.flexChanges,
 );
 
 const sorted = computed(() =>
@@ -154,7 +162,7 @@ function onSvgMouseLeave() {
 <template>
   <section class="rounded-2xl border border-border-base bg-surface-base p-6">
     <div class="flex items-center justify-between gap-3 mb-1">
-      <h3 class="m-0 text-sm font-extrabold text-text-main">Progression LP</h3>
+      <h3 class="m-0 text-sm font-extrabold text-text-main">Progression classement</h3>
       <span
         v-if="hasEnoughData"
         class="text-sm font-black"
@@ -266,5 +274,9 @@ function onSvgMouseLeave() {
         <span class="text-text-main">{{ nowLabel }}</span>
       </div>
     </template>
+
+    <div class="mt-6 pt-5 border-t border-border-subtle">
+      <LpChangesChart :entries="changes" :loading="changesLoading" />
+    </div>
   </section>
 </template>
