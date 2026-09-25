@@ -14,7 +14,7 @@ import { isSmurf } from '~/utils/lol-smurf'
 import { getProfileIconUrl } from '~/utils/ddragon'
 import { dayHeading, parisDayKey } from '~/utils/date'
 import { formatSigned } from '~/utils/number'
-import RecentGameRow from '~/components/home/RecentGameRow.vue'
+import LolGameCard from '~/components/lol/LolGameCard.vue'
 
 const props = withDefaults(defineProps<{
   /** Owned by the page, shared with the ladder. Forwarded to the API rather than applied here: it
@@ -250,7 +250,7 @@ const hasError = computed(() => (selectedPlayerId.value === null ? error.value !
         <span v-if="day.lp" class="rounded-full px-2.5 py-[3px] font-mono text-[11.5px] font-semibold" :class="day.lpClass">{{ day.lp }}</span>
       </div>
       <div class="flex flex-col gap-2.5">
-        <RecentGameRow v-for="entry in day.entries" :key="entry.key" :entry="entry" />
+        <LolGameCard v-for="entry in day.entries" :key="entry.key" :entry="entry" />
       </div>
     </div>
 

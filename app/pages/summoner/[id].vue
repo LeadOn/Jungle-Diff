@@ -6,6 +6,11 @@ import { AppError, isAbortError } from '~/lib/types/error'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
 import { roleIconUrl } from '~/utils/lol-role'
+import { formatQueue } from '~/lib/utils/lol'
+import { longDayLabel, parisDayKey } from '~/utils/date'
+import { formatSigned } from '~/utils/number'
+import { buildFeed } from '~/utils/lol-feed'
+import type { FeedEntry } from '~/utils/lol-feed'
 import type { LeagueOfLegendsRank, LoLRankChangeEntryDto, LoLRankHistoryGranularity, LoLGameDto, LoLStatsPeriod } from '~/lib/types'
 import LolPlayerHeader from '~/components/lol/LolPlayerHeader.vue'
 import LolPlayerRanks from '~/components/lol/LolPlayerRanks.vue'
@@ -37,6 +42,7 @@ const playerId = route.params.id as string
 const isValidPlayerId = /^\d+$/.test(playerId)
 
 const isRefreshing = ref(false)
+const isRetrying = ref(false)
 
 /**
  * Secondary requests (ranks, queues, match history) are triggered by hand and must be cancelled
@@ -160,6 +166,7 @@ async function loadSecondaryData() {
   const pId = player.value.id.toString()
   const signal = restartRequests()
   await Promise.all([
+    loadCrew(signal),
     loadRankHistory(pId, signal),
     loadRankChanges(pId, signal),
     loadQueueOptions(pId, signal),
@@ -167,9 +174,27 @@ async function loadSecondaryData() {
   ])
 }
 
+/**
+ * The crew list gives the hero its main-champion splash (`mainChampionName` is only served there) and
+ * resolves a smurf's main account. Cached by the store for a minute, so arriving from `/` costs nothing.
+ */
+async function loadCrew(signal?: AbortSignal) {
+  try {
+    await lolStore.fetchPlayers(signal)
+  } catch (e) {
+    if (isAbortError(e)) return
+    console.error('[summoner] Liste du crew indisponible:', e)
+  }
+}
+
 async function retryLoadPlayer() {
-  await reloadPlayer()
-  await loadSecondaryData()
+  isRetrying.value = true
+  try {
+    await reloadPlayer()
+    await loadSecondaryData()
+  } finally {
+    isRetrying.value = false
+  }
 }
 
 async function handleRefresh() {
@@ -272,7 +297,8 @@ const flexRankHistory = computed(() => rankHistory.value.filter((h) => h.queueTy
 async function loadQueueOptions(pId: string, signal?: AbortSignal) {
   try {
     const data = await gameOnApi.getQueuesForPlayer(pId, signal)
-    queueOptions.value = data.map((q) => ({ id: q.id, label: q.description || q.map || `File ${q.id}` }))
+    // French labels first (`QUEUE_LABELS`), the API's own English description as the fallback.
+    queueOptions.value = data.map((q) => ({ id: q.id, label: formatQueue(q.id, data) }))
   } catch (e) {
     if (isAbortError(e)) return
     console.error('[summoner] Files de jeu du joueur indisponibles:', e)
@@ -345,201 +371,242 @@ const historyCountLabel = computed(() => {
   return `${shown} partie${shown > 1 ? 's' : ''} affichée${shown > 1 ? 's' : ''} · ${totalItems.value} sur l'historique`
 })
 
+const ROLE_FILTERS: { value: string, label: string }[] = [
+  { value: 'TOP', label: 'Top' },
+  { value: 'JUNGLE', label: 'Jungle' },
+  { value: 'MIDDLE', label: 'Milieu' },
+  { value: 'BOTTOM', label: 'ADC' },
+  { value: 'UTILITY', label: 'Support' },
+]
+
+/** "Support · Classée Solo/Duo": what the history filters also narrow in the performance panel. */
+const filterSummary = computed(() => {
+  const role = ROLE_FILTERS.find((r) => r.value === selectedRole.value)?.label ?? null
+  const ids = selectedQueueIds.value
+  const queues = ids.length === 1 && ids[0] != null
+    ? (queueOptions.value.find((q) => q.id === ids[0])?.label ?? formatQueue(ids[0], lolStore.queues))
+    : ids.length > 1 ? `${ids.length} files` : null
+  return [role, queues].filter(Boolean).join(' · ') || null
+})
+
+// The day the page was rendered, in Paris: games are grouped on Paris days, like the dashboard.
+const todayKey = parisDayKey(Date.now())
+
+/**
+ * The history as feed entries, the shape the home feed draws: every game is the profile's player's,
+ * and the other crew members of the game become the card's "+N" chip.
+ */
+const historyEntries = computed(() => (player.value
+  ? buildFeed(gamesPlayed.value, lolStore.players, { playerId: player.value.id, includeSmurfs: true })
+  : []))
+
 const groupedGames = computed(() => {
-  const groups: { key: string; label: string; games: LoLGameDto[] }[] = []
-  let currentGroup: typeof groups[0] | null = null
-
-  const getDayLabel = (d: Date) => {
-    const today = new Date()
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const isSameDay = (d1: Date, d2: Date) => 
-      d1.getDate() === d2.getDate() &&
-      d1.getMonth() === d2.getMonth() &&
-      d1.getFullYear() === d2.getFullYear()
-
-    if (isSameDay(d, today)) return "Aujourd'hui"
-    if (isSameDay(d, yesterday)) return 'Hier'
-    
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).format(d)
+  const groups: { key: string, entries: FeedEntry[] }[] = []
+  for (const entry of historyEntries.value) {
+    const last = groups[groups.length - 1]
+    if (last && last.key === entry.dayKey) last.entries.push(entry)
+    else groups.push({ key: entry.dayKey, entries: [entry] })
   }
 
-  for (const g of gamesPlayed.value) {
-    if (!g.gameStart) continue
-    const d = new Date(g.gameStart)
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-    
-    if (!currentGroup || currentGroup.key !== key) {
-      currentGroup = {
-        key,
-        label: getDayLabel(d),
-        games: []
-      }
-      groups.push(currentGroup)
+  return groups.map((group) => {
+    const played = group.entries.filter((entry) => !entry.game.isRemake)
+    const wins = played.filter((entry) => entry.participant.win).length
+    const known = played.flatMap((entry) => (entry.participant.rankChange ? [entry.participant.rankChange.leaguePointsChange] : []))
+    const lp = known.reduce((sum, value) => sum + value, 0)
+    return {
+      ...group,
+      label: longDayLabel(group.key, todayKey),
+      record: `${wins}V · ${played.length - wins}D`,
+      // Only when at least one game of the day carries its LP: a sum over nothing is not a 0.
+      lp: known.length > 0 ? `${formatSigned(lp)} LP` : null,
+      lpClass: lp > 0 ? 'bg-win-soft text-brand-green' : lp < 0 ? 'bg-loss-soft text-brand-red' : 'bg-surface-base text-text-main',
     }
-    currentGroup.games.push(g)
-  }
-  return groups
+  })
 })
 </script>
 
 <template>
   <div class="w-full">
-    <NuxtLink to="/" class="inline-flex items-center gap-2 mb-5 text-[13px] font-bold text-text-sec transition-colors hover:text-text-main">
-      <Icon name="lucide:chevron-left" class="h-3.5 w-3.5" />
+    <NuxtLink
+      to="/"
+      class="mb-4 inline-flex h-[30px] items-center gap-2 rounded-full border border-border-base bg-surface-base pl-2.5 pr-3 text-[12.5px] font-bold transition-[border-color,translate] duration-[250ms] ease-spring hover:-translate-x-0.5 hover:border-border-accent"
+    >
+      <Icon name="lucide:chevron-left" class="size-[13px]" />
       Retour au ladder
     </NuxtLink>
 
-    <!-- Loading Skeleton -->
-    <div v-if="loading" class="animate-pulse">
-      <div class="rounded-2xl border border-border-base bg-surface-base p-6 flex items-center gap-5">
-        <div class="w-22 h-22 rounded-full bg-surface-high shrink-0"/>
-        <div class="flex-1 space-y-3">
-          <div class="h-7 w-56 rounded-md bg-surface-high"/>
-          <div class="h-4 w-40 rounded-md bg-surface-high"/>
-        </div>
+    <!-- Loading skeleton -->
+    <div v-if="loading" aria-busy="true" aria-label="Chargement du profil" class="flex animate-pulse flex-col gap-4">
+      <div class="flex items-center gap-[22px] rounded-[30px] bg-surface-sunken px-8 py-[30px]">
+        <span class="size-28 shrink-0 rounded-[28px] bg-surface-high" />
+        <span class="flex flex-1 flex-col gap-3">
+          <span class="h-11 w-[min(320px,70%)] rounded-xl bg-surface-high" />
+          <span class="h-4 w-[min(200px,50%)] rounded-lg bg-surface-high" />
+        </span>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <span class="h-[196px] rounded-[26px] bg-surface-sunken" />
+        <span class="h-[196px] rounded-[26px] bg-surface-sunken" />
       </div>
     </div>
 
     <!-- Error state -->
-    <PlayerNotFound v-else-if="hasError || !player" @retry="retryLoadPlayer" />
+    <PlayerNotFound v-else-if="hasError || !player" :retrying="isRetrying" @retry="retryLoadPlayer" />
 
     <!-- Content -->
     <template v-else>
-      <div class="flex flex-col gap-4">
-        <LolPlayerHeader
-          :player="player"
-          :current-lo-l-patch="patchStore.currentPatch"
-          :is-refreshing="isRefreshing"
-          @refresh="handleRefresh"
-        />
+      <LolPlayerHeader
+        :player="player"
+        :current-lo-l-patch="patchStore.currentPatch"
+        :is-refreshing="isRefreshing"
+        @refresh="handleRefresh"
+      />
 
-        <LolPlayerRanks :player="player" />
+      <LolPlayerRanks :player="player" class="mt-4" />
 
-        <PerformanceKpis :period="period" :stats="player.performanceStats" @update:period="onPeriodChange" />
+      <PerformanceKpis
+        :period="period"
+        :stats="player.performanceStats"
+        :filter-summary="filterSummary"
+        class="mt-9 md:mt-12"
+        @update:period="onPeriodChange"
+      />
 
-        <div class="flex flex-col lg:flex-row gap-6">
-          <!-- Historique -->
-          <div class="flex-1 min-w-0 flex flex-col gap-4">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 min-w-0">
-              <div>
-                <h2 class="m-0 text-lg font-extrabold tracking-tight text-text-main">Historique</h2>
-                <p class="m-0 mt-0.5 font-mono text-[11px] font-bold tracking-widest uppercase text-text-ter">{{ historyCountLabel }}</p>
+      <div class="mt-9 grid items-start gap-9 md:mt-12 rail:grid-cols-[minmax(0,1fr)_340px]">
+        <!-- Match history -->
+        <section aria-labelledby="profile-history" class="@container min-w-0">
+          <div class="flex flex-wrap items-end justify-between gap-x-5 gap-y-3.5">
+            <div class="min-w-0">
+              <h2 id="profile-history" class="m-0 text-[32px] font-bold tracking-[-0.035em]">Historique</h2>
+              <p class="m-0 mt-1.5 text-sm font-semibold text-text-sec">{{ gameHistoryLoading ? 'Chargement des parties…' : historyCountLabel }}</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5">
+              <div role="group" aria-label="Filtrer par rôle" class="flex gap-0.5 rounded-full border border-border-base bg-surface-base p-[3px]">
+                <button
+                  v-for="role in ROLE_FILTERS"
+                  :key="role.value"
+                  type="button"
+                  :title="role.label"
+                  :aria-label="role.label"
+                  :aria-pressed="selectedRole === role.value"
+                  class="flex size-8 cursor-pointer items-center justify-center rounded-full transition-[background-color,scale] duration-[250ms] ease-spring hover:scale-110"
+                  :class="selectedRole === role.value ? 'bg-inverse' : ''"
+                  @click="onRoleChange(selectedRole === role.value ? null : role.value)"
+                >
+                  <img
+                    :src="roleIconUrl(role.value)"
+                    alt=""
+                    class="size-4 brightness-0 transition-opacity duration-200"
+                    :class="selectedRole === role.value ? 'invert dark:invert-0' : 'opacity-45 dark:invert'"
+                  >
+                </button>
               </div>
 
-              <div class="flex items-center gap-2">
-                <!-- Role filter -->
-                <div class="flex items-center rounded-full bg-surface-high border border-border-subtle p-0.5">
-                  <button
-                    v-for="role in ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']"
-                    :key="role"
-                    type="button"
-                    class="h-7.5 w-7.5 rounded-full flex items-center justify-center transition-all"
-                    :class="selectedRole === role ? 'bg-surface-base border border-brand-gold/30 shadow-sm' : 'border border-transparent hover:bg-surface-base'"
-                    @click="onRoleChange(selectedRole === role ? null : role)"
-                  >
-                    <UiAppImage 
-                      :src="roleIconUrl(role)" 
-                      :alt="role"
-                      class="w-4 h-4 transition-all" 
-                      :class="selectedRole === role ? 'opacity-100' : 'opacity-40 grayscale hover:opacity-80 hover:grayscale-0'" 
-                    />
-                  </button>
-                </div>
-
-                <!-- Filtre de file -->
-                <div class="relative inline-flex">
-                  <button
-                    type="button"
-                    class="h-8.5 flex items-center gap-1.5 pl-3.5 pr-3 rounded-full bg-surface-high border border-border-subtle text-text-main text-xs font-bold"
-                    @click="queueFilterOpen = !queueFilterOpen"
-                  >
-                  <span class="max-w-40 truncate">{{ queueFilterLabel }}</span>
-                  <Icon name="lucide:chevron-down" class="h-3 w-3 shrink-0 text-text-ter" />
+              <div class="relative" @keydown.escape="queueFilterOpen = false">
+                <button
+                  type="button"
+                  aria-haspopup="true"
+                  :aria-expanded="queueFilterOpen"
+                  class="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border border-border-base pl-4 pr-3.5 text-[13px] font-bold transition-colors duration-200"
+                  :class="selectedQueueIds.length > 0 ? 'bg-inverse text-inverse-text' : 'bg-surface-base text-text-main'"
+                  @click="queueFilterOpen = !queueFilterOpen"
+                >
+                  <span class="max-w-[170px] truncate">{{ queueFilterLabel }}</span>
+                  <Icon name="lucide:chevron-down" class="size-[13px] transition-transform duration-[250ms]" :class="{ 'rotate-180': queueFilterOpen }" />
                 </button>
 
-                <div v-if="queueFilterOpen" class="absolute right-0 z-20 mt-10 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-border-base bg-surface-base p-2 shadow-lg">
-                  <label
-                    v-for="q in queueOptions"
-                    :key="q.id"
-                    class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface-high"
+                <template v-if="queueFilterOpen">
+                  <div class="fixed inset-0 z-30" @click="queueFilterOpen = false" />
+                  <div
+                    role="menu"
+                    aria-label="Files de jeu"
+                    class="absolute right-0 top-[calc(100%+8px)] z-31 w-[264px] max-w-[calc(100vw-32px)] animate-pop rounded-[20px] border border-border-base bg-surface-base p-2 shadow-card-hover"
                   >
-                    <input
-                      type="checkbox"
-                      :checked="selectedQueueIds.includes(q.id)"
-                      class="rounded border-border-subtle text-brand-gold"
-                      @change="toggleQueueFilter(q.id, ($event.target as HTMLInputElement).checked)"
+                    <p v-if="queueOptions.length === 0" class="m-0 px-2.5 py-2 text-[13px] font-semibold text-text-sec">Aucune file connue.</p>
+                    <button
+                      v-for="q in queueOptions"
+                      :key="q.id"
+                      type="button"
+                      role="menuitemcheckbox"
+                      :aria-checked="selectedQueueIds.includes(q.id)"
+                      class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-[9px] text-left text-[13.5px] font-semibold transition-colors duration-150 hover:bg-surface-muted"
+                      @click="toggleQueueFilter(q.id, !selectedQueueIds.includes(q.id))"
                     >
-                    <span class="truncate text-text-main">{{ q.label }}</span>
-                  </label>
-                  <button
-                    v-if="selectedQueueIds.length > 0"
-                    type="button"
-                    class="mt-1 w-full rounded-lg px-2 py-1.5 text-left text-xs font-bold text-brand-gold hover:bg-surface-high"
-                    @click="clearQueueFilter"
-                  >
-                    Réinitialiser
-                  </button>
-                </div>
+                      <span
+                        class="flex size-[18px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-inverse-text transition-colors duration-150"
+                        :class="selectedQueueIds.includes(q.id) ? 'border-inverse bg-inverse' : 'border-border-accent bg-surface-base'"
+                      >
+                        <Icon v-if="selectedQueueIds.includes(q.id)" name="lucide:check" class="size-[11px]" />
+                      </span>
+                      <span class="min-w-0 flex-1 truncate">{{ q.label }}</span>
+                    </button>
+                    <button
+                      v-if="selectedQueueIds.length > 0"
+                      type="button"
+                      class="mt-1 block w-full cursor-pointer rounded-b-xl border-t border-dashed border-border-dashed px-2.5 py-[9px] text-left text-[12.5px] font-bold text-brand-gold hover:bg-surface-highlight"
+                      @click="clearQueueFilter"
+                    >
+                      Réinitialiser
+                    </button>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
 
-          <div class="flex flex-col gap-2">
-            <div v-if="gameHistoryLoading" class="space-y-2 animate-pulse">
-                <div v-for="i in 6" :key="i" class="h-22 w-full rounded-xl bg-surface-high"/>
+          <div v-if="gameHistoryLoading" aria-busy="true" class="mt-6 flex animate-pulse flex-col gap-2.5">
+            <span class="h-[18px] w-[140px] rounded-lg bg-surface-sunken" />
+            <span v-for="i in 5" :key="i" class="h-[84px] rounded-[20px] bg-surface-sunken" />
+          </div>
+          <template v-else>
+            <div
+              v-if="gamesPlayed.length === 0"
+              class="mt-6 rounded-[22px] border-[1.5px] border-dashed border-border-dashed px-6 py-10 text-center text-sm font-bold text-text-sec"
+            >
+              Aucune partie ne correspond à ces filtres.
+            </div>
+
+            <div v-for="group in groupedGames" :key="group.key" class="mt-6">
+              <div class="mb-3 flex flex-wrap items-center gap-2">
+                <span class="text-lg font-bold tracking-[-0.02em]">{{ group.label }}</span>
+                <span class="h-0 min-w-5 flex-1 border-t-[1.5px] border-dashed border-border-dashed" />
+                <span class="rounded-full border border-border-base bg-surface-base px-2.5 py-[3px] text-xs font-bold">{{ group.record }}</span>
+                <span v-if="group.lp" class="rounded-full px-2.5 py-[3px] font-mono text-[11.5px] font-semibold" :class="group.lpClass">{{ group.lp }}</span>
               </div>
-              <template v-else>
-                <div v-if="gamesPlayed.length === 0" class="p-12 rounded-xl border border-dashed border-border-base text-center">
-                  <p class="m-0 text-sm font-bold text-text-sec">Aucune partie ne correspond à ces filtres.</p>
-                </div>
-                
-                <div v-for="group in groupedGames" :key="group.key" class="flex flex-col gap-2">
-                  <div class="px-2 pt-4 pb-1 font-mono text-[10.5px] font-bold tracking-widest uppercase text-text-ter">
-                    {{ group.label }}
-                  </div>
-                  <LolGameCard
-                    v-for="g in group.games"
-                    :key="g.matchId"
-                    :game="g"
-                    :player-id="player.id"
-                    :show-summoner-name="false"
-                  />
-                </div>
-              </template>
+              <div class="flex flex-col gap-2.5">
+                <LolGameCard v-for="entry in group.entries" :key="entry.key" :entry="entry" :show-player="false" />
+              </div>
             </div>
 
             <button
-              v-if="!gameHistoryLoading && currentPage < totalPages"
+              v-if="currentPage < totalPages && gamesPlayed.length > 0"
+              type="button"
               :disabled="loadingMoreGames"
-              class="w-full py-3 rounded-xl text-center bg-surface-base border border-border-base text-text-main font-bold text-[13px] transition-colors hover:border-border-accent hover:text-brand-gold disabled:opacity-60 disabled:cursor-wait"
+              class="mt-5 flex h-[50px] w-full cursor-pointer items-center justify-center rounded-full bg-inverse text-[15px] font-bold text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-[1.015] disabled:cursor-wait disabled:opacity-70"
               @click="loadMoreGames"
             >
               {{ loadingMoreGames ? 'Chargement…' : `Charger ${pageSize} parties de plus` }}
             </button>
-          </div>
+          </template>
+        </section>
 
-          <!-- Aside -->
-          <aside class="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
-            <LpProgressionCard
-              :solo-entries="soloRankHistory"
-              :flex-entries="flexRankHistory"
-              :solo-changes="soloRankChanges"
-              :flex-changes="flexRankChanges"
-              :period="period"
-              :loading="rankHistoryLoading"
-              :changes-loading="rankChangesLoading"
-            />
-            <ChampionsAside :period="period" :stats="player.performanceStats" />
-            <RolesAside :stats="player.performanceStats" />
-            <DuosAside :period="period" :stats="player.performanceStats" />
-          </aside>
-        </div>
+        <!-- Rail: beside the history from 1100px, two columns under it on tablets -->
+        <aside class="grid min-w-0 items-start gap-5 md:grid-cols-2 rail:grid-cols-1">
+          <LpProgressionCard
+            class="md:col-span-2 rail:col-span-1"
+            :solo-entries="soloRankHistory"
+            :flex-entries="flexRankHistory"
+            :solo-changes="soloRankChanges"
+            :flex-changes="flexRankChanges"
+            :period="period"
+            :loading="rankHistoryLoading"
+            :changes-loading="rankChangesLoading"
+          />
+          <ChampionsAside :period="period" :stats="player.performanceStats" />
+          <RolesAside :period="period" :stats="player.performanceStats" />
+          <DuosAside :period="period" :stats="player.performanceStats" />
+        </aside>
       </div>
     </template>
   </div>
