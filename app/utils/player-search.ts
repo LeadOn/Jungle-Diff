@@ -10,7 +10,7 @@ import type { LeaguePlayer } from '~/lib/types'
  */
 
 /** Lowercase, accent-free, trimmed — so we compare what people actually type. */
-const normalize = (value: string): string =>
+export const normalizeSearchText = (value: string): string =>
   value
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -31,11 +31,26 @@ const candidateNames = (player: LeaguePlayer): string[] => {
  * nickname is not captured by a longer one that happens to contain it.
  */
 export const findPlayerByName = (players: LeaguePlayer[], query: string): LeaguePlayer | null => {
-  const needle = normalize(query)
+  const needle = normalizeSearchText(query)
   if (!needle) return null
 
-  const exact = players.find(player => candidateNames(player).some(name => normalize(name) === needle))
+  const exact = players.find(player => candidateNames(player).some(name => normalizeSearchText(name) === needle))
   if (exact) return exact
 
-  return players.find(player => candidateNames(player).some(name => normalize(name).includes(needle))) ?? null
+  return players.find(player => candidateNames(player).some(name => normalizeSearchText(name).includes(needle))) ?? null
+}
+
+/**
+ * Every player matching the query, exact matches first, the given order kept otherwise. An empty
+ * query matches everyone. Feeds the search palette, which lists candidates as the user types rather
+ * than jumping to a single one.
+ */
+export const filterPlayersByName = <T extends LeaguePlayer>(players: T[], query: string): T[] => {
+  const needle = normalizeSearchText(query)
+  if (!needle) return players
+
+  const names = (player: T) => candidateNames(player).map(normalizeSearchText)
+  const matching = players.filter(player => names(player).some(name => name.includes(needle)))
+  const exact = matching.filter(player => names(player).some(name => name === needle))
+  return [...exact, ...matching.filter(player => !exact.includes(player))]
 }

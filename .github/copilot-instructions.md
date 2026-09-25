@@ -13,7 +13,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - Tailwind CSS v4 driven by a custom CSS-variable design system
 - Pinia setup stores
 - Keycloak OIDC, implemented **server-side** in Nitro — no OIDC library ships to the browser
-- `@nuxt/fonts` (self-hosted Manrope / IBM Plex Mono), `@nuxt/icon` (lucide), `chart.js` + `vue-chartjs`
+- `@nuxt/fonts` (self-hosted Archivo / Geist Mono), `@nuxt/icon` (lucide), `chart.js` + `vue-chartjs`
 - Playwright for end-to-end tests, ESLint via `@nuxt/eslint`
 
 # Language Policy
@@ -24,9 +24,19 @@ public sign-up — authentication exists so a crew member can edit their own pro
 
 # Features
 
-- `/` — crew dashboard: weekly activity tiles, full ladder (`LadderTable`), recent games, "fact of
-  the week", and the top crew records. A summoner search box exists but is deliberately hidden
-  behind `v-if="false"` (see Known Gaps).
+- `/` — crew dashboard, built from the Claude Design mock-up "JungleDiff Accueil v7", **the design
+  base for the whole site** (theme, layout, header, footer). Top to bottom: status chips (last sync,
+  the 7-day window, the patch), a bento of the last 7 days (`WeekBento`: ranked games, active
+  players, win-rate ring and its delta, net LP and playtime day by day), the "En partie maintenant"
+  strip (`LiveStrip`, from `GET /lol/live`), then two columns — `CrewLadder` (podium of three over
+  each player's main champion, "L'échelle des rangs" (`RankTrack`), the remaining rows) and
+  `RecentGames` (the feed grouped by Paris day, with player filters counted from `activePlayers`) —
+  beside a rail: `PlayerOfTheWeek`, `MonthRecords`, `CrewChampions` (with each champion's
+  `topPlayer`). Everything on it is live data.
+- **Crew search** — `app/components/lol/LolPlayerPalette.vue`, a command palette mounted once by the
+  layout and opened from the header, the mobile bottom bar, ⌘K / Ctrl K or "/". It resolves names
+  locally against the crew list (see Known Gaps) and loads that list on first opening when the
+  current page did not.
 - `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
   with one card per award defined in `app/utils/lol-awards.ts`.
 - `/summoner/[id]` — player profile: identity card, Solo/Duo and Flex rank cards, a period-filtered
@@ -99,7 +109,10 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - **Design tokens**: `app/assets/css/main.css` defines raw values on `:root` (`--color-gold`,
   `--color-surface`) and maps them in `@theme` to the names Tailwind exposes
   (`--color-brand-gold`, `--color-surface-base`, `--color-text-main`). Write `bg-surface-base`,
-  `text-text-main`, `text-brand-gold` — never a raw hex in a component.
+  `text-text-main`, `text-brand-gold` — never a raw hex in a component. Shadows, scrims and the page
+  wash are `@utility` classes over theme variables (`shadow-card`, `bg-scrim-side`,
+  `bg-page-wash`). Text over splash art gets `text-shadow-photo` (inherited, so set it on the card):
+  the scrims are kept light on purpose so the art shows, and the halo carries the contrast. Tier pastels (`tierTint`) are data colours in `lol-tier.ts`, not tokens.
 
 # Authentication (no token ever reaches the browser)
 
@@ -137,17 +150,37 @@ public sign-up — authentication exists so a crew member can edit their own pro
   request, not one per store.
 - `/` and `/stats` are served through Nitro's SWR cache (60 s); `/settings` and `/api/auth/**` are
   explicitly `no-store`.
+- The home page's reload chip calls `useLolStore().invalidateDashboard()` then `refreshNuxtData` on
+  `homeStats`, `players` and `lastMatches`: it re-reads the API, it does not ask the API to
+  re-synchronise with Riot. Its "Synchro il y a X min" is the latest `lolRefreshedOn` of the crew.
+- A page of recent games is `RECENT_MATCHES_PAGE_SIZE` (6, in `app/stores/lol.ts`), shared by the
+  SSR preload and the feed's pagination so the offsets line up.
 
 # Design System
 
-- Dark is the default theme: `:root` tokens are dark, and the `.light` class on `<html>` switches to
-  the light palette. `public/theme-init.js` applies the stored choice before first paint.
-- The Tailwind variant is `light:`, **not** `dark:`. A `dark:` utility does nothing, because the
-  `.dark` class is never set.
+- The design base is the home page of the Claude Design mock-up "JungleDiff Accueil v7": a light
+  sage palette (`#F4F5F0` page, white cards, `#16241B` ink), Archivo for everything, Geist Mono for
+  figures and technical labels, pill-shaped controls, 20–26px card radii, soft layered shadows and a
+  springy easing (`ease-spring`). New pages and restyled old ones follow it.
+- **Light is the default theme**: the `:root` tokens are the v7 palette, and the `.dark` class on
+  `<html>` switches to a dark one derived from the brand guidelines (jungle green-black `#0C120E`).
+  The mock-up has no dark variant and no theme button; both were added on purpose, the toggle sits in
+  the header. `public/theme-init.js` applies a stored `dark` choice before first paint.
+- Two variants: `dark:` applies under `.dark` and is what new code uses. `light:` applies whenever
+  `.dark` is absent — components written for the former dark-first palette (the match page mostly)
+  carry their light-mode corrections under `light:`, and this definition keeps them active on the
+  new default without rewriting them.
+- `inverse` tokens flip with the theme (selected pills, primary buttons); `ink` tokens stay dark in
+  both (footer, tooltips, the mobile bar, and cards printed over splash art).
 - Read and write the theme through `app/utils/theme.ts`; never test the class by hand.
+- Custom breakpoint `rail:` (1100px, where the dashboard gains its side rail) is declared in **rem**
+  (`68.75rem`). Tailwind cannot sort a px breakpoint against its rem ones: in px it was emitted
+  before `md:`, which then always won.
 - Any section or value rendered without a backing API field MUST be flagged with
   `app/components/ui/MockBadge.vue` (place it inside a `relative` parent; it self-positions
-  top-right). Never present fabricated data as if it were live. Nothing currently needs it.
+  top-right). Never present fabricated data as if it were live. Nothing currently needs it: the home
+  page used it while `/lol/Home` lacked the per-day data, active players, last week's win rate, live
+  games and top players, until the API shipped them (2026-09-25).
 
 # Code Quality Constraints
 
@@ -252,7 +285,7 @@ Each of these is easy to reintroduce and hard to diagnose.
   the front-end default is the opposite of the API's, the query string carries the opt-**in**
   (`includeSmurfs=true`) while the client always sends `includeSmurfs=false` upstream — the two
   directions are easy to confuse. On `/` it is a
-  **view filter inside `LadderTable`** and must stay one: `useLolStore.fetchPlayers()` has to keep
+  **view filter inside `CrewLadder`** (`buildLadder` in `app/utils/lol-ladder.ts`) and must stay one: `useLolStore.fetchPlayers()` has to keep
   returning every account, because `LolPlayerHeader` and `LolGameDetailsPlayer` walk `players` to
   climb from a smurf to its main and `LolGameCard` uses it to tell a crew participant from an
   outsider — filtering the store breaks the smurf badge and makes a smurf's games read as non-crew.
@@ -265,19 +298,60 @@ Each of these is easy to reintroduce and hard to diagnose.
   needs none**: its records already contain only crew members (verified — none of the out-of-crew ids
   appears in any award). Do not add an `inCrew` filter on either side; there is nothing for it to
   remove, and on `/stats` no parameter exists to carry it.
-- **A component that copies a prop into a `ref` freezes on the first value.** `home/StatCard.vue` did
-  exactly that for its count-up animation and never watched `value` again, so it kept rendering the
-  first figure it was mounted with. Invisible while the home page loaded its numbers once, plainly
-  wrong as soon as a filter could re-query them: the store held the new value and the card showed the
-  old one. It now re-runs the animation from a `watch` on the prop. Look for this pattern before
+- **A component that copies a prop into a `ref` freezes on the first value.** The former
+  `home/StatCard.vue` did exactly that for its count-up animation and kept rendering the first figure
+  it was mounted with, plainly wrong as soon as a filter re-queried the week. Count-ups now go through
+  `useAnimatedNumber(() => value)`, which watches a getter. It starts on the real value rather than
+  0, because the server already painted it; only later changes animate. Look for this pattern before
   blaming reactivity on the store or on `useAsyncData`.
+- **Anything that depends on the viewer renders after mount on `/`.** The page is served from a
+  shared SWR cache, so a "Vous", a "Vous êtes 3e" or a relative "il y a 4 min" rendered on the server
+  would be cached and shown to everyone. `CrewLadder` resolves the current player behind an
+  `isMounted` flag, the header keeps its account pill in `<ClientOnly>`, the sync chip only gets its
+  clock in `onMounted`.
+- **Under `nuxt dev`, the first load of `/` after an edit is the pre-edit render.** The SWR rule also
+  applies in dev: the server answers with the cached HTML and revalidates behind it, so the client
+  hydrates new code over old markup and logs hydration mismatches. Reload once more before chasing
+  them — and if they persist, add a throwaway query string (`/?v=2`): the response carries
+  `last-modified` without `max-age`, so the browser may replay its own heuristic cache of the old
+  page even after the server has revalidated.
+- **Entrance animations start from the server's state.** Bars, the win-rate ring and the rank-scale
+  dots grow from 0 through `useEntered()`, a flag that is `false` on the server and on the first
+  client render and flips after mount — so hydration matches and the transition plays from what was
+  painted.
+- **`/lol/Home` is asked for `window=Last7Days`, and everything it returns is ranked-only.** The
+  API's default is the calendar week (Monday 00:00 Paris to now, against the previous full week —
+  five days against seven on a Friday), which GameOn-Front still uses; the client writes `window`
+  only when it departs from that default. With `Last7Days`, `weeklyActivity` and `factOfTheWeek` run
+  from six days ago 00:00 Paris to now against the seven days before, and `windowStart` / `windowEnd`
+  say so: the period chip is built from them, not from the reader's clock. Every figure counts
+  Solo/Duo and Flex only, hence "parties classées". The ladder's `lpChange7Days*` is also a rolling
+  7 days, on rank snapshots.
+- **The window fields are optional on purpose.** `windowStart`, `days`, `activePlayers`,
+  `winsLastWeek`/`lossesLastWeek` and `topPlayer` only exist on API builds from 2026-09-25; an older
+  build ignores `window` and answers for the calendar week. Front and API ship separately, so the page
+  degrades (no period chip, no per-day charts, no "surtout") instead of throwing — a missing
+  `windowStart` fed to the date helpers is exactly what once turned `/` into a 500. **Deploy the API
+  first.** `LiveStrip` likewise stops polling on a `404` from a build without `/lol/live`.
+- **A day's `netLpChange` of `null` is not 0.** It means no account had a comparable pair of rank
+  snapshots that day: the bar is simply not drawn. A genuine 0 is a flat grey tick.
+- **`activePlayers` and `topPlayer.player` carry identity fields only** (ranks, form and
+  `mainChampionName` are empty), and `mainChampionName` is only served by `GET /lol/summoner`: the
+  podium and the player of the week read it from `useLolStore().players`, never from the DTO at
+  hand. It replaced one `GET /lol/summoner/{id}?period=Month` per podium player.
+- **`LiveStrip` is client-only and polls every 60 s**, the API's own cache duration: baked into the
+  SWR-cached HTML of `/`, it would stack a minute of staleness on the API's. Its clock runs from
+  `gameLengthSeconds` + the time since `retrievedOn`; `gameStart: null` means the loading screen.
+- **Dates on the dashboard are Paris dates.** `app/utils/date.ts` formats and groups in
+  `Europe/Paris` explicitly: a UTC server would put a 00:30 game under the previous day while the
+  browser put it under the right one.
 - **The smurf predicate lives in `app/utils/lol-smurf.ts` (`isSmurf` / `smurfIds`) and is the only
   copy.** It reads `!!primaryPlayerId && primaryPlayerId !== id && primaryPlayerId !== 0`; the two
   extra guards are load-bearing, because the API returns a self-referencing or zeroed
   `primaryPlayerId` on some mains and the short `!!primaryPlayerId` form would crown them smurfs.
   Import it, never re-inline it.
 - **The home's smurf toggle is page state, not component state.** It lives in `index.vue` and reaches
-  `LadderTable` through `v-model:include-smurfs` and `RecentGames` through a plain prop, because one
+  `CrewLadder` through `v-model:include-smurfs` and `RecentGames` through a plain prop, because one
   click has to move the whole dashboard. Only the ladder is still filtered in the browser, and only
   because the store has to keep every account for the smurf badge and the main-account links;
   `/lol/Home` and `/lol/Match/last` are both re-queried instead.
@@ -287,10 +361,18 @@ Each of these is easy to reintroduce and hard to diagnose.
   page of `size`. That refill is exactly what the earlier client-side filter could not do, and the
   reason this belongs in the request.
 - **Changing that flag must reset the component's pagination.** `RecentGames` keeps its extra pages
-  in a local `additionalMatches`; those rows were fetched under the previous flag, so a `watch` on the
-  prop clears them and sends `currentPage` back to 1. Without it, smurf-only games stay stranded in
-  the list after being excluded and the next `loadMore` resumes from the wrong offset. `loadMore`
-  forwards the flag too, or page 2 silently contradicts page 1.
+  in a local `crewExtra`; those rows were fetched under the previous flag, so a `watch` on the prop
+  clears them and sends `crewPage` back to 1 (and drops a smurf picked in the player chips). Without
+  it, smurf-only games stay stranded in the list after being excluded and the next `loadMore` resumes
+  from the wrong offset. `loadMore` forwards the flag too, or page 2 silently contradicts page 1.
+- **The feed shows one card per game, not per crew member.** `/lol/Match/last` returns games, and a
+  five-stack would otherwise fill the page with the same match. `buildFeed` (`app/utils/lol-feed.ts`)
+  tells each game from its first crew member — a main account first when smurfs are excluded — and
+  counts the others as a "+N" chip. A player chip switches the source to
+  `/lol/match/player/{id}`, paginated separately, and the card then belongs to that player.
+- **"Sans LP" is a statement, so it is only printed when true**: a remake or an unranked queue. A
+  ranked game whose `rankChange` is `null` prints nothing, as everywhere else. A day heading sums the
+  LP of its known games and omits the chip when none is known.
 - **`GET /lol/Home` now takes `includeSmurfs` (default `true`) and `includeOutOfCrew` (default
   `false`)**, and the flag reaches the weekly activity, the fact of the week *and* `crewRecords`, so
   one re-query moves the whole dashboard. Note the API's Swagger document can lag behind the running
@@ -327,10 +409,13 @@ Each of these is easy to reintroduce and hard to diagnose.
 
 # Known Gaps
 
-- **No search by name on the API.** Only `GET /lol/summoner/{id:int}` exists, so nicknames are
-  resolved locally against the loaded ladder (`app/utils/player-search.ts`). This is also why the
-  home page search box stays hidden: the logic works, but its suggestions panel is still placeholder
-  content, and local resolution does not scale past the crew.
+- **No search by name on the API.** Only `GET /lol/summoner/{id:int}` exists, so the crew search
+  palette resolves nicknames locally against the crew list (`filterPlayersByName` in
+  `app/utils/player-search.ts`). It finds crew members only, and local resolution does not scale past
+  the crew.
+- **The feed filters count ranked games, the feed lists every queue.** A chip's count is the player's
+  `activePlayers[].games` (ranked, 7 days); players seen in the feed without a ranked game get a chip
+  without a count. There is no per-player "all queues over 7 days" figure upstream.
 - **No CI pipeline.** Delivery is manual by choice; lint, types, audit, build and the e2e suite only
   run when someone runs them. Nothing verifies the Docker image builds or boots.
 - **No error tracking.** Failures are reported through `console.error` only, which in production goes

@@ -1,25 +1,27 @@
 /**
  * UI theme.
  *
- * Design system convention: dark is the default (the `:root` tokens), and the `.light` class on
- * `<html>` switches to the light palette. Any code that needs to know the theme goes through here
- * rather than testing a class by hand — testing a non-existent `.dark` class is exactly what left
- * the rank chart stuck on its light palette.
+ * Design system convention (v7): light is the default (the `:root` tokens), and the `.dark` class on
+ * `<html>` switches to the dark palette. Any code that needs to know the theme goes through here
+ * rather than testing a class by hand — testing a class the app never sets is exactly what once left
+ * the rank chart stuck on the wrong palette.
  */
 export type Theme = 'dark' | 'light'
 
-export const LIGHT_CLASS = 'light'
+export const DARK_CLASS = 'dark'
 export const THEME_STORAGE_KEY = 'theme'
 
-export const isLightTheme = (): boolean =>
-  typeof document !== 'undefined' && document.documentElement.classList.contains(LIGHT_CLASS)
+export const isDarkTheme = (): boolean =>
+  typeof document !== 'undefined' && document.documentElement.classList.contains(DARK_CLASS)
 
-export const currentTheme = (): Theme => (isLightTheme() ? 'light' : 'dark')
+export const isLightTheme = (): boolean => !isDarkTheme()
+
+export const currentTheme = (): Theme => (isDarkTheme() ? 'dark' : 'light')
 
 export const applyTheme = (theme: Theme): void => {
   if (typeof document === 'undefined') return
 
-  document.documentElement.classList.toggle(LIGHT_CLASS, theme === 'light')
+  document.documentElement.classList.toggle(DARK_CLASS, theme === 'dark')
   try {
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   } catch {

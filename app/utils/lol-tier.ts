@@ -88,3 +88,40 @@ export function tierGlowBackground(rank?: Pick<RankPosition, 'tier'> | null): st
     default: return 'transparent'
   }
 }
+
+/** Tiers from the bottom of the ladder up, each 400 points wide on the `rankScore` axis. */
+export const TIER_ORDER = [
+  'IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER',
+] as const
+
+export const TIER_SPAN = 400
+
+const TIER_TINTS: Record<string, string> = {
+  IRON: '#C9BFB6',
+  BRONZE: '#F1B48A',
+  SILVER: '#CBD4E1',
+  GOLD: '#E3B54F',
+  PLATINUM: '#7EE8D6',
+  EMERALD: '#5BE3A1',
+  DIAMOND: '#9DB2FF',
+  MASTER: '#DA9BFF',
+  GRANDMASTER: '#FF8C8C',
+  CHALLENGER: '#8EDCFF',
+}
+
+/**
+ * The pastel each tier is drawn with on the dashboard (rank chips, the bands of the rank scale).
+ * Data colours rather than theme tokens: a tier keeps its hue in both themes.
+ */
+export function tierTint(tier?: string | null): string | null {
+  return tier ? TIER_TINTS[tier.toUpperCase()] ?? null : null
+}
+
+/**
+ * Orders two positions best first: division, then LP. Sorting on `rankScore` alone would misplace
+ * the apex tiers, where LP are unbounded — a Master on 500 LP would otherwise tie a Grandmaster on
+ * 100.
+ */
+export function compareRanksDesc(a: RankPosition, b: RankPosition): number {
+  return ((divisionScore(b) ?? -1) - (divisionScore(a) ?? -1)) || (b.leaguePoints - a.leaguePoints)
+}

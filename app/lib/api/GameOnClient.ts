@@ -1,6 +1,6 @@
 import { BaseApiService, encodePathSegment as segment } from './BaseApiService'
 import type { RequestOptions } from './BaseApiService'
-import type { LoLQueue, LoLHomeStatsDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLRankChangeEntryDto, LoLRankChangeQueue, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto } from '../types'
+import type { LoLQueue, LoLHomeStatsDto, LoLHomeWindow, LoLLiveGameDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLRankChangeEntryDto, LoLRankChangeQueue, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto } from '../types'
 
 /**
  * What either coach route may answer.
@@ -41,11 +41,25 @@ export class GameOnClient extends BaseApiService {
    * when `false`, like `getGlobalStats`, since the API defaults it to `true`. `includeOutOfCrew` is
    * pinned for the same reason as in `getLeaguePlayers`: the dashboard is the crew's, and that
    * assumption belongs in the call rather than in an upstream default.
+   *
+   * `window` is written only when it departs from the API's default (`CalendarWeek`), which
+   * GameOn-Front still relies on.
    */
-  public getHomeStats(includeSmurfs?: boolean, signal?: AbortSignal) {
+  public getHomeStats(includeSmurfs?: boolean, window: LoLHomeWindow = 'CalendarWeek', signal?: AbortSignal) {
     const params = new URLSearchParams({ includeOutOfCrew: 'false' })
     if (includeSmurfs === false) params.set('includeSmurfs', 'false')
+    if (window !== 'CalendarWeek') params.set('window', window)
     return this.get<LoLHomeStatsDto>(`/lol/Home?${params.toString()}`, GameOnClient.opts(signal))
+  }
+
+  /**
+   * Crew members in a game right now. The API answers from a one-minute cache over Riot's
+   * spectator-v5, so polling faster than that gains nothing. Same roster flags as `getHomeStats`.
+   */
+  public getLiveGames(includeSmurfs?: boolean, signal?: AbortSignal) {
+    const params = new URLSearchParams({ includeOutOfCrew: 'false' })
+    if (includeSmurfs === false) params.set('includeSmurfs', 'false')
+    return this.get<LoLLiveGameDto[]>(`/lol/live?${params.toString()}`, GameOnClient.opts(signal))
   }
 
   public getQueues(signal?: AbortSignal) {
