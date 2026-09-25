@@ -10,6 +10,12 @@ import { useGameOnLol } from '~/composables/useGameOnLol'
  */
 const FRESHNESS_MS = 60_000
 
+/**
+ * Size of a page of the crew's recent games. The home page preloads the first page and the feed
+ * paginates with the same size, so the offsets line up.
+ */
+export const RECENT_MATCHES_PAGE_SIZE = 6
+
 /** Fallback patch used when Riot's CDN is unreachable on the very first render. */
 const FALLBACK_PATCH = '14.22.1'
 
@@ -91,7 +97,8 @@ export const useLolStore = defineStore('lol', () => {
       return homeStats.value
     }
 
-    const data = await useGameOnLol().getHomeStats(includeSmurfs, signal)
+    // The dashboard reads "the last 7 days", not the API's default calendar week.
+    const data = await useGameOnLol().getHomeStats(includeSmurfs, 'Last7Days', signal)
     homeStats.value = data
     homeStatsFetchedAt.value = Date.now()
     homeStatsIncludeSmurfs.value = includeSmurfs
@@ -112,12 +119,23 @@ export const useLolStore = defineStore('lol', () => {
       return lastMatches.value
     }
 
-    const data = await useGameOnLol().getLastMatches(1, 5, includeSmurfs, signal)
+    const data = await useGameOnLol().getLastMatches(1, RECENT_MATCHES_PAGE_SIZE, includeSmurfs, signal)
     const results = data?.results ?? []
     lastMatches.value = results
     lastMatchesFetchedAt.value = Date.now()
     lastMatchesIncludeSmurfs.value = includeSmurfs
     return results
+  }
+
+  /**
+   * Expires the dashboard's freshness windows so the next loaders really call the API. Behind the
+   * home page's reload button: without it, a reload inside the 60 s window would be served from the
+   * store and look like it did nothing.
+   */
+  const invalidateDashboard = () => {
+    homeStatsFetchedAt.value = 0
+    playersFetchedAt.value = 0
+    lastMatchesFetchedAt.value = 0
   }
 
   return {
@@ -136,6 +154,7 @@ export const useLolStore = defineStore('lol', () => {
     fetchQueues,
     fetchHomeStats,
     fetchPlayers,
-    fetchLastMatches
+    fetchLastMatches,
+    invalidateDashboard
   }
 })

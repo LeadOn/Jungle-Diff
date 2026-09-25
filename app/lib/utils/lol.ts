@@ -42,6 +42,13 @@ export const formatQueue = (queueId: number, queues?: LoLQueue[]): string => {
   return `Queue ${queueId}`
 }
 
+/** "Solo/Duo", "Flex", then the full label — for chips where "Classée Solo/Duo" is too long. */
+export const formatQueueShort = (queueId: number | null, queues?: LoLQueue[]): string => {
+  if (queueId === 420) return 'Solo/Duo'
+  if (queueId === 440) return 'Flex'
+  return queueId === null ? 'Personnalisée' : formatQueue(queueId, queues)
+}
+
 export const closestDdragonVersion = (gameVersion: string, availableVersions: string[]): string => {
   if (!gameVersion) return ''
   

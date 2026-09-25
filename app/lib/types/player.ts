@@ -35,6 +35,12 @@ export interface LeaguePlayer {
   recentFormFlex: boolean[];
   lpChange7DaysSolo: number | null;
   lpChange7DaysFlex: number | null;
+  /**
+   * Most played champion over the last rolling month, every queue combined — the same pick as the
+   * first `performanceStats.championStats` entry with `period=Month`. Only served by the list route
+   * (`GET /lol/summoner`); `null` when the account played nothing over the month.
+   */
+  mainChampionName?: string | null;
   performanceStats: LoLSummonerPerformanceStats | null;
 }
 

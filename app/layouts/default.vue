@@ -1,50 +1,39 @@
 <template>
-  <div class="min-h-screen relative overflow-hidden flex flex-col">
-    <!-- Subtle glow behind the page -->
-    <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden flex justify-center">
-      <div class="w-full max-w-[1200px] h-full relative">
-         <div class="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-(--color-glow) rounded-full blur-[100px]"/>
-      </div>
-    </div>
+  <div class="relative min-h-screen overflow-x-clip">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 z-0 h-[620px] bg-page-wash" />
 
-    <!-- Content Wrapper -->
-    <div class="relative z-10 flex flex-col flex-grow">
-      <AppHeader />
+    <AppHeader />
 
-      <!-- Main Content Container -->
-      <main class="flex-grow w-full max-w-[1200px] mx-auto px-6 pt-6 pb-8 md:pt-12">
-        <slot />
-      </main>
+    <main class="relative z-[1] mx-auto max-w-[1280px] px-4 pt-[22px] md:px-8 md:pt-10">
+      <slot />
+    </main>
 
-      <!-- Footer with Version & Credits -->
-      <footer class="w-full max-w-[1400px] mx-auto px-6 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-6 mt-4 border-t border-border-subtle/50">
-        <div class="font-mono text-[10px] font-bold text-text-ter uppercase tracking-[0.15em]">
-          JUNGLEDIFF &middot; V{{ config.public.appVersion }}
-        </div>
-        
+    <!-- The bottom padding clears the floating bar on phones. -->
+    <footer class="relative z-[1] mx-auto mt-[88px] max-w-[1280px] px-4 pb-28 md:px-8 md:pb-9">
+      <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[22px] bg-ink px-[22px] py-[18px] text-[13px] text-ink-muted">
+        <span class="font-mono text-[11px] font-medium uppercase tracking-[0.1em]">JungleDiff · v{{ config.public.appVersion }}</span>
         <a
           href="https://www.paypal.me/ValentinVirot"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 rounded-full border border-border-subtle/50 px-3 py-1.5 text-[12px] font-medium text-text-ter hover:border-brand-gold/50 hover:text-brand-gold transition-colors"
+          class="inline-flex h-[34px] items-center gap-[7px] rounded-full bg-brand-gold-bright px-3.5 font-bold text-ink transition-transform duration-[250ms] ease-spring hover:scale-[1.06]"
         >
-          <Icon name="lucide:heart-handshake" class="w-3.5 h-3.5" />
-          <span>Soutenir le projet</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
+          Soutenir le projet
         </a>
+        <span>Créé en France par <a href="https://www.valentinvirot.fr" target="_blank" rel="noopener noreferrer" class="font-bold text-brand-gold-bright">LeadOn</a></span>
+      </div>
+    </footer>
 
-        <div class="text-[12px] font-medium text-text-ter flex items-center gap-1">
-          <span>Created with</span>
-          <span class="text-brand-red">❤️</span>
-          <span>in France by</span>
-          <a href="https://www.valentinvirot.fr" target="_blank" class="font-bold text-text-main hover:text-brand-gold transition-colors">LeadOn</a>
-        </div>
-      </footer>
-    </div>
+    <AppBottomNav />
+    <LolPlayerPalette />
   </div>
 </template>
 
 <script setup lang="ts">
 import AppHeader from '~/components/ui/AppHeader.vue'
+import AppBottomNav from '~/components/ui/AppBottomNav.vue'
+import LolPlayerPalette from '~/components/lol/LolPlayerPalette.vue'
 import { useRuntimeConfig } from '#app'
 
 const config = useRuntimeConfig()

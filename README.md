@@ -10,7 +10,7 @@ OIDC authentication.
 - **Styling:** Tailwind CSS v4 with a custom CSS-variable design system
 - **State:** Pinia (setup stores)
 - **Auth:** Keycloak OIDC, implemented server-side in Nitro — no OIDC library ships to the browser
-- **Assets:** `@nuxt/fonts` (self-hosted Manrope / IBM Plex Mono), `@nuxt/icon` (lucide)
+- **Assets:** `@nuxt/fonts` (self-hosted Archivo / Geist Mono), `@nuxt/icon` (lucide)
 - **Charts:** `chart.js` + `vue-chartjs`
 
 ## 📂 Architecture
@@ -18,7 +18,8 @@ OIDC authentication.
 ### Application (`app/`)
 
 - `app/pages/` — page components and data orchestration via `useAsyncData`.
-- `app/components/` — reusable components, split into `ui/` and `lol/` domains.
+- `app/components/` — reusable components, split into `ui/`, `home/` and `lol/` domains. The layout
+  mounts `ui/AppHeader`, `ui/AppBottomNav` (phones) and `lol/LolPlayerPalette` (crew search) once.
 - `app/composables/` — reusable logic, including API client injection.
 - `app/stores/` — Pinia stores. `usePatchStore` is a read-only view over `useLolStore.versions`, so
   there is exactly one Data Dragon version list per request.
@@ -29,6 +30,8 @@ OIDC authentication.
 - `app/utils/async-data.ts` — `cacheOnlyDuringHydration`, a `getCachedData` helper for data that must
   be re-fetched on client navigation instead of being pinned to the first page load.
 - `app/utils/theme.ts` — single entry point for reading and applying the theme.
+- `app/utils/lol-ladder.ts`, `lol-feed.ts`, `date.ts` — the home page's pure logic: ladder order and
+  gaps, one feed card per game, Paris-time day grouping.
 
 ### Server (`server/`)
 
@@ -77,8 +80,11 @@ rather than through Nitro's auto-import, so dependencies stay visible.
 
 **Design tokens** — `app/assets/css/main.css` defines raw values on `:root` (`--color-gold`) and maps
 them in `@theme` to what Tailwind exposes (`--color-brand-gold`). Write `bg-surface-base`,
-`text-text-main`, `text-brand-gold` — never a raw hex in a component. Dark is the default theme and
-the `.light` class switches; the Tailwind variant is `light:`, **not** `dark:`.
+`text-text-main`, `text-brand-gold` — never a raw hex in a component. **Light is the default theme**
+(the v7 design palette) and the `.dark` class switches to a dark one; new code uses `dark:`, while
+`light:` stays active whenever `.dark` is absent so the pages written dark-first keep their light
+corrections. The custom `rail:` breakpoint (1100px) is declared in rem so Tailwind sorts it after
+`md:`.
 
 ## 🔑 Authentication
 
@@ -198,8 +204,23 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 - **Tests & container:** 18 Playwright tests, 14 of which need no upstream, plus a non-root Node 24
   image with a health probe. `vue` is pinned to `^3.5.42`; it was `latest`, which let two installs a
   week apart produce different builds. Delivery is manual — see "Checks Before Deploying".
-- **Known gap:** the search bar on the home page is intentionally hidden behind `v-if="false"` — its
-  suggestions panel is still placeholder content. The resolution logic itself works (see below).
+- **Design v7** (2026-09-25): the home page was rebuilt from the Claude Design mock-up
+  "JungleDiff Accueil v7", which is now the design base for the whole site. The new tokens (light
+  sage palette, Archivo / Geist Mono, pill controls, soft shadows), the sticky header, the footer and
+  the mobile bottom bar apply everywhere; the other pages inherit the palette and typography and keep
+  their layouts until they are redesigned in turn. The home page itself: a bento of the week, the
+  crew ladder as a podium + rank scale + rows, the recent games grouped by day with player filters,
+  and a rail with the player of the week, the month's records and the crew's champions. A dark theme
+  derived from the brand guidelines stays available from the header (the mock-up has none). The
+  crew search is back, as a command palette (⌘K / Ctrl K, "/").
+- **Home on live data** (2026-09-25): the GameOn API now serves everything the v7 home needs, and the
+  temporary placeholders are gone. `GET /lol/Home?window=Last7Days` gives a rolling 7-day window with
+  its bounds, a per-day breakdown (games, playtime, net LP), the active players, and last week's wins
+  and losses; `crewRecords.topChampions[].topPlayer` names each champion's main player;
+  `GET /lol/summoner` carries each account's `mainChampionName` (the podium backdrops, previously one
+  profile call per player); `GET /lol/live` lists the crew's games in progress (spectator-v5 behind a
+  one-minute cache), polled by the "En partie maintenant" strip. The front tolerates an API build
+  without these fields (it degrades rather than fails), but the API should be deployed first.
 
 ## 🧩 Backend Gaps
 
@@ -210,18 +231,23 @@ stands in front of the endpoint itself. The API does accept `?force=true` on the
 rewrite a report, but honours it for `gameon_admin` only and nothing in the UI sends it — so from the
 front end a report is written once and a poor one stays as it is.
 
-**No search by name.** The only profile route is `GET /lol/summoner/{id:int}`, so nicknames are
-resolved client-side against the already-loaded ladder (`app/utils/player-search.ts`). That works for
-a closed crew but will not scale to arbitrary summoners, and it is why the home page search box is
-still hidden behind `v-if="false"`.
+**No search by name.** The only profile route is `GET /lol/summoner/{id:int}`, so the search palette
+resolves nicknames client-side against the crew list (`app/utils/player-search.ts`). That works for a
+closed crew but will not scale to arbitrary summoners.
+
+**The home page's weekly figures are ranked-only.** `/lol/Home` counts Solo/Duo and Flex only, so the
+page says "parties classées", and the feed filters count ranked games while the feed itself lists
+every queue: there is no per-player "all queues over 7 days" figure upstream.
+
+**No crew-wide resync.** The "Synchro" chip re-reads the API; asking the API to re-synchronise every
+account with Riot would need an endpoint that does not exist (only the per-player `PATCH`).
 
 Everything else is backed by real endpoints. `GameOnClient.getPlayerById(id, period?)` calls
 `GET /lol/summoner/{id}?period=AllTime|Week|Month|ThreeMonths|SixMonths` (default `AllTime`) and
 returns a `performanceStats` aggregate on `LeaguePlayer` — games/wins/losses, win rate, playtime,
 avg KDA, avg CS/min, avg dmg/min, avg vision score, plus `championStats`, `roleStats` and
-`duoStats`. It powers `PerformanceKpis.vue` and the Champions / Rôles / Duos side panels alike, so
-**no `MockBadge` is rendered anywhere in the app today**. The convention documented in the AI
-instruction files still applies to any future value that has no backing field.
+`duoStats`. It powers `PerformanceKpis.vue` and the Champions / Rôles / Duos side panels alike. **No
+`MockBadge` is rendered anywhere in the app.**
 
 ## ✅ Checks Before Deploying
 
