@@ -18,7 +18,7 @@
       <Icon :name="transitionIcon" class="h-3 w-3 shrink-0" :class="transitionIconClass" />
       <UiAppImage :src="afterEmblemUrl" alt="" class="h-3.5 w-3.5 shrink-0" />
       <span class="sr-only">{{ transitionPrefix }}</span>
-      <span :class="compact ? 'sr-only' : ''">{{ afterLabel }}</span>
+      <span>{{ afterLabel }}</span>
     </span>
   </span>
 </template>
@@ -38,17 +38,10 @@ import { tierEmblemUrl, tierGlowBackground, tierLabel } from '~/utils/lol-tier'
 /**
  * LP won or lost on one game. Callers render it only for a non-null `rankChange`: a null one is
  * unknown, and showing it as "0 LP" would state a result the API never measured.
- *
- * `compact` drops the tier name from a promotion/demotion chip — emblem and chevrons stay, the name
- * moves to the tooltip and screen readers — for tight rows like `LolGameCard`, where the full
- * label pushed the item slots out of the card at medium widths.
  */
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   change: LoLGameParticipantRankChange
-  compact?: boolean
-}>(), {
-  compact: false,
-})
+}>()
 
 const deltaLabel = computed(() => formatLpDelta(props.change.leaguePointsChange))
 const summary = computed(() => rankChangeSummary(props.change))

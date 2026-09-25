@@ -39,11 +39,17 @@ public sign-up — authentication exists so a crew member can edit their own pro
   current page did not.
 - `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
   with one card per award defined in `app/utils/lol-awards.ts`.
-- `/summoner/[id]` — player profile: identity card, Solo/Duo and Flex rank cards, a period-filtered
-  performance KPI panel, a "Progression classement" card (`LpProgressionCard`: the rank sparkline
-  from `GET /lol/summoner/{id}/rank`, and under it `LpChangesChart`, one bar per ranked game from
-  `GET /lol/summoner/{id}/rank/changes`, both behind one Solo/Flex switch), a filterable and
-  paginated match history, and Champions / Rôles / Duos side panels. Server-rendered.
+- `/summoner/[id]` — player profile, built from the Claude Design mock-up "JungleDiff Profil v5":
+  an ink hero over the player's main-champion splash (`LolPlayerHeader`: avatar and level, Riot ID,
+  archived / smurf-of chips, sync time, OP.GG / DPM links, Rafraîchir, a disabled "Comparer ·
+  Bientôt"), Solo/Duo and Flex rank cards with a win-rate ring and recent form, a period-filtered
+  performance KPI panel (flagged "Filtré · …" when the history's role or queue filter also narrows
+  it), then the match history (role and queue filters, games grouped by Paris day with a W/L and LP
+  chip) beside a rail: a "Progression classement" card (`LpProgressionCard`: the rank sparkline from
+  `GET /lol/summoner/{id}/rank`, and under it `LpChangesChart`, one bar per ranked game from
+  `GET /lol/summoner/{id}/rank/changes`, both behind one Solo/Flex switch), then Champions / Rôles /
+  Duos panels (the champion and duo lists show five, the rest on demand). Server-rendered; the crew
+  list is loaded after mount for the hero's `mainChampionName` and the smurf's main account.
 - `/game/[id]/[playerId]` — match detail: win/loss-tinted header with MVP/ACE accolade, per-team
   objectives, key moments, then five tabs — Vue d'ensemble (scoreboards + highlights), Film de la
   partie (a timeline scrubber driving minimap, gold race, kill feed and charts), Performance (player
@@ -51,9 +57,9 @@ public sign-up — authentication exists so a crew member can edit their own pro
   collapsible Données brutes table.
 - **LP per game** — `app/components/lol/LolRankChangeBadge.vue` renders a participant's `rankChange`
   as "+18 LP" / "-21 LP" / "0 LP" with a "Emerald II 27 LP → Emerald II 45 LP" tooltip, plus a
-  chevron chip tinted with the reached tier when the division or tier changes. It shows beside the
-  result in `LolGameCard` (in `compact` mode: emblem and chevrons only) and in every scoreboard row
-  on the match page. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
+  chevron chip tinted with the reached tier when the division or tier changes. It shows in every
+  scoreboard row on the match page. `LolGameCard` (the game cards of the home feed and of the
+  profile history) draws the same information as v7 chips of its own, from the same helpers. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
 - **rAImmus** — the AI coach, named after Rammus, rendered by
   `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
   neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
@@ -287,8 +293,8 @@ Each of these is easy to reintroduce and hard to diagnose.
   directions are easy to confuse. On `/` it is a
   **view filter inside `CrewLadder`** (`buildLadder` in `app/utils/lol-ladder.ts`) and must stay one: `useLolStore.fetchPlayers()` has to keep
   returning every account, because `LolPlayerHeader` and `LolGameDetailsPlayer` walk `players` to
-  climb from a smurf to its main and `LolGameCard` uses it to tell a crew participant from an
-  outsider — filtering the store breaks the smurf badge and makes a smurf's games read as non-crew.
+  climb from a smurf to its main and the home feed (`buildFeed`) uses it to tell a crew participant
+  from an outsider — filtering the store breaks the smurf badge and makes a smurf's games read as non-crew.
   The store's cache is temporal and ignores its arguments, so a `fetchPlayers(includeSmurfs)` would
   additionally serve the previous call's list for a minute. `/lol/Home` has no such parameter at all:
   its `crewRecords` always include smurfs, and passing one does nothing.
@@ -402,10 +408,20 @@ Each of these is easy to reintroduce and hard to diagnose.
 - **Tier names are English on purpose.** `tierLabel` prints "Emerald II", matching the rank cards,
   the ladder and the LP charts; the LP badge reuses it rather than introducing a second, French
   vocabulary ("Émeraude") for the same tiers.
-- **`LolGameCard`'s text column needs its `min-w-0` chain.** Without it the result line's
-  `truncate` never engages: its min-content width propagates up, and anything added beside the
-  result (the LP badge did) pushes the mobile KDA off the card, which then scrolls sideways inside
-  its `overflow-hidden`.
+- **One game card for the home feed and the profile history: `LolGameCard`.** The home's version is
+  the reference; the profile once had a card of its own and the two drifted apart (backgrounds,
+  result label, LP column). Both lists feed it a `FeedEntry` from `buildFeed` — the profile passes
+  its own `playerId`, so every card is that player's and the other crew members become the "+N"
+  chip — and the profile sets `:show-player="false"`, titling the card with the champion instead of
+  a name repeated on every row. Its breakpoints are container queries (600px for the KDA / clock
+  columns, 700px for the items), so the list around it must be an `@container`: the profile's rail
+  takes 376px from the history column on desktop.
+- **`LolGameCard`'s text column needs its `minmax(0, 1fr)` track and `min-w-0` chain.** Without
+  them the title's `truncate` never engages: its min-content width propagates up, and the chips
+  beside the result push the KDA off the card.
+- **The hero's splash is read once.** `LolPlayerHeader` prefers the crew list's `mainChampionName`
+  and falls back to the profile's first `championStats` entry captured at setup — that list follows
+  the period filter, and the backdrop must not change when the period does.
 
 # Known Gaps
 

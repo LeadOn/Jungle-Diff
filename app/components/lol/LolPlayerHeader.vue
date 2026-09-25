@@ -5,6 +5,10 @@ import type { LeaguePlayer } from '~/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useLolStore } from '~/stores/lol'
+import { getProfileIconUrl } from '~/utils/ddragon'
+import { championSplashUrl } from '~/utils/lol-champion'
+import { playerDisplayName } from '~/utils/lol-ladder'
+import { isSmurf } from '~/utils/lol-smurf'
 
 const props = defineProps<{
   player: LeaguePlayer
@@ -18,83 +22,141 @@ const emit = defineEmits<{
 
 const config = useRuntimeConfig()
 const apiUrl = config.public.gameOnApiUrl
+const lolStore = useLolStore()
+
+const name = computed(() => playerDisplayName(props.player))
 
 const syncedAgoLabel = computed(() => {
-  if (!props.player.lolRefreshedOn) return 'Jamais synchronisé'
-  const date = new Date(props.player.lolRefreshedOn)
-  if (isNaN(date.getTime())) return 'Jamais synchronisé'
-  return 'Synchro il y a ' + formatDistanceToNow(date, { locale: fr })
+  if (props.player.lolRefreshedOn) {
+    const date = new Date(props.player.lolRefreshedOn)
+    if (!isNaN(date.getTime())) return 'Synchro il y a ' + formatDistanceToNow(date, { locale: fr })
+  }
+  return 'Jamais synchronisé'
 })
 
-const lolStore = useLolStore()
 const primaryPlayer = computed(() => {
-  if (!props.player.primaryPlayerId || props.player.primaryPlayerId === props.player.id) return null
-  return lolStore.players.find(p => p.id === props.player.primaryPlayerId)
+  if (!isSmurf(props.player)) return null
+  return lolStore.players.find(p => p.id === props.player.primaryPlayerId) ?? null
 })
+
+const avatarStyle = computed(() => {
+  if (props.player.lolIconId != null) {
+    return { backgroundImage: `url('${getProfileIconUrl(props.player.lolIconId, props.currentLoLPatch)}')` }
+  }
+  if (props.player.profilePictureUrl) return { backgroundImage: `url('${apiUrl}/player/${props.player.id}/pp')` }
+  return {}
+})
+
+const primaryIconStyle = computed(() => (primaryPlayer.value?.lolIconId != null
+  ? { backgroundImage: `url('${getProfileIconUrl(primaryPlayer.value.lolIconId, props.currentLoLPatch)}')` }
+  : {}))
+
+/**
+ * The splash behind the hero is the player's main champion. `mainChampionName` is only served by the
+ * crew list; until it is loaded, the profile's own most played champion stands in. That one is read
+ * once, on purpose: it follows the period filter, and the backdrop should not change with it.
+ */
+const initialTopChampion = props.player.performanceStats?.championStats?.[0]?.championName ?? null
+const heroChampion = computed(() =>
+  lolStore.players.find(p => p.id === props.player.id)?.mainChampionName ?? initialTopChampion,
+)
+const heroStyle = computed(() => (heroChampion.value
+  ? { backgroundImage: `url('${championSplashUrl(heroChampion.value)}')` }
+  : {}))
+
+const externalSlug = computed(() => (props.player.riotGamesNickname && props.player.riotGamesTagLine
+  ? `${encodeURIComponent(props.player.riotGamesNickname)}-${encodeURIComponent(props.player.riotGamesTagLine)}`
+  : null))
 </script>
 
 <template>
-  <div class="relative">
+  <section aria-label="Identité" class="relative animate-rise overflow-hidden rounded-[30px] bg-ink px-5 py-[22px] text-white shadow-hero md:px-8 md:py-[30px]">
+    <div aria-hidden="true" class="absolute inset-0 bg-cover bg-no-repeat bg-[position:right_22%]" :style="heroStyle" />
+    <div aria-hidden="true" class="absolute inset-0 bg-scrim-hero" />
 
-    <div class="rounded-2xl border border-border-base bg-surface-base p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <div class="flex items-center gap-5 min-w-0">
-        <div class="relative w-22 h-22 shrink-0">
-          <span class="block w-full h-full rounded-full overflow-hidden border-[3px] border-border-accent bg-surface-high">
-            <UiAppImage v-if="player.lolIconId != null" :src="`https://ddragon.leagueoflegends.com/cdn/${currentLoLPatch}/img/profileicon/${player.lolIconId}.png`" :alt="player.riotGamesNickname || player.nickname" class="w-full h-full object-cover"  />
-            <UiAppImage v-else-if="player.profilePictureUrl" :src="`${apiUrl}/player/${player.id}/pp`" :alt="player.riotGamesNickname || player.nickname" class="w-full h-full object-cover"  />
-            <img v-else src="~/assets/img/JungleDiff_Logo.png" alt="" class="w-full h-full object-cover" >
+    <div class="relative flex flex-wrap items-end justify-between gap-6">
+      <div class="flex min-w-0 flex-wrap items-center gap-[22px]">
+        <span class="relative size-[84px] shrink-0 md:size-28">
+          <span class="absolute inset-0 rounded-[28px] border-[3px] border-white/90 bg-[#2A3A2F] bg-cover bg-center shadow-[0_14px_30px_-10px_rgba(0,0,0,0.6)]" :style="avatarStyle">
+            <img v-if="player.lolIconId == null && !player.profilePictureUrl" src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-full object-contain p-3">
           </span>
-          <span v-if="player.lolSummonerLevel != null" class="absolute -bottom-0.5 -right-1.5 px-2 py-0.5 rounded-full bg-surface-high border-2 border-surface-base shadow-sm font-mono text-[10px] font-bold text-text-main whitespace-nowrap">
-            {{ player.lolSummonerLevel }}
-          </span>
-        </div>
+          <span
+            v-if="player.lolSummonerLevel != null"
+            title="Niveau d'invocateur"
+            class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2.5 py-[3px] font-mono text-[11.5px] font-semibold text-ink"
+          >{{ player.lolSummonerLevel }}</span>
+        </span>
 
-        <div class="flex flex-col gap-2 min-w-0">
-          <div class="flex items-baseline gap-2 flex-wrap">
-            <h1 class="m-0 text-[26px] md:text-[34px] font-extrabold tracking-[-0.03em] leading-none text-text-main truncate">{{ player.riotGamesNickname || player.nickname }}</h1>
-            <span v-if="player.riotGamesTagLine" class="text-lg font-semibold text-text-ter">#{{ player.riotGamesTagLine }}</span>
-            <span v-if="player.archived" class="font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-surface-high border border-border-subtle text-text-ter">Archivé</span>
-            <NuxtLink v-if="primaryPlayer" :to="`/summoner/${primaryPlayer.id}`" class="font-mono text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-surface-high border border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-brand-gold-text transition-colors">
-              Smurf de {{ primaryPlayer.riotGamesNickname || primaryPlayer.nickname }}
+        <div class="flex min-w-0 flex-col gap-3">
+          <div class="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1.5">
+            <h1 class="m-0 min-w-0 break-words text-5xl font-bold leading-[0.95] tracking-[-0.05em] md:text-[64px] rail:text-[76px]">{{ name }}</h1>
+            <span v-if="player.riotGamesTagLine" class="text-[22px] font-semibold text-white/60">#{{ player.riotGamesTagLine }}</span>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              v-if="player.archived"
+              title="Ce compte n'est plus suivi"
+              class="rounded-full border border-dashed border-white/45 bg-white/14 px-3 py-[5px] text-[12.5px] font-bold"
+            >Archivé</span>
+            <NuxtLink
+              v-if="primaryPlayer"
+              :to="`/summoner/${primaryPlayer.id}`"
+              title="Voir le compte principal"
+              class="inline-flex items-center gap-[7px] rounded-full border border-brand-gold-bright/45 bg-brand-gold-bright/20 py-[3px] pl-[3px] pr-3 text-[12.5px] font-bold text-on-photo-gold transition-colors hover:bg-brand-gold-bright/35"
+            >
+              <span class="size-[22px] rounded-full bg-white/20 bg-cover bg-center" :style="primaryIconStyle" />
+              Smurf de {{ playerDisplayName(primaryPlayer) }} →
             </NuxtLink>
-          </div>
-          <div class="flex items-center gap-2.5 flex-wrap font-mono text-[10.5px] font-bold tracking-widest uppercase text-text-ter">
-            <span>{{ syncedAgoLabel }}</span>
-          </div>
-          <div v-if="player.riotGamesNickname && player.riotGamesTagLine" class="flex flex-wrap items-center gap-2.5 mt-2">
-            <a
-              :href="`https://www.op.gg/summoners/euw/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
-              target="_blank"
-              class="group flex items-center justify-center w-8 h-8 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-0.5 hover:shadow-md"
-              title="Accéder à OP.GG"
-            >
-              <img src="/img/external/opgg.png" alt="OP.GG" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" >
-            </a>
-            <a
-              :href="`https://dpm.lol/${player.riotGamesNickname}-${player.riotGamesTagLine}`"
-              target="_blank"
-              class="group flex items-center justify-center w-8 h-8 rounded-full bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-base transition-all hover:-translate-y-0.5 hover:shadow-md"
-              title="Accéder à DPM.LoL"
-            >
-              <img src="/img/external/dpmlol.png" alt="DPM.LoL" class="w-4 h-4 rounded-sm grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" >
-            </a>
+            <span class="inline-flex items-center gap-[7px] rounded-full border border-white/20 bg-white/10 px-3 py-[5px] text-[12.5px] font-bold">
+              <Icon name="lucide:refresh-cw" class="size-3 text-on-photo-green" :class="{ 'animate-spin': isRefreshing }" />
+              {{ isRefreshing ? 'Synchronisation…' : syncedAgoLabel }}
+            </span>
+            <template v-if="externalSlug">
+              <span aria-hidden="true" class="mx-0.5 h-5 w-px bg-white/20" />
+              <a
+                :href="`https://www.op.gg/summoners/euw/${externalSlug}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Accéder à OP.GG"
+                class="flex size-8 items-center justify-center rounded-full bg-white/92 transition-transform duration-[250ms] ease-spring hover:-translate-y-0.5 hover:scale-[1.08]"
+              >
+                <img src="/img/external/opgg.png" alt="OP.GG" class="size-4 rounded-[3px]">
+              </a>
+              <a
+                :href="`https://dpm.lol/${externalSlug}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Accéder à DPM.LoL"
+                class="flex size-8 items-center justify-center rounded-full bg-white/92 transition-transform duration-[250ms] ease-spring hover:-translate-y-0.5 hover:scale-[1.08]"
+              >
+                <img src="/img/external/dpmlol.png" alt="DPM.LoL" class="size-4 rounded-[3px]">
+              </a>
+            </template>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5 shrink-0">
+      <div class="flex flex-wrap gap-2.5">
         <button
+          type="button"
           :disabled="isRefreshing"
-          class="flex items-center gap-2 h-9.5 px-4.5 rounded-full bg-brand-gold text-brand-gold-text font-bold text-[13px] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          :aria-busy="isRefreshing"
+          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-5 text-sm font-bold text-ink transition-[scale,opacity] duration-[250ms] ease-spring hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-60"
           @click="emit('refresh')"
         >
-          <Icon name="lucide:refresh-cw" :class="{ 'animate-spin': isRefreshing }" />
-          Rafraîchir
+          <Icon name="lucide:refresh-cw" class="size-3.5" :class="{ 'animate-spin': isRefreshing }" />
+          {{ isRefreshing ? 'Rafraîchissement…' : 'Rafraîchir' }}
         </button>
-        <span title="Pas encore implémenté" class="flex items-center h-9.5 px-4.5 rounded-full bg-surface-high border border-border-subtle text-text-ter font-bold text-[13px] cursor-default select-none opacity-60">
+        <span
+          title="Pas encore implémenté"
+          aria-disabled="true"
+          class="inline-flex h-11 cursor-not-allowed select-none items-center gap-2 rounded-full border border-white/22 bg-white/10 pl-5 pr-2 text-sm font-bold text-white/70"
+        >
           Comparer
+          <span class="rounded-full bg-white/14 px-[9px] py-1 text-[11px] font-bold">Bientôt</span>
         </span>
       </div>
     </div>
-  </div>
+  </section>
 </template>

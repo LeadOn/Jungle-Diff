@@ -1,281 +1,199 @@
 <script setup lang="ts">
-import {ref, computed} from "vue";
-import type {LeagueOfLegendsRank, LoLRankChangeEntryDto} from "~/lib/types";
-import {rankScore, tierLabel} from "~/utils/lol-tier";
-import LpChangesChart from "~/components/lol/LpChangesChart.vue";
+import { ref, computed } from 'vue'
+import type { LeagueOfLegendsRank, LoLRankChangeEntryDto } from '~/lib/types'
+import { rankScore, tierLabel } from '~/utils/lol-tier'
+import { useAnimatedNumber } from '~/composables/useAnimatedNumber'
+import LpChangesChart from '~/components/lol/LpChangesChart.vue'
 
-type Queue = "solo" | "flex";
+type Queue = 'solo' | 'flex'
 
 const props = defineProps<{
-  soloEntries: LeagueOfLegendsRank[];
-  flexEntries: LeagueOfLegendsRank[];
-  soloChanges: LoLRankChangeEntryDto[];
-  flexChanges: LoLRankChangeEntryDto[];
-  period: "7j" | "30j" | "all-time";
-  loading?: boolean;
-  changesLoading?: boolean;
-}>();
+  soloEntries: LeagueOfLegendsRank[]
+  flexEntries: LeagueOfLegendsRank[]
+  soloChanges: LoLRankChangeEntryDto[]
+  flexChanges: LoLRankChangeEntryDto[]
+  period: '7j' | '30j' | 'all-time'
+  loading?: boolean
+  changesLoading?: boolean
+}>()
 
 const PERIOD_CAPTION: Record<string, string> = {
-  "7j": "7 JOURS",
-  "30j": "30 JOURS",
-  'all-time': "Depuis toujours",
-};
-
-// The user may pick a queue; until they do, fall back to the first queue that has data (Solo/Duo
-// first). One selector drives both charts, so the line and the bars always show the same queue.
-const userSelectedQueue = ref<Queue | null>(null);
-const selectedQueue = computed<Queue>(
-  () =>
-    userSelectedQueue.value ??
-    (props.soloEntries.length > 0 || props.soloChanges.length > 0 ? "solo" : "flex"),
-);
-const selectQueue = (q: Queue) => {
-  userSelectedQueue.value = q;
-};
-
-const entries = computed(() =>
-  selectedQueue.value === "solo" ? props.soloEntries : props.flexEntries,
-);
-const changes = computed(() =>
-  selectedQueue.value === "solo" ? props.soloChanges : props.flexChanges,
-);
-
-const sorted = computed(() =>
-  [...entries.value].sort(
-    (a, b) => new Date(a.createdOn).getTime() - new Date(b.createdOn).getTime(),
-  ),
-);
-
-const hasEnoughData = computed(() => sorted.value.length >= 2);
-
-const points = computed(() => {
-  const scores = sorted.value.map(rankScore);
-  const min = Math.min(...scores);
-  const max = Math.max(...scores);
-  const span = max - min || 1;
-  return scores.map((v, i) => ({
-    x: Math.round((i / (scores.length - 1)) * 272 * 10) / 10,
-    y: Math.round((88 - ((v - min) / span) * 80) * 10) / 10,
-  }));
-});
-
-const linePath = computed(() =>
-  points.value.map((p, i) => (i === 0 ? "M" : "L") + p.x + " " + p.y).join(" "),
-);
-const areaPath = computed(() =>
-  points.value.length ? linePath.value + " L272 96 L0 96 Z" : "",
-);
-
-const netScore = computed(() => {
-  const scores = sorted.value.map(rankScore);
-  return (scores[scores.length - 1] ?? 0) - (scores[0] ?? 0);
-});
-const trendUp = computed(() => netScore.value >= 0);
-const lineColor = computed(() =>
-  trendUp.value ? "var(--color-green)" : "var(--color-red)",
-);
-const areaColor = computed(() =>
-  trendUp.value ? "var(--color-win-wash)" : "var(--color-loss-wash)",
-);
-
-const lastPoint = computed(() => points.value[points.value.length - 1]);
-
-const formatShortDate = (iso: string) =>
-  new Intl.DateTimeFormat("fr-FR", {day: "numeric", month: "short"})
-    .format(new Date(iso))
-    .toUpperCase()
-    .replace(".", "");
-const formatLongDate = (iso: string) =>
-  new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(iso));
-
-const firstLabel = computed(() =>
-  sorted.value[0] ? formatShortDate(sorted.value[0].createdOn) : "",
-);
-const nowLabel = computed(() => {
-  const last = sorted.value[sorted.value.length - 1];
-  return last ? `${tierLabel(last)} · ${last.leaguePoints} LP` : "";
-});
-const caption = computed(
-  () => PERIOD_CAPTION[props.period] ?? PERIOD_CAPTION["30j"],
-);
-
-// Survol : retrouve le point le plus proche du curseur et affiche sa date + son LP
-const svgEl = ref<SVGSVGElement | null>(null);
-const hoveredIndex = ref<number | null>(null);
-const hoveredPixelX = ref(0);
-const chartWidth = ref(0);
-
-const hoveredEntry = computed(() =>
-  hoveredIndex.value != null ? sorted.value[hoveredIndex.value] : null,
-);
-const hoveredPoint = computed(() =>
-  hoveredIndex.value != null ? points.value[hoveredIndex.value] : null,
-);
-
-// Keeps the tooltip from overflowing the card near the left/right edges of the chart
-const tooltipStyle = computed(() => {
-  const edgeMargin = 56;
-  let translateX = "-50%";
-  if (hoveredPixelX.value < edgeMargin) translateX = "0%";
-  else if (chartWidth.value - hoveredPixelX.value < edgeMargin)
-    translateX = "-100%";
-  return {
-    left: `${hoveredPixelX.value}px`,
-    top: "-4px",
-    transform: `translate(${translateX}, -100%)`,
-  };
-});
-
-function onSvgMouseMove(event: MouseEvent) {
-  if (!svgEl.value || points.value.length === 0) return;
-  const rect = svgEl.value.getBoundingClientRect();
-  if (rect.width === 0) return;
-  chartWidth.value = rect.width;
-  const relX = event.clientX - rect.left;
-  const vbX = (relX / rect.width) * 272;
-
-  let nearest = 0;
-  let nearestX = points.value[0]?.x ?? 0;
-  let minDist = Infinity;
-  points.value.forEach((p, i) => {
-    const dist = Math.abs(p.x - vbX);
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = i;
-      nearestX = p.x;
-    }
-  });
-  hoveredIndex.value = nearest;
-  hoveredPixelX.value = (nearestX / 272) * rect.width;
+  '7j': '7 derniers jours',
+  '30j': '30 derniers jours',
+  'all-time': 'Depuis toujours',
 }
 
-function onSvgMouseLeave() {
-  hoveredIndex.value = null;
+const VIEW_WIDTH = 272
+const VIEW_HEIGHT = 96
+
+// The user may pick a queue; until they do, Solo/Duo is shown unless only Flex has data — and not
+// while nothing is loaded yet, or the switch would flick to Flex and back on every load. One selector
+// drives both charts, so the line and the bars always show the same queue.
+const userSelectedQueue = ref<Queue | null>(null)
+const selectedQueue = computed<Queue>(() => {
+  if (userSelectedQueue.value) return userSelectedQueue.value
+  const soloEmpty = props.soloEntries.length === 0 && props.soloChanges.length === 0
+  const flexEmpty = props.flexEntries.length === 0 && props.flexChanges.length === 0
+  return soloEmpty && !flexEmpty ? 'flex' : 'solo'
+})
+const QUEUES: { value: Queue, label: string }[] = [
+  { value: 'solo', label: 'Solo/Duo' },
+  { value: 'flex', label: 'Flex' },
+]
+const selectQueue = (q: Queue) => {
+  userSelectedQueue.value = q
+  hoveredIndex.value = null
+}
+
+const entries = computed(() => (selectedQueue.value === 'solo' ? props.soloEntries : props.flexEntries))
+const changes = computed(() => (selectedQueue.value === 'solo' ? props.soloChanges : props.flexChanges))
+
+const sorted = computed(() =>
+  [...entries.value].sort((a, b) => new Date(a.createdOn).getTime() - new Date(b.createdOn).getTime()),
+)
+
+const hasEnoughData = computed(() => sorted.value.length >= 2)
+
+const points = computed(() => {
+  const scores = sorted.value.map(rankScore)
+  const min = Math.min(...scores)
+  const max = Math.max(...scores)
+  const span = max - min || 1
+  return scores.map((v, i) => ({
+    x: Math.round((i / Math.max(1, scores.length - 1)) * VIEW_WIDTH * 10) / 10,
+    y: Math.round((88 - ((v - min) / span) * 80) * 10) / 10,
+  }))
+})
+
+const linePath = computed(() => points.value.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y).join(' '))
+const areaPath = computed(() => (points.value.length ? `${linePath.value} L${VIEW_WIDTH} ${VIEW_HEIGHT} L0 ${VIEW_HEIGHT} Z` : ''))
+
+const netScore = computed(() => {
+  const scores = sorted.value.map(rankScore)
+  return (scores[scores.length - 1] ?? 0) - (scores[0] ?? 0)
+})
+const animatedNet = useAnimatedNumber(() => netScore.value)
+const trendUp = computed(() => netScore.value >= 0)
+const netLabel = computed(() => `${trendUp.value ? '+' : '−'}${Math.abs(Math.round(animatedNet.value))} pts`)
+
+// The markers are HTML over the SVG rather than circles inside it: the chart stretches with
+// `preserveAspectRatio="none"`, which would squash a circle into an ellipse.
+const toPercent = (p: { x: number, y: number }) => ({ left: `${(p.x / VIEW_WIDTH) * 100}%`, top: `${(p.y / VIEW_HEIGHT) * 100}%` })
+const lastPoint = computed(() => points.value[points.value.length - 1])
+
+const formatShortDate = (iso: string) =>
+  new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(iso)).replace('.', '')
+const formatLongDate = (iso: string) =>
+  new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso))
+
+const firstLabel = computed(() => (sorted.value[0] ? formatShortDate(sorted.value[0].createdOn) : ''))
+const nowLabel = computed(() => {
+  const last = sorted.value[sorted.value.length - 1]
+  return last ? `${tierLabel(last)} · ${last.leaguePoints} LP` : ''
+})
+const caption = computed(() => PERIOD_CAPTION[props.period] ?? PERIOD_CAPTION['30j'])
+
+// Hover: the point nearest the cursor, its date and its rank.
+const hoveredIndex = ref<number | null>(null)
+const hoveredEntry = computed(() => (hoveredIndex.value != null ? sorted.value[hoveredIndex.value] ?? null : null))
+const hoveredPoint = computed(() => (hoveredIndex.value != null ? points.value[hoveredIndex.value] ?? null : null))
+
+// Keeps the tooltip inside the card near the chart's left and right edges.
+const tooltipStyle = computed(() => {
+  const point = hoveredPoint.value
+  if (!point) return {}
+  const fraction = point.x / VIEW_WIDTH
+  const shift = fraction < 0.2 ? '0' : fraction > 0.8 ? '-100%' : '-50%'
+  return { left: `${fraction * 100}%`, transform: `translate(${shift}, -100%)` }
+})
+
+function onMouseMove(event: MouseEvent) {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const count = points.value.length
+  if (!rect.width || count < 2) return
+  const fraction = (event.clientX - rect.left) / rect.width
+  hoveredIndex.value = Math.max(0, Math.min(count - 1, Math.round(fraction * (count - 1))))
 }
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border-base bg-surface-base p-6">
-    <div class="flex items-center justify-between gap-3 mb-1">
-      <h3 class="m-0 text-sm font-extrabold text-text-main">Progression classement</h3>
+  <section aria-labelledby="profile-lp" class="rounded-3xl border border-border-subtle bg-surface-base p-5 shadow-card">
+    <div class="flex items-baseline justify-between gap-2">
+      <h3 id="profile-lp" class="m-0 text-xl font-bold tracking-[-0.025em]">Progression classement</h3>
       <span
-        v-if="hasEnoughData"
-        class="text-sm font-black"
-        :class="trendUp ? 'text-brand-green' : 'text-brand-red'">
-        {{ trendUp ? "+" : "" }}{{ netScore }} pts
-      </span>
+        v-if="hasEnoughData && !loading"
+        class="whitespace-nowrap text-base font-bold"
+        :class="trendUp ? 'text-brand-green' : 'text-brand-red'"
+      >{{ netLabel }}</span>
     </div>
 
-    <div class="flex items-center justify-between gap-2 mb-9">
-      <p
-        class="m-0 font-mono text-[9px] font-bold tracking-widest uppercase text-text-ter">
-        {{ caption }}
-      </p>
-      <div
-        class="flex p-0.5 rounded-full bg-surface-high border border-border-subtle shrink-0">
+    <div class="mb-[22px] mt-1.5 flex items-center justify-between gap-2">
+      <span class="text-[12.5px] font-semibold text-text-sec">{{ caption }}</span>
+      <div role="group" aria-label="File classée" class="flex rounded-full border border-border-base bg-surface-muted p-[3px]">
         <button
+          v-for="q in QUEUES"
+          :key="q.value"
           type="button"
-          class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
-          :class="
-            selectedQueue === 'solo'
-              ? 'bg-surface-base shadow-sm text-text-main border border-border-accent'
-              : 'text-text-sec hover:text-text-main'
-          "
-          @click="selectQueue('solo')">
-          Solo/Duo
-        </button>
-        <button
-          type="button"
-          class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
-          :class="
-            selectedQueue === 'flex'
-              ? 'bg-surface-base shadow-sm text-text-main border border-border-accent'
-              : 'text-text-sec hover:text-text-main'
-          "
-          @click="selectQueue('flex')">
-          Flex
+          :aria-pressed="selectedQueue === q.value"
+          class="cursor-pointer rounded-full px-[11px] py-1 text-xs font-bold transition-colors duration-200"
+          :class="selectedQueue === q.value ? 'bg-inverse text-inverse-text' : 'text-text-main'"
+          @click="selectQueue(q.value)"
+        >
+          {{ q.label }}
         </button>
       </div>
     </div>
 
-    <div
-      v-if="loading"
-      class="h-24 w-full rounded-lg bg-surface-high animate-pulse" />
+    <div v-if="loading" class="h-24 animate-pulse rounded-[14px] bg-surface-high" />
     <div
       v-else-if="!hasEnoughData"
-      class="h-24 flex items-center justify-center text-center text-xs font-bold text-text-ter">
+      class="flex h-24 items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-border-dashed text-center text-[12.5px] font-bold text-text-sec"
+    >
       Pas assez de relevés sur cette période.
     </div>
     <template v-else>
-      <div class="relative">
-        <svg
-          ref="svgEl"
-          viewBox="0 0 272 96"
-          preserveAspectRatio="none"
-          class="w-full h-24 block overflow-visible cursor-crosshair"
-          @mousemove="onSvgMouseMove"
-          @mouseleave="onSvgMouseLeave">
-          <path :d="areaPath" :fill="areaColor" />
+      <div class="relative h-24 cursor-crosshair" @mousemove="onMouseMove" @mouseleave="hoveredIndex = null">
+        <svg :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`" preserveAspectRatio="none" class="absolute inset-0 size-full overflow-visible">
+          <path :d="areaPath" :class="trendUp ? 'fill-win/15' : 'fill-loss/15'" />
           <path
+            :key="`${selectedQueue}-${period}`"
             :d="linePath"
             fill="none"
-            :stroke="lineColor"
-            stroke-width="2"
+            :class="trendUp ? 'stroke-win' : 'stroke-loss'"
+            stroke-width="2.5"
             stroke-linecap="round"
-            stroke-linejoin="round" />
-          <circle
-            v-if="lastPoint"
-            :cx="lastPoint.x"
-            :cy="lastPoint.y"
-            r="3.5"
-            :fill="lineColor" />
-
-          <g v-if="hoveredPoint">
-            <line
-              :x1="hoveredPoint.x"
-              :x2="hoveredPoint.x"
-              y1="0"
-              y2="96"
-              stroke="var(--color-border)"
-              stroke-width="1"
-              stroke-dasharray="2,2" />
-            <circle
-              :cx="hoveredPoint.x"
-              :cy="hoveredPoint.y"
-              r="4"
-              :fill="lineColor"
-              stroke="var(--color-surface)"
-              stroke-width="1.5" />
-          </g>
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+            stroke-dasharray="1400"
+            class="animate-draw"
+          />
         </svg>
-
-        <div
-          v-if="hoveredEntry"
-          class="pointer-events-none absolute z-10 rounded-lg border border-border-base bg-surface-high px-2.5 py-1.5 shadow-lg whitespace-nowrap"
-          :style="tooltipStyle">
-          <div
-            class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-ter">
-            {{ formatLongDate(hoveredEntry.createdOn) }}
-          </div>
-          <div class="text-xs font-bold text-text-main">
-            {{ tierLabel(hoveredEntry) }} · {{ hoveredEntry.leaguePoints }} LP
-          </div>
-        </div>
+        <span
+          v-if="lastPoint"
+          class="absolute -ml-[4.5px] -mt-[4.5px] size-[9px] rounded-full"
+          :class="trendUp ? 'bg-win' : 'bg-loss'"
+          :style="toPercent(lastPoint)"
+        />
+        <template v-if="hoveredPoint && hoveredEntry">
+          <span class="absolute inset-y-0 w-0 border-l border-dashed border-border-accent" :style="{ left: toPercent(hoveredPoint).left }" />
+          <span
+            class="absolute -ml-[5.5px] -mt-[5.5px] size-[11px] rounded-full border-2 border-surface-base shadow-[0_2px_6px_rgba(22,36,27,0.3)]"
+            :class="trendUp ? 'bg-win' : 'bg-loss'"
+            :style="toPercent(hoveredPoint)"
+          />
+          <span role="tooltip" class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-ink px-[11px] py-[7px] text-ink-text" :style="tooltipStyle">
+            <span class="block text-[11px] font-semibold text-ink-muted">{{ formatLongDate(hoveredEntry.createdOn) }}</span>
+            <span class="block text-[12.5px] font-bold">{{ tierLabel(hoveredEntry) }} {{ hoveredEntry.leaguePoints }} LP</span>
+          </span>
+        </template>
       </div>
-
-      <div
-        class="mt-3 pt-3 border-t border-border-subtle flex items-center justify-between gap-2 font-mono text-[10px] font-bold tracking-widest uppercase text-text-ter">
+      <div class="mt-2.5 flex justify-between gap-2 border-t border-dashed border-border-dashed pt-2.5 text-[11.5px] font-bold text-text-sec">
         <span>{{ firstLabel }}</span>
         <span class="text-text-main">{{ nowLabel }}</span>
       </div>
     </template>
 
-    <div class="mt-6 pt-5 border-t border-border-subtle">
+    <div class="mt-5 border-t border-border-base pt-[18px]">
       <LpChangesChart :entries="changes" :loading="changesLoading" />
     </div>
   </section>

@@ -213,6 +213,13 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   and a rail with the player of the week, the month's records and the crew's champions. A dark theme
   derived from the brand guidelines stays available from the header (the mock-up has none). The
   crew search is back, as a command palette (⌘K / Ctrl K, "/").
+- **Profile on design v7** (2026-09-25): `/summoner/[id]` was rebuilt from the Claude Design
+  mock-up "JungleDiff Profil v5": an ink hero over the player's main-champion splash, rank cards with
+  a win-rate ring, big KPI tiles with a "Filtré" chip when the history filters narrow them, the match
+  history grouped by Paris day with a W/L and LP total per day (its game cards are the home feed's,
+  one shared `LolGameCard`), and a rail (LP progression and
+  per-game LP bars, champions, roles, duos). Same data and routes as before; the per-queue game
+  counts the mock-up shows in the queue filter are left out, since the API does not serve them.
 - **Home on live data** (2026-09-25): the GameOn API now serves everything the v7 home needs, and the
   temporary placeholders are gone. `GET /lol/Home?window=Last7Days` gives a rolling 7-day window with
   its bounds, a per-day breakdown (games, playtime, net LP), the active players, and last week's wins

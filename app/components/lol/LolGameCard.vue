@@ -1,242 +1,185 @@
-<template>
-  <NuxtLink 
-    :to="gameLink"
-    class="relative flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl border border-border-subtle hover:border-border-accent transition-all group overflow-hidden shadow-sm"
-    :class="cardBgColor"
-  >
-    <!-- Left accent border -->
-    <div class="absolute -left-[1px] top-0 bottom-0 w-1.5" :class="getResultColor(computedStatus)"/>
-    
-    <div class="flex items-center justify-between w-full sm:w-auto pl-2">
-      <div class="flex min-w-0 items-center gap-3 sm:gap-4">
-        <!-- Champion icon & badge -->
-        <div class="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0">
-          <div class="w-full h-full rounded-full overflow-hidden border-2" :class="getAvatarBorderColor(computedStatus)">
-            <UiAppImage 
-              v-if="championName"
-              :src="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${championName}.png`" 
-              :alt="championName" 
-              class="w-full h-full object-cover scale-[1.15]"
-              :fallback="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/profileicon/29.png`"
-            />
-            <Icon v-else name="lucide:circle-dashed" class="text-text-ter text-xl sm:text-2xl m-auto h-full w-full opacity-50" />
-          </div>
-          
-          <!-- Role badge -->
-          <div
-            v-if="roleIconUrl"
-            class="absolute -top-1 -left-1 w-5 h-5 flex items-center justify-center rounded-full bg-surface-high border border-border-subtle shadow-sm"
-          >
-            <UiAppImage :src="roleIconUrl" :alt="roleAlt" class="w-3 h-3" />
-          </div>
-
-          <!-- Badge Niveau -->
-          <div class="absolute bottom-0 right-0 bg-surface-high text-text-main text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border border-border-subtle shadow-sm">
-            {{ champLevel }}
-          </div>
-        </div>
-        
-        <div class="flex flex-col justify-center min-w-0">
-          <!-- The LP badge sits outside the truncated text and wraps below it on a narrow card
-               rather than squeezing the result or pushing the KDA out of the card. -->
-          <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-0.5 min-w-0">
-            <div class="text-[13px] sm:text-[14px] font-extrabold truncate min-w-0 max-w-full" :class="getResultTextColor(computedStatus)">
-              {{ getResultText(computedStatus) }}
-              <template v-if="summonerName && showSummonerName">
-                <span class="text-text-ter font-normal mx-1">·</span>
-                <span class="text-text-sec font-semibold">{{ summonerName }}</span>
-              </template>
-            </div>
-            <LolRankChangeBadge v-if="rankChange" :change="rankChange" compact class="shrink-0" />
-          </div>
-          <div class="text-[11px] sm:text-[12px] font-bold text-text-main mb-0.5 truncate">
-            {{ queueName }} <span class="text-text-ter font-normal mx-0.5">·</span> {{ duration }}
-          </div>
-          <div class="text-[10px] sm:text-[11px] font-medium text-text-sec truncate">
-            {{ gameDate }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Mobile KDA -->
-      <div class="flex flex-col items-end sm:hidden ml-2 flex-shrink-0">
-        <span class="font-mono text-[12px] font-bold text-text-main tracking-tight">
-          {{ kills }} <span class="text-text-ter font-normal mx-[1px]">/</span> {{ deaths }} <span class="text-text-ter font-normal mx-[1px]">/</span> {{ assists }}
-        </span>
-        <span class="font-mono text-[10px] font-medium text-text-sec mt-0.5">{{ kdaText }}</span>
-      </div>
-    </div>
-    
-    <div class="flex items-center gap-4 sm:gap-8 mt-3 sm:mt-0 pl-[60px] sm:pl-0 sm:mr-2 w-full sm:w-auto justify-start sm:justify-end">
-      <!-- Desktop KDA -->
-      <div class="hidden sm:flex flex-col items-end w-24 flex-shrink-0">
-        <span class="font-mono text-[13px] font-bold text-text-main tracking-tight">
-          {{ kills }} <span class="text-text-ter font-normal mx-0.5">/</span> {{ deaths }} <span class="text-text-ter font-normal mx-0.5">/</span> {{ assists }}
-        </span>
-        <span class="font-mono text-[11px] font-medium text-text-sec mt-0.5">{{ kdaText }} <span class="text-text-ter opacity-60">KDA</span></span>
-      </div>
-
-      <!-- Items Slots (7) -->
-      <div class="flex items-center gap-1">
-        <div 
-          v-for="(itemId, index) in items" 
-          :key="index"
-          class="w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden bg-(--color-item-bg) border border-(--color-item-line) flex-shrink-0"
-        >
-          <UiAppImage 
-            v-if="itemId > 0"
-            :src="`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${itemId}.png`" 
-            :alt="`Item ${itemId}`"
-            class="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-    </div>
-  </NuxtLink>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { FeedEntry } from '~/utils/lol-feed'
+import { RANKED_QUEUE_IDS } from '~/utils/lol-feed'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
-import { 
-  closestDdragonVersion, 
-  formatQueue, 
-  formatGameDate, 
-  formatGameDuration, 
-  calculateKda, 
-  getParticipantByPlayerId 
-} from '~/lib/utils/lol'
-import type { LoLGameDto } from '~/lib/types'
+import { calculateKda, closestDdragonVersion, formatGameDuration, formatQueueShort } from '~/lib/utils/lol'
+import { getChampionIconUrl, getItemIconUrl } from '~/utils/ddragon'
+import { championDisplayName } from '~/utils/lol-champion'
+import { roleLabel } from '~/utils/lol-role'
+import { rankAfter, rankChangeSummary, rankTransition } from '~/utils/lol-rank-change'
+import { tierEmblemUrl, tierLabel } from '~/utils/lol-tier'
+import { playerDisplayName } from '~/utils/lol-ladder'
+import { formatClock } from '~/utils/date'
+import { formatSigned } from '~/utils/number'
 
+/**
+ * One game of a feed, told from one crew member's side: the home's recent games and a profile's
+ * history both draw it, so the two lists cannot drift apart.
+ *
+ * `showPlayer` titles the card with the player's name and puts the champion on the second line, as
+ * the home feed mixes the whole crew. A profile lists one player's games only, so it turns it off:
+ * the champion takes the title and the name, identical on every card, is dropped.
+ */
 const props = withDefaults(defineProps<{
-  game: LoLGameDto
-  playerId?: number
-  showSummonerName?: boolean
-}>(), {
-  playerId: undefined,
-  showSummonerName: true,
-})
+  entry: FeedEntry
+  showPlayer?: boolean
+}>(), { showPlayer: true })
 
 const store = useLolStore()
 const patchStore = usePatchStore()
 
-// Resolve participant based on playerId.
-// If playerId is missing (e.g. homepage), find the first crew member in the game.
-const participant = computed(() => {
-  if (props.playerId) {
-    return getParticipantByPlayerId(props.game, props.playerId)
-  }
-  
-  if (store.players && store.players.length > 0) {
-    const crewMember = props.game.leagueOfLegendsGameParticipants.find(p => 
-      p.playerId !== null && store.players.some(crew => crew.id === p.playerId)
-    )
-    if (crewMember) return crewMember
-  }
-  
-  return props.game.leagueOfLegendsGameParticipants[0] || null
-})
+const game = computed(() => props.entry.game)
+const participant = computed(() => props.entry.participant)
 
-// Compute Ddragon version for images based on the specific game's version.
-const ddragonVersion = computed(() => {
-  return closestDdragonVersion(props.game.gameVersion, patchStore.availablePatches)
-})
+const ddragonVersion = computed(() => closestDdragonVersion(game.value.gameVersion, patchStore.availablePatches) || patchStore.currentPatch)
 
-// Status logic (Win, Loss, Remake, Unknown)
-const computedStatus = computed(() => {
-  if (props.game.isRemake || props.game.endOfGameResult === null) return 'UNKNOWN'
-  if (!participant.value || participant.value.win === undefined || participant.value.win === null) return 'UNKNOWN'
-  return participant.value.win ? 'WIN' : 'LOSS'
-})
-
-// Stats
-const championName = computed(() => participant.value?.championName || '')
-const champLevel = computed(() => participant.value?.champLevel || '??')
-const summonerName = computed(() => participant.value?.riotIdGameName || '')
-// Null means the LP could not be pinned to this game, not a 0: nothing is shown then.
-// `?? null` also covers an API build that predates the field.
-const rankChange = computed(() => participant.value?.rankChange ?? null)
-
-// Tracked player's role (absent in modes without assigned lanes: ARAM, Arena, ...)
-const ROLE_ICON_KEYS: Record<string, string> = {
-  TOP: 'top',
-  JUNGLE: 'jungle',
-  MIDDLE: 'middle',
-  BOTTOM: 'bottom',
-  UTILITY: 'utility',
+const nameOf = (playerId: number | null, fallback: string) => {
+  const player = playerId !== null ? store.players.find(candidate => candidate.id === playerId) : undefined
+  return player ? playerDisplayName(player) : fallback
 }
-const ROLE_LABELS: Record<string, string> = {
-  TOP: 'Top',
-  JUNGLE: 'Jungle',
-  MIDDLE: 'Milieu',
-  BOTTOM: 'ADC',
-  UTILITY: 'Support',
-}
-const roleIconUrl = computed(() => {
-  const key = participant.value?.teamPosition ? ROLE_ICON_KEYS[participant.value.teamPosition] : null
-  return key ? `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg/position-${key}.svg` : null
-})
-const roleAlt = computed(() => {
-  const position = participant.value?.teamPosition
-  return position ? ROLE_LABELS[position] ?? position : 'Rôle'
+
+const who = computed(() => nameOf(participant.value.playerId, participant.value.riotIdGameName))
+const teammatesTitle = computed(() => `Avec ${props.entry.teammates.map(mate => nameOf(mate.playerId, mate.riotIdGameName)).join(', ')}`)
+
+/**
+ * The card itself carries the result — an accent bar on the left and a wash fading out towards the
+ * right, where the KDA and the LP chip keep a neutral background — so the label is plain text.
+ */
+const result = computed(() => {
+  if (game.value.isRemake) {
+    return { label: 'Remake', text: 'text-text-sec', bar: 'bg-border-accent', wash: 'from-surface-high' }
+  }
+  return participant.value.win
+    ? { label: 'Victoire', text: 'text-brand-green', bar: 'bg-win', wash: 'from-win-soft' }
+    : { label: 'Défaite', text: 'text-brand-red', bar: 'bg-loss', wash: 'from-loss-soft' }
 })
 
-const kills = computed(() => participant.value?.kills ?? 0)
-const deaths = computed(() => participant.value?.deaths ?? 0)
-const assists = computed(() => participant.value?.assists ?? 0)
+const queueLabel = computed(() => formatQueueShort(game.value.queueId, store.queues))
 
-const kdaText = computed(() => calculateKda(kills.value, deaths.value, assists.value))
+const clock = computed(() => formatClock(game.value.gameStart))
+const duration = computed(() => formatGameDuration(game.value.gameStart, game.value.gameEnd))
+const championName = computed(() => championDisplayName(participant.value.championName))
+const title = computed(() => (props.showPlayer ? who.value : championName.value))
+const meta = computed(() => [roleLabel(participant.value.teamPosition), queueLabel.value, duration.value].filter(Boolean).join(' · '))
+
+const kda = computed(() => `${participant.value.kills} / ${participant.value.deaths} / ${participant.value.assists}`)
+const kdaRatio = computed(() => `${calculateKda(participant.value.kills, participant.value.deaths, participant.value.assists)} KDA`)
 
 const items = computed(() => {
-  if (!participant.value) return [0, 0, 0, 0, 0, 0, 0]
-  return [
-    participant.value.item0 ?? 0,
-    participant.value.item1 ?? 0,
-    participant.value.item2 ?? 0,
-    participant.value.item3 ?? 0,
-    participant.value.item4 ?? 0,
-    participant.value.item5 ?? 0,
-    participant.value.item6 ?? 0 // trinket
-  ]
+  const p = participant.value
+  return [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5, p.item6].map((id, slot) => ({
+    slot,
+    url: id ? getItemIconUrl(id, ddragonVersion.value) : '',
+  }))
 })
 
-// Formatting
-const queueName = computed(() => formatQueue(props.game.queueId ?? 0, store.queues))
-const duration = computed(() => formatGameDuration(props.game.gameStart, props.game.gameEnd))
-const gameDate = computed(() => formatGameDate(props.game.gameStart))
-
-const gameLink = computed(() => `/game/${props.game.matchId}/${props.playerId || participant.value?.playerId || ''}`)
-
-// UI Styling Helpers
-const getResultColor = (status: string) => {
-  if (status === 'WIN') return 'bg-brand-green'
-  if (status === 'LOSS') return 'bg-brand-red'
-  return 'bg-text-ter opacity-60'
-}
-
-const cardBgColor = computed(() => {
-  if (computedStatus.value === 'WIN') return 'bg-(--color-win-wash)'
-  if (computedStatus.value === 'LOSS') return 'bg-(--color-loss-wash)'
-  return 'bg-surface-base' // Unknown / Remake
+/**
+ * The LP chip. A known `rankChange` prints its figure, 0 included. A remake or an unranked queue
+ * says there were no LP at stake. A ranked game whose LP the API could not pin prints nothing: `null`
+ * means unknown, and "Sans LP" there would be a false statement.
+ */
+const lp = computed(() => {
+  const change = participant.value.rankChange
+  if (change) {
+    const value = change.leaguePointsChange
+    return {
+      kind: 'known' as const,
+      text: `${formatSigned(value)} LP`,
+      title: rankChangeSummary(change),
+      class: value > 0 ? 'bg-win-soft text-brand-green' : value < 0 ? 'bg-loss-soft text-brand-red' : 'bg-surface-base text-text-main border border-border-accent',
+    }
+  }
+  if (game.value.isRemake) return { kind: 'none' as const, title: 'Remake : aucun LP en jeu' }
+  if (game.value.queueId === null || !RANKED_QUEUE_IDS.has(game.value.queueId)) {
+    return { kind: 'none' as const, title: 'Partie non classée : aucun LP en jeu' }
+  }
+  return null
 })
 
-const getAvatarBorderColor = (status: string) => {
-  if (status === 'WIN') return 'border-brand-green/40'
-  if (status === 'LOSS') return 'border-brand-red/40'
-  return 'border-border-accent'
-}
+const transition = computed(() => {
+  const change = participant.value.rankChange
+  const direction = change ? rankTransition(change) : null
+  if (!change || !direction) return null
+  const reached = rankAfter(change)
+  return {
+    text: `${direction === 'promotion' ? 'Promu' : 'Rétrogradé'} ${tierLabel(reached)}`,
+    emblem: tierEmblemUrl(reached),
+    class: direction === 'promotion' ? 'bg-win-soft text-brand-green' : 'bg-loss-soft text-brand-red',
+  }
+})
 
-const getResultTextColor = (status: string) => {
-  if (status === 'WIN') return 'text-brand-green'
-  if (status === 'LOSS') return 'text-brand-red'
-  return 'text-text-ter'
-}
-
-const getResultText = (status: string) => {
-  if (status === 'WIN') return 'Victoire'
-  if (status === 'LOSS') return 'Défaite'
-  if (props.game.isRemake) return 'Remake'
-  return 'Inconnu'
-}
+const championStyle = computed(() => ({
+  backgroundImage: `url('${getChampionIconUrl(participant.value.championName, ddragonVersion.value)}')`,
+}))
 </script>
+
+<template>
+  <NuxtLink
+    :to="`/game/${game.matchId}/${participant.playerId}`"
+    class="group relative grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3.5 overflow-hidden rounded-[20px] border border-border-subtle bg-surface-base bg-linear-to-r to-surface-base to-60% py-3.5 pl-5 pr-3.5 shadow-card transition-[translate,box-shadow] duration-300 ease-spring hover:-translate-y-[3px] hover:shadow-card-hover @min-[600px]:grid-cols-[52px_minmax(0,1fr)_90px_44px_auto]"
+    :class="result.wash"
+  >
+    <span aria-hidden="true" class="absolute inset-y-0 left-0 w-[5px]" :class="result.bar" />
+    <span class="relative size-[52px]">
+      <span class="absolute inset-0 overflow-hidden rounded-2xl bg-surface-sunken">
+        <span class="absolute inset-0 bg-[length:112%] bg-center transition-transform duration-[600ms] ease-out-expo group-hover:scale-[1.15]" :style="championStyle" />
+      </span>
+      <span class="absolute -bottom-[7px] -right-[7px] flex h-5 min-w-[22px] items-center justify-center rounded-full border border-border-accent bg-surface-base px-1 text-[10.5px] font-bold">{{ participant.champLevel }}</span>
+    </span>
+
+    <span class="flex min-w-0 flex-col gap-1">
+      <span class="flex min-w-0 items-center gap-2">
+        <span class="shrink-0 text-[12px] font-bold uppercase tracking-[0.04em]" :class="result.text">{{ result.label }}</span>
+        <span class="min-w-0 truncate text-[15.5px] font-bold">{{ title }}</span>
+        <span
+          v-if="entry.teammates.length > 0"
+          :title="teammatesTitle"
+          class="shrink-0 cursor-help rounded-full border border-border-accent px-1.5 text-[11px] font-bold text-text-sec"
+        >+{{ entry.teammates.length }}</span>
+        <span
+          v-if="transition"
+          :title="transition.text"
+          class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full py-px pl-[3px] pr-[9px] text-[11.5px] font-bold"
+          :class="transition.class"
+        >
+          <img :src="transition.emblem" alt="" class="size-5 object-contain">{{ transition.text }}
+        </span>
+      </span>
+      <span class="truncate text-[12.5px] font-semibold text-text-sec">
+        <template v-if="showPlayer"><span class="text-text-main">{{ championName }}</span> · </template>{{ meta }}<span class="@min-[600px]:hidden"> · {{ clock }}</span>
+      </span>
+      <span class="mt-[3px] hidden gap-[3px] @min-[700px]:flex">
+        <span
+          v-for="item in items"
+          :key="item.slot"
+          class="size-[22px] shrink-0 rounded-md bg-(--color-item-bg) bg-cover bg-center"
+          :class="item.slot === 6 ? 'ml-1' : ''"
+          :style="item.url ? { backgroundImage: `url('${item.url}')` } : undefined"
+        />
+      </span>
+    </span>
+
+    <span class="hidden flex-col items-end gap-0.5 @min-[600px]:flex">
+      <span class="whitespace-nowrap font-mono text-sm font-semibold">{{ kda }}</span>
+      <span class="whitespace-nowrap text-[11.5px] font-semibold text-text-sec">{{ kdaRatio }}</span>
+    </span>
+    <span class="hidden text-right font-mono text-xs text-text-sec @min-[600px]:block">{{ clock }}</span>
+
+    <span class="flex flex-col items-end gap-[5px]">
+      <span class="whitespace-nowrap font-mono text-xs font-semibold @min-[600px]:hidden">{{ kda }}</span>
+      <span
+        v-if="lp?.kind === 'known'"
+        :title="lp.title"
+        class="whitespace-nowrap rounded-full px-2.5 py-1 font-mono text-xs font-semibold"
+        :class="lp.class"
+      >{{ lp.text }}</span>
+      <span
+        v-else-if="lp?.kind === 'none'"
+        :title="lp.title"
+        class="cursor-help whitespace-nowrap rounded-full border border-dashed border-border-accent px-2.5 py-1 text-[11.5px] font-bold text-text-sec"
+      >Sans LP</span>
+    </span>
+  </NuxtLink>
+</template>
