@@ -56,6 +56,23 @@
   --color-loss-soft: var(--color-loss-tint);
   --color-loss-track: var(--color-loss-rail);
 
+  /* Match page data colours: the two sides of a game and the three damage types. The red side
+     shares its values with `loss`, but a side is not a result: the red team can win. */
+  --color-team-blue: var(--color-team-blue-fill);
+  --color-team-blue-text: var(--color-team-blue-ink);
+  --color-team-blue-soft: var(--color-team-blue-tint);
+  --color-team-red: var(--color-team-red-fill);
+  --color-team-red-text: var(--color-team-red-ink);
+  --color-team-red-soft: var(--color-team-red-tint);
+  --color-dmg-physical: var(--color-dmg-physical-fill);
+  --color-dmg-magic: var(--color-dmg-magic-fill);
+  --color-dmg-true: var(--color-dmg-true-fill);
+  /* The ACE accolade (best player of the losing side). */
+  --color-violet: var(--color-violet-ink);
+  --color-violet-soft: var(--color-violet-tint);
+  /* A picked row (the scoreboard's analysed player, a ranking's highlighted bar). */
+  --color-surface-selected: var(--color-surface-picked);
+
   /* `inverse` flips with the theme (selected pills, primary buttons); `ink` stays dark in both
      (footer, tooltips, mobile bar, and the photo-backed hero cards). */
   --color-inverse: var(--color-inverse-bg);
@@ -69,6 +86,8 @@
   --color-on-photo-lime: #7FE0A0;
   --color-on-photo-red: #F5A39C;
   --color-on-photo-gold: #F0C866;
+  --color-on-photo-mint: #8FD9A0;
+  --color-on-photo-blue: #B7CCF0;
   --color-signal: #4CD07D;
 
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -81,6 +100,7 @@
   --animate-bob: jd-bob 4s ease-in-out infinite;
   --animate-ping-slow: jd-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
   --animate-draw: jd-draw 1.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-throb: jd-throb 1.6s ease-in-out infinite;
 
   @keyframes jd-rise {
     from { opacity: 0; transform: translateY(18px) scale(0.97); }
@@ -100,6 +120,11 @@
   }
   @keyframes jd-ping {
     75%, 100% { transform: scale(2.4); opacity: 0; }
+  }
+  /* Breathes while something is being worked on (rAImmus writing a report). */
+  @keyframes jd-throb {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.12); opacity: 0.6; }
   }
   /* Draws a stroked path from its start; the path sets `stroke-dasharray` to at least its length. */
   @keyframes jd-draw {
@@ -142,6 +167,18 @@
   --color-ink-bg: #16241B;
   --color-ink-fg: #F4F5F0;
   --color-ink-fg-muted: #C3CEC1;
+  --color-team-blue-fill: #4F7FD6;
+  --color-team-blue-ink: #2F5BA8;
+  --color-team-blue-tint: #E6EDF9;
+  --color-team-red-fill: #D35A4F;
+  --color-team-red-ink: #B23A30;
+  --color-team-red-tint: #F8E1DD;
+  --color-dmg-physical-fill: #D9A43A;
+  --color-dmg-magic-fill: #5B86D6;
+  --color-dmg-true-fill: #9AA59C;
+  --color-violet-ink: #5B4390;
+  --color-violet-tint: #E6E0F2;
+  --color-surface-picked: #EEF3EA;
 
   --shadow-card-value: 0 1px 2px rgba(22, 36, 27, 0.04), 0 14px 34px -18px rgba(22, 36, 27, 0.22);
   --shadow-card-hover-value: 0 1px 2px rgba(22, 36, 27, 0.04), 0 26px 48px -20px rgba(22, 36, 27, 0.32);
@@ -150,13 +187,9 @@
   --page-wash: radial-gradient(60% 70% at 15% 0%, rgba(107, 163, 92, 0.14), transparent 70%), radial-gradient(40% 50% at 90% 0%, rgba(223, 174, 73, 0.10), transparent 70%);
   --header-bg: rgba(244, 245, 240, 0.82);
 
-  /* Washes and overlays still read by the match page */
+  /* Read raw: the error page's glow and the empty item slots of `LolGameCard` */
   --color-glow: rgba(255, 255, 255, 0.5);
-  --color-mascot-shadow: rgba(22, 36, 27, 0.2);
   --color-item-bg: rgba(22, 36, 27, 0.07);
-  --color-item-line: rgba(22, 36, 27, 0.05);
-  --color-win-wash: rgba(63, 166, 106, 0.06);
-  --color-loss-wash: rgba(211, 90, 79, 0.06);
 
   color-scheme: light;
 }
@@ -195,6 +228,18 @@
   --color-ink-bg: #18231C;
   --color-ink-fg: #E9F0E6;
   --color-ink-fg-muted: #A6B5A4;
+  --color-team-blue-fill: #6E9BEA;
+  --color-team-blue-ink: #9DBBF2;
+  --color-team-blue-tint: rgba(110, 155, 234, 0.16);
+  --color-team-red-fill: #E8574E;
+  --color-team-red-ink: #F07A71;
+  --color-team-red-tint: rgba(232, 87, 78, 0.14);
+  --color-dmg-physical-fill: #E0AE45;
+  --color-dmg-magic-fill: #7199E6;
+  --color-dmg-true-fill: #8A998A;
+  --color-violet-ink: #BBA6EC;
+  --color-violet-tint: rgba(155, 122, 224, 0.18);
+  --color-surface-picked: rgba(107, 163, 92, 0.14);
 
   --shadow-card-value: 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 34px -18px rgba(0, 0, 0, 0.7);
   --shadow-card-hover-value: 0 1px 2px rgba(0, 0, 0, 0.3), 0 26px 48px -20px rgba(0, 0, 0, 0.8);
@@ -204,11 +249,7 @@
   --header-bg: rgba(12, 18, 14, 0.8);
 
   --color-glow: rgba(255, 255, 255, 0.05);
-  --color-mascot-shadow: rgba(0, 0, 0, 0.4);
   --color-item-bg: rgba(255, 255, 255, 0.05);
-  --color-item-line: rgba(255, 255, 255, 0.05);
-  --color-win-wash: rgba(76, 208, 125, 0.1);
-  --color-loss-wash: rgba(232, 87, 78, 0.1);
 
   color-scheme: dark;
 }

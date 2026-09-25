@@ -80,10 +80,12 @@ rather than through Nitro's auto-import, so dependencies stay visible.
 
 **Design tokens** — `app/assets/css/main.css` defines raw values on `:root` (`--color-gold`) and maps
 them in `@theme` to what Tailwind exposes (`--color-brand-gold`). Write `bg-surface-base`,
-`text-text-main`, `text-brand-gold` — never a raw hex in a component. **Light is the default theme**
-(the v7 design palette) and the `.dark` class switches to a dark one; new code uses `dark:`, while
-`light:` stays active whenever `.dark` is absent so the pages written dark-first keep their light
-corrections. The custom `rail:` breakpoint (1100px) is declared in rem so Tailwind sorts it after
+`text-text-main`, `text-brand-gold` — never a raw hex in a component. The match page's data colours
+are tokens too: `team-blue` / `team-red` (with `-text` and `-soft`), `dmg-physical` / `dmg-magic` /
+`dmg-true`, `violet` for the ACE accolade and `surface-selected` for a picked row. **Light is the
+default theme** (the v7 design palette) and the `.dark` class switches to a dark one; new code uses
+`dark:`, while `light:` stays active whenever `.dark` is absent so the few components written
+dark-first keep their light corrections. The custom `rail:` breakpoint (1100px) is declared in rem so Tailwind sorts it after
 `md:`.
 
 ## 🔑 Authentication
@@ -220,6 +222,15 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   one shared `LolGameCard`), and a rail (LP progression and
   per-game LP bars, champions, roles, duos). Same data and routes as before; the per-queue game
   counts the mock-up shows in the queue filter are left out, since the API does not serve them.
+- **Match page on design v7** (2026-09-25): `/game/[id]/[playerId]` was rebuilt from the Claude
+  Design mock-up "JungleDiff Partie v5": an ink hero over the champion splash (result, rating,
+  MVP/ACE, the game's LP), per-team objective cards, key moments, and the five tabs in a pill bar that
+  sticks under the header. Every feature was kept — scoreboards with unfolding advanced stats, the
+  smurf badge, OP.GG / DPM links, LP per game, the film, the Performance charts, rAImmus and the raw
+  table — and two were fixed on the way: a click on a kill-feed event now moves the film (the caption
+  promised it, the event was never emitted), and the rating and KDA tones render again (they pointed
+  at colour classes that no longer existed). The team and damage-type colours are now design tokens.
+  "Synchroniser" still re-reads the match rather than asking the API to re-import it.
 - **Home on live data** (2026-09-25): the GameOn API now serves everything the v7 home needs, and the
   temporary placeholders are gone. `GET /lol/Home?window=Last7Days` gives a rolling 7-day window with
   its bounds, a per-day breakdown (games, playtime, net LP), the active players, and last week's wins

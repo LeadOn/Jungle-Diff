@@ -1,28 +1,6 @@
-<template>
-  <div class="flex flex-wrap gap-2">
-    <button
-      v-for="player in players"
-      :key="player.puuid"
-      type="button"
-      :aria-pressed="player.puuid === selectedPuuid"
-      class="inline-flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-sm font-semibold transition-colors"
-      :class="pillClass(player)"
-      @click="select(player)"
-    >
-      <UiAppImage
-        :src="championIconUrl(player)"
-        :alt="player.championName"
-        class="h-7 w-7 shrink-0 rounded-full object-cover ring-2"
-        :class="ringClass(player)"
-      />
-      {{ displayName(player) }}
-    </button>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { LoLGameParticipantDto } from '~/lib/types/match'
-import { championIconUrl as getChampionIconUrl } from '~/utils/lol-match'
+import { championIconUrl } from '~/utils/lol-match'
 
 const props = defineProps<{
   players: LoLGameParticipantDto[]
@@ -34,26 +12,26 @@ const emit = defineEmits<{
   (e: 'update:selectedPuuid', puuid: string): void
 }>()
 
-const select = (player: LoLGameParticipantDto) => {
-  emit('update:selectedPuuid', player.puuid ?? '')
-}
-
-const championIconUrl = (player: LoLGameParticipantDto): string => {
-  return getChampionIconUrl(player.championName ?? '', props.patch)
-}
-
-const displayName = (player: LoLGameParticipantDto): string => {
-  return player.riotIdGameName || 'Inconnu'
-}
-
-const ringClass = (player: LoLGameParticipantDto): string => {
-  return player.teamId === 100 ? 'ring-brand-green' : 'ring-brand-red'
-}
-
-const pillClass = (player: LoLGameParticipantDto): string => {
-  if (player.puuid === props.selectedPuuid) {
-    return 'border-brand-gold/60 bg-brand-gold/10 text-brand-gold'
-  }
-  return 'border-border-base text-text-secondary hover:text-text-main bg-white/5 hover:bg-white/10 light:bg-black/5'
-}
+const championStyle = (player: LoLGameParticipantDto) => ({ backgroundImage: `url('${championIconUrl(player.championName, props.patch)}')` })
 </script>
+
+<template>
+  <div role="group" aria-label="Choisir un joueur" class="flex flex-wrap gap-2">
+    <button
+      v-for="player in players"
+      :key="player.puuid"
+      type="button"
+      :aria-pressed="player.puuid === selectedPuuid"
+      class="inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-full border pl-[5px] pr-3.5 text-[13px] font-bold transition-[background-color,color,translate] duration-[250ms] ease-spring hover:-translate-y-0.5"
+      :class="player.puuid === selectedPuuid ? 'border-inverse bg-inverse text-inverse-text' : 'border-border-base bg-surface-base text-text-main'"
+      @click="emit('update:selectedPuuid', player.puuid ?? '')"
+    >
+      <span
+        class="size-7 shrink-0 rounded-full bg-surface-sunken bg-[length:112%] bg-center ring-2"
+        :class="player.teamId === 100 ? 'ring-team-blue' : 'ring-team-red'"
+        :style="championStyle(player)"
+      />
+      {{ player.riotIdGameName || 'Inconnu' }}
+    </button>
+  </div>
+</template>
