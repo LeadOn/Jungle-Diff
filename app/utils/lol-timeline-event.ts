@@ -466,7 +466,7 @@ export function teamObjectivesFor(
 }
 
 export function teamAccentTextClass(teamId?: number | null): string {
-  if (teamId === 100) return 'text-mpGreenInk';
-  if (teamId === 200) return 'text-mpRedInk';
-  return 'text-mpTextSecondary';
+  if (teamId === 100) return 'text-team-blue-text';
+  if (teamId === 200) return 'text-team-red-text';
+  return 'text-text-sec';
 }

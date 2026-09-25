@@ -1,164 +1,104 @@
-<template>
-  <button
-    type="button"
-    class="flex w-full items-center justify-between px-5 py-4"
-    :aria-expanded="expanded"
-    @click="toggleExpanded"
-  >
-    <div class="text-left">
-      <p class="font-heading text-text-main text-base font-semibold">
-        Statistiques brutes
-      </p>
-      <p class="text-text-ter mt-0.5 text-[13px]">
-        Toutes les données Riot par joueur, telles que renvoyées par l'API (noms
-        techniques)
-      </p>
-    </div>
-
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      class="text-text-secondary h-4 w-4 shrink-0 transition-transform"
-      :class="{ 'rotate-180': expanded }"
-    >
-      <path d="M4 6l4 4 4-4" />
-    </svg>
-  </button>
-
-  <div v-if="expanded" class="border-border-base overflow-x-auto border-t">
-    <table class="w-full border-collapse whitespace-nowrap text-xs">
-      <thead>
-        <tr class="border-border-base border-b">
-          <th
-            class="bg-surface-base border-border-base sticky left-0 z-10 border-r px-3 py-2 text-left font-semibold"
-          >
-            Statistique
-          </th>
-          <th
-            v-for="player in players"
-            :key="player.id"
-            class="px-3 py-2 text-left font-semibold"
-          >
-            <div class="flex items-center gap-2">
-              <div class="relative shrink-0">
-                <UiAppImage
-                  class="border-border-base h-6 w-6 rounded-full border object-cover"
-                  :src="championIconUrl(player)"
-                  :alt="player.championName"
-                />
-                <UiAppImage
-                  v-if="roleIconUrl(player)"
-                  class="border-border-base bg-surface-base absolute -left-1 -top-1 h-3 w-3 rounded-full border p-px"
-                  :src="roleIconUrl(player)"
-                  :title="roleLabel(player)"
-                  alt=""
-                />
-              </div>
-              <span
-                class="max-w-[7rem] truncate"
-                :class="nameColorClass(player)"
-              >
-                {{ playerDisplayName(player) }}
-              </span>
-            </div>
-          </th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr
-          v-for="row in rows"
-          :key="row.key"
-          class="border-border-base hover:bg-white/5 light:hover:bg-black/5 border-b"
-        >
-          <td
-            class="bg-surface-base border-border-base text-text-ter sticky left-0 z-10 border-r px-3 py-1.5"
-          >
-            {{ row.label }}
-          </td>
-            <td
-            v-for="player in players"
-            :key="player.id"
-            class="text-text-main px-3 py-1.5"
-          >
-            {{ cellValue(player, row.key as string) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
-import {
-  CHALLENGE_FIELD_KEYS,
-  challengeFieldLabel,
-} from '~/utils/lol-challenge-fields'
-import {
-  championIconUrl as getChampionIconUrl,
-  playerDisplayName as getPlayerDisplayName,
-} from '~/utils/lol-match'
-import {
-  roleIconUrl as getRoleIconUrl,
-  roleLabel as getRoleLabel,
-} from '~/utils/lol-role'
+import { CHALLENGE_FIELD_KEYS, challengeFieldLabel } from '~/utils/lol-challenge-fields'
+import { championIconUrl, playerRiotName } from '~/utils/lol-match'
+import { roleIconUrl, roleLabel } from '~/utils/lol-role'
 
 const props = defineProps<{
   players: LoLGameParticipantDto[]
   patch: string
   expandedDefault?: boolean
+  /** The signed-in viewer's GameOn id, resolved after mount; `null` otherwise. */
+  mePlayerId?: number | null
 }>()
 
 const expanded = ref(props.expandedDefault ?? false)
 
-const toggleExpanded = () => {
-  expanded.value = !expanded.value
-}
+const rows = CHALLENGE_FIELD_KEYS.map(key => ({ key, label: challengeFieldLabel(key) }))
 
-const rows = CHALLENGE_FIELD_KEYS.map((key) => ({
-  key,
-  label: challengeFieldLabel(key),
-}))
+const numberFormat = new Intl.NumberFormat('fr-FR')
 
-const playerDisplayName = (player: LoLGameParticipantDto): string => {
-  return getPlayerDisplayName(player)
-}
-
-const championIconUrl = (player: LoLGameParticipantDto): string => {
-  return getChampionIconUrl(player.championName, props.patch)
-}
-
-const roleIconUrl = (player: LoLGameParticipantDto): string | undefined => {
-  return getRoleIconUrl(player.teamPosition)
-}
-
-const roleLabel = (player: LoLGameParticipantDto): string => {
-  return getRoleLabel(player.teamPosition)
-}
-
-const nameColorClass = (player: LoLGameParticipantDto): string => {
-  return player.teamId === 100 ? 'text-blue-400' : 'text-brand-red'
-}
-
-const cellValue = (
-  player: LoLGameParticipantDto,
-  keyStr: string | number | symbol
-): string => {
-  const key = keyStr as keyof NonNullable<LoLGameParticipantDto['challenges']>
+const cellValue = (player: LoLGameParticipantDto, key: (typeof CHALLENGE_FIELD_KEYS)[number]): string => {
   const value = player.challenges?.[key]
-  if (value == null) {
-    return '—'
-  }
-
-  if (Number.isInteger(value)) {
-    return new Intl.NumberFormat('fr-FR').format(value)
-  }
-
-  return (value as number).toFixed(2).replace('.', ',')
+  if (value == null) return '—'
+  if (typeof value !== 'number') return String(value)
+  return Number.isInteger(value) ? numberFormat.format(value) : value.toFixed(2).replace('.', ',')
 }
+
+const isMe = (player: LoLGameParticipantDto) => props.mePlayerId != null && player.playerId === props.mePlayerId
+
+const championStyle = (player: LoLGameParticipantDto) => ({ backgroundImage: `url('${championIconUrl(player.championName, props.patch)}')` })
 </script>
+
+<template>
+  <section class="animate-rise overflow-hidden rounded-[26px] border border-border-subtle bg-surface-base shadow-card">
+    <button
+      type="button"
+      :aria-expanded="expanded"
+      class="flex w-full cursor-pointer items-center justify-between gap-3 p-[22px] text-left"
+      @click="expanded = !expanded"
+    >
+      <span>
+        <span class="block text-xl font-bold tracking-[-0.025em]">Statistiques brutes</span>
+        <span class="mt-[3px] block text-[12.5px] font-semibold text-text-sec">Toutes les données Riot par joueur, telles que renvoyées par l'API (noms techniques)</span>
+      </span>
+      <span class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-surface-muted">
+        <Icon name="lucide:chevron-down" class="size-[15px] transition-transform duration-300 ease-spring" :class="{ 'rotate-180': expanded }" />
+      </span>
+    </button>
+
+    <div v-if="expanded" class="overflow-x-auto border-t border-border-base">
+      <table class="w-full border-collapse whitespace-nowrap text-[12.5px]">
+        <thead>
+          <tr>
+            <th class="sticky left-0 z-[2] border-r border-border-base bg-surface-base px-4 py-3 text-left font-bold">Statistique</th>
+            <th
+              v-for="player in players"
+              :key="player.puuid"
+              class="px-3 py-2.5 text-left font-bold"
+              :class="{ 'bg-surface-highlight': isMe(player) }"
+            >
+              <span class="flex items-center gap-2">
+                <span class="relative size-[26px] shrink-0">
+                  <span class="absolute inset-0 rounded-lg bg-surface-sunken bg-[length:112%] bg-center" :style="championStyle(player)" />
+                  <span
+                    v-if="roleIconUrl(player.teamPosition)"
+                    :title="roleLabel(player.teamPosition)"
+                    class="absolute -left-[5px] -top-[5px] flex size-3.5 items-center justify-center rounded-full bg-ink"
+                  >
+                    <img :src="roleIconUrl(player.teamPosition)" alt="" class="size-2 brightness-0 invert">
+                  </span>
+                </span>
+                <span
+                  class="max-w-[110px] truncate"
+                  :class="player.teamId === 100 ? 'text-team-blue-text' : 'text-team-red-text'"
+                >{{ playerRiotName(player) }}</span>
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="(row, index) in rows" :key="row.key" :class="index % 2 ? 'bg-surface-base' : 'bg-surface-hover'">
+            <!-- Sticky over the scrolled columns, so it repeats the zebra fill of its row. -->
+            <td
+              class="sticky left-0 z-[1] border-r border-t border-border-base px-4 py-2 font-semibold text-text-sec"
+              :class="index % 2 ? 'bg-surface-base' : 'bg-surface-hover'"
+            >
+              {{ row.label }}
+            </td>
+            <td
+              v-for="player in players"
+              :key="player.puuid"
+              class="border-t border-border-subtle px-3 py-2 font-mono font-medium"
+              :class="{ 'bg-surface-highlight': isMe(player) }"
+            >
+              {{ cellValue(player, row.key) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</template>

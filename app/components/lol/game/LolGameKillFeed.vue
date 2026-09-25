@@ -1,155 +1,132 @@
-<template>
-  <div class="p-5">
-    <div class="border-border-base mb-4 flex flex-wrap items-center gap-1 rounded-full border p-1">
-      <button
-        v-for="f in filters"
-        :key="f.key"
-        type="button"
-        class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-        :class="[
-          filter === f.key
-            ? 'text-text-main bg-white/10 light:bg-black/5'
-            : 'text-text-ter hover:text-text-main'
-        ]"
-        @click="setFilter(f.key)"
-      >
-        {{ f.label }}
-      </button>
-    </div>
-
-    <p v-if="entries.length === 0" class="text-text-ter py-6 text-center text-sm">
-      Aucun événement pour ce filtre.
-    </p>
-
-    <div v-else class="max-h-[520px] space-y-1 overflow-y-auto pr-1">
-      <div
-        v-for="entry in entries"
-        :key="entry.event.id || entry.event.timestamp"
-        class="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2 light:bg-black/5"
-      >
-        <span class="text-text-ter w-12 shrink-0 text-right text-xs font-semibold">
-          {{ timeLabel(entry) }}
-        </span>
-
-        <UiAppImage
-          v-if="entry.iconUrl"
-          :src="entry.iconUrl"
-          alt=""
-          class="h-5 w-5 shrink-0 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-        />
-        <span v-else class="w-5 shrink-0 text-center text-sm">{{ entry.icon }}</span>
-
-        <UiAppImage
-          v-if="entry.killer"
-          :src="championIconUrl(entry.killer)"
-          alt=""
-          class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
-        />
-
-        <div class="min-w-0 flex-1 truncate text-sm">
-          <span
-            v-if="entry.killer"
-            class="font-semibold"
-            :class="accentClass(entry)"
-          >
-            {{ displayName(entry.killer) }}
-          </span>
-          <span class="text-text-secondary mx-1">{{ entry.label }}</span>
-          <span
-            v-if="entry.victim"
-            class="text-text-main font-semibold"
-          >
-            {{ displayName(entry.victim) }}
-          </span>
-        </div>
-
-        <UiAppImage
-          v-if="entry.victim"
-          :src="championIconUrl(entry.victim)"
-          alt=""
-          class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
-        />
-
-        <div v-if="entry.assists.length > 0" class="flex shrink-0 items-center gap-1.5">
-          <span class="text-text-ter text-[10px] font-semibold tracking-wide uppercase">
-            Assist
-          </span>
-          <div class="flex -space-x-2">
-            <UiAppImage
-              v-for="assist in entry.assists"
-              :key="assist.puuid"
-              :src="championIconUrl(assist)"
-              :alt="displayName(assist)"
-              :title="displayName(assist)"
-              class="border-bg-base h-5 w-5 shrink-0 rounded-full border object-cover"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import type { LoLGameTimelineFrame } from '~/lib/types/timeline'
-import { championIconUrl as getChampionIconUrl, formatTimestamp } from '~/utils/lol-match'
-import {
-  allTimelineEvents,
-  describeEvent,
-  teamAccentTextClass,
-} from '~/utils/lol-timeline-event'
+import { championIconUrl, formatTimestamp, nearestFrameIndex } from '~/utils/lol-match'
+import { championDisplayName } from '~/utils/lol-champion'
+import { allTimelineEvents, describeEvent, teamAccentTextClass } from '~/utils/lol-timeline-event'
 import type { KillFeedCategory, TimelineEventEntry } from '~/utils/lol-timeline-event'
 
 const props = defineProps<{
   players: LoLGameParticipantDto[]
   timeline?: LoLGameTimelineFrame[]
   patch: string
+  /** The film's position: events after it are dimmed, so the feed reads as the game so far. */
+  currentFrameIndex: number
+}>()
+
+const emit = defineEmits<{
+  (e: 'frameSelected', frameIndex: number): void
 }>()
 
 type FeedFilter = 'all' | KillFeedCategory
 
 const VISIBLE_CATEGORIES: KillFeedCategory[] = ['kills', 'objectives', 'wards']
 
-const filter = ref<FeedFilter>('all')
-
-const filters: { key: FeedFilter; label: string }[] = [
+const FILTERS: { key: FeedFilter, label: string }[] = [
   { key: 'all', label: 'Tout' },
   { key: 'kills', label: 'Éliminations' },
   { key: 'objectives', label: 'Objectifs' },
   { key: 'wards', label: 'Wards' },
 ]
 
+const filter = ref<FeedFilter>('all')
+
+const frames = computed(() => props.timeline ?? [])
+const currentTimestamp = computed(() => frames.value[props.currentFrameIndex]?.timestamp ?? 0)
+
 const entries = computed<TimelineEventEntry[]>(() => {
   const all = allTimelineEvents(props.timeline)
-    .map((event) => describeEvent(event, props.players))
-    .filter((entry) => VISIBLE_CATEGORIES.includes(entry.category))
+    .map(event => describeEvent(event, props.players))
+    .filter(entry => VISIBLE_CATEGORIES.includes(entry.category))
 
-  if (filter.value === 'all') {
-    return all
-  }
-
-  return all.filter((entry) => entry.category === filter.value)
+  return filter.value === 'all' ? all : all.filter(entry => entry.category === filter.value)
 })
 
-const setFilter = (f: FeedFilter) => {
-  filter.value = f
-}
+const countLabel = computed(() => `${entries.value.length} événement${entries.value.length > 1 ? 's' : ''}`)
 
-const timeLabel = (entry: TimelineEventEntry): string => {
-  return formatTimestamp(entry.event.timestamp)
-}
+const championName = (player?: LoLGameParticipantDto) => (player?.championName ? championDisplayName(player.championName) : '')
+const championStyle = (player: LoLGameParticipantDto) => ({ backgroundImage: `url('${championIconUrl(player.championName, props.patch)}')` })
 
-const championIconUrl = (player?: LoLGameParticipantDto): string => {
-  return getChampionIconUrl(player?.championName, props.patch)
-}
+const isPast = (entry: TimelineEventEntry) => entry.event.timestamp <= currentTimestamp.value
 
-const accentClass = (entry: TimelineEventEntry): string => {
-  return teamAccentTextClass(entry.teamId)
-}
-
-const displayName = (player?: LoLGameParticipantDto): string => {
-  return player?.championName ?? 'Inconnu'
-}
+const select = (entry: TimelineEventEntry) => emit('frameSelected', nearestFrameIndex(frames.value, entry.event.timestamp))
 </script>
+
+<template>
+  <section aria-labelledby="game-kill-feed" class="rounded-[26px] border border-border-subtle bg-surface-base p-[22px] shadow-card">
+    <div class="flex items-baseline justify-between gap-3">
+      <h3 id="game-kill-feed" class="m-0 text-xl font-bold tracking-[-0.025em]">Kill feed</h3>
+      <span class="text-[12.5px] font-semibold text-text-sec">{{ countLabel }}</span>
+    </div>
+    <p class="m-0 mb-3.5 mt-[3px] text-[12.5px] font-semibold text-text-sec">Cliquez un événement pour y déplacer le film</p>
+
+    <div role="group" aria-label="Filtrer les événements" class="mb-3.5 inline-flex flex-wrap rounded-full border border-border-subtle bg-surface-muted p-[3px]">
+      <button
+        v-for="f in FILTERS"
+        :key="f.key"
+        type="button"
+        :aria-pressed="filter === f.key"
+        class="cursor-pointer rounded-full px-[13px] py-1.5 text-[12.5px] font-bold transition-colors duration-200"
+        :class="filter === f.key ? 'bg-inverse text-inverse-text' : 'text-text-main'"
+        @click="filter = f.key"
+      >
+        {{ f.label }}
+      </button>
+    </div>
+
+    <p v-if="entries.length === 0" class="m-0 py-6 text-center text-sm font-semibold text-text-sec">
+      Aucun événement pour ce filtre.
+    </p>
+
+    <div v-else class="flex max-h-[540px] flex-col gap-1.5 overflow-y-auto pr-0.5">
+      <button
+        v-for="entry in entries"
+        :key="entry.event.id || entry.event.timestamp"
+        type="button"
+        class="flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] border border-border-subtle px-2.5 py-2 text-left transition-[translate,opacity] duration-300 ease-spring hover:translate-x-[3px]"
+        :class="isPast(entry) ? 'bg-surface-muted' : 'bg-surface-base opacity-55'"
+        @click="select(entry)"
+      >
+        <span class="w-12 shrink-0 rounded-full border border-border-base bg-surface-base py-0.5 text-center font-mono text-[11.5px] font-semibold">
+          {{ formatTimestamp(entry.event.timestamp) }}
+        </span>
+
+        <span v-if="entry.iconUrl" class="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink">
+          <UiAppImage :src="entry.iconUrl" alt="" class="size-[15px] object-contain" />
+        </span>
+        <span v-else class="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-loss-soft">
+          <span class="size-2 rounded-full bg-loss" />
+        </span>
+
+        <span
+          v-if="entry.killer"
+          class="size-[26px] shrink-0 rounded-full bg-surface-sunken bg-[length:112%] bg-center"
+          :style="championStyle(entry.killer)"
+        />
+
+        <span class="min-w-0 flex-1 truncate text-[13.5px]">
+          <span v-if="entry.killer" class="font-bold" :class="teamAccentTextClass(entry.teamId)">{{ championName(entry.killer) }}</span>
+          {{ ' ' }}<span class="font-medium text-text-sec">{{ entry.label }}</span>
+          <template v-if="entry.victim">
+            {{ ' ' }}<span class="font-bold">{{ championName(entry.victim) }}</span>
+          </template>
+        </span>
+
+        <span v-if="entry.assists.length > 0" class="flex shrink-0 items-center gap-[5px]">
+          <span class="text-[10.5px] font-bold uppercase tracking-[0.04em] text-text-sec">Assist</span>
+          <span class="flex">
+            <span
+              v-for="(assist, index) in entry.assists"
+              :key="assist.puuid"
+              :title="championName(assist)"
+              class="size-5 rounded-full border-[1.5px] border-surface-base bg-surface-sunken bg-[length:112%] bg-center"
+              :class="{ '-ml-[7px]': index > 0 }"
+              :style="championStyle(assist)"
+            />
+          </span>
+        </span>
+      </button>
+    </div>
+  </section>
+</template>
