@@ -50,21 +50,36 @@ public sign-up — authentication exists so a crew member can edit their own pro
   current page did not.
 - `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
   with one card per award defined in `app/utils/lol-awards.ts`.
-- `/summoner/[id]` — player profile: identity card, Solo/Duo and Flex rank cards, a period-filtered
-  performance KPI panel, a "Progression classement" card (`LpProgressionCard`: the rank sparkline
-  from `GET /lol/summoner/{id}/rank`, and under it `LpChangesChart`, one bar per ranked game from
-  `GET /lol/summoner/{id}/rank/changes`, both behind one Solo/Flex switch), a filterable and
-  paginated match history, and Champions / Rôles / Duos side panels. Server-rendered.
-- `/game/[id]/[playerId]` — match detail: win/loss-tinted header with MVP/ACE accolade, per-team
-  objectives, key moments, then five tabs — Vue d'ensemble (scoreboards + highlights), Film de la
-  partie (a timeline scrubber driving minimap, gold race, kill feed and charts), Performance (player
-  picker, KPI tiles, radar and damage/gold/ranking charts), rAImmus (the AI coach report), and a
-  collapsible Données brutes table.
+- `/summoner/[id]` — player profile, built from the Claude Design mock-up "JungleDiff Profil v5":
+  an ink hero over the player's main-champion splash (`LolPlayerHeader`: avatar and level, Riot ID,
+  archived / smurf-of chips, sync time, OP.GG / DPM links, Rafraîchir, a disabled "Comparer ·
+  Bientôt"), Solo/Duo and Flex rank cards with a win-rate ring and recent form, a period-filtered
+  performance KPI panel (flagged "Filtré · …" when the history's role or queue filter also narrows
+  it), then the match history (role and queue filters, games grouped by Paris day with a W/L and LP
+  chip) beside a rail: a "Progression classement" card (`LpProgressionCard`: the rank sparkline from
+  `GET /lol/summoner/{id}/rank`, and under it `LpChangesChart`, one bar per ranked game from
+  `GET /lol/summoner/{id}/rank/changes`, both behind one Solo/Flex switch), then Champions / Rôles /
+  Duos panels (the champion and duo lists show five, the rest on demand). Server-rendered; the crew
+  list is loaded after mount for the hero's `mainChampionName` and the smurf's main account.
+- `/game/[id]/[playerId]` — match detail, built from the Claude Design mock-up "JungleDiff Partie
+  v5": an ink hero over the route player's champion splash (`LolGameHeader`: result tinted
+  win/loss, rating and MVP/ACE chips, queue / duration / date / patch chips, the game's LP with a
+  promotion chip, Synchroniser, the match id), per-team objective cards (`LolGameObjectives`), key
+  moments, then five tabs in a pill bar that sticks under the site header — Vue d'ensemble (two
+  scoreboards, each row unfolding advanced stats, then "Mentions spéciales"), Film de la partie (a
+  timeline scrubber driving minimap, gold race, kill feed and charts; a click on a kill-feed event
+  moves the film there), Performance (player picker, KPI tiles, radar and damage/gold/stat/ranking
+  charts), rAImmus (the AI coach report), and a collapsible Données brutes table. "Synchroniser"
+  re-reads the match and its timeline from the API; it does not call `refreshGame` (the API's
+  `POST /lol/match/{id}/update`), which nothing in the UI sends. The viewer's "Vous" badges are
+  resolved after mount, like everywhere else. Participants are named by their Riot ID through
+  `playerRiotName` (`lol-match.ts`), like the profile's hero; the GameOn nickname
+  (`playerDisplayName`) only appears on a scoreboard row's crew chip, next to the Riot ID.
 - **LP per game** — `app/components/lol/LolRankChangeBadge.vue` renders a participant's `rankChange`
   as "+18 LP" / "-21 LP" / "0 LP" with a "Emerald II 27 LP → Emerald II 45 LP" tooltip, plus a
-  chevron chip tinted with the reached tier when the division or tier changes. It shows beside the
-  result in `LolGameCard` (in `compact` mode: emblem and chevrons only) and in every scoreboard row
-  on the match page. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
+  chevron chip tinted with the reached tier when the division or tier changes. It shows in every
+  scoreboard row on the match page. `LolGameCard` (the game cards of the home feed and of the
+  profile history) draws the same information as v7 chips of its own, from the same helpers. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
 - **rAImmus** — the AI coach, named after Rammus, rendered by
   `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
   neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
@@ -124,6 +139,11 @@ public sign-up — authentication exists so a crew member can edit their own pro
   wash are `@utility` classes over theme variables (`shadow-card`, `bg-scrim-side`,
   `bg-page-wash`). Text over splash art gets `text-shadow-photo` (inherited, so set it on the card):
   the scrims are kept light on purpose so the art shows, and the halo carries the contrast. Tier pastels (`tierTint`) are data colours in `lol-tier.ts`, not tokens.
+  The match page's data colours are tokens, because every chart and chip needs them as utilities:
+  the two sides (`team-blue` / `team-red`, each with `-text` and `-soft`), the damage types
+  (`dmg-physical`, `dmg-magic`, `dmg-true`), the ACE accolade (`violet`, `violet-soft`) and a picked
+  row (`surface-selected`). A side is not a result: `team-red` shares `loss`'s values but the red team
+  can win. Ratings map to tones through `ratingTone` / `ratingToneClass` in `lol-match.ts`.
 
 ## Authentication (no token ever reaches the browser)
 
@@ -178,9 +198,10 @@ public sign-up — authentication exists so a crew member can edit their own pro
   The mock-up has no dark variant and no theme button; both were added on purpose, the toggle sits in
   the header. `public/theme-init.js` applies a stored `dark` choice before first paint.
 - Two variants: `dark:` applies under `.dark` and is what new code uses. `light:` applies whenever
-  `.dark` is absent — components written for the former dark-first palette (the match page mostly)
-  carry their light-mode corrections under `light:`, and this definition keeps them active on the
-  new default without rewriting them.
+  `.dark` is absent — components written for the former dark-first palette carry their light-mode
+  corrections under `light:`, and this definition keeps them active on the new default without
+  rewriting them. Only `LolRankChangeBadge` and `RankHistory` still use it; the match page, its
+  former main user, was rebuilt on the v7 tokens.
 - `inverse` tokens flip with the theme (selected pills, primary buttons); `ink` tokens stay dark in
   both (footer, tooltips, the mobile bar, and cards printed over splash art).
 - Read and write the theme through `app/utils/theme.ts`; never test the class by hand.
@@ -298,8 +319,8 @@ Each of these is easy to reintroduce and hard to diagnose.
   directions are easy to confuse. On `/` it is a
   **view filter inside `CrewLadder`** (`buildLadder` in `app/utils/lol-ladder.ts`) and must stay one: `useLolStore.fetchPlayers()` has to keep
   returning every account, because `LolPlayerHeader` and `LolGameDetailsPlayer` walk `players` to
-  climb from a smurf to its main and `LolGameCard` uses it to tell a crew participant from an
-  outsider — filtering the store breaks the smurf badge and makes a smurf's games read as non-crew.
+  climb from a smurf to its main and the home feed (`buildFeed`) uses it to tell a crew participant
+  from an outsider — filtering the store breaks the smurf badge and makes a smurf's games read as non-crew.
   The store's cache is temporal and ignores its arguments, so a `fetchPlayers(includeSmurfs)` would
   additionally serve the previous call's list for a minute. `/lol/Home` has no such parameter at all:
   its `crewRecords` always include smurfs, and passing one does nothing.
@@ -413,10 +434,28 @@ Each of these is easy to reintroduce and hard to diagnose.
 - **Tier names are English on purpose.** `tierLabel` prints "Emerald II", matching the rank cards,
   the ladder and the LP charts; the LP badge reuses it rather than introducing a second, French
   vocabulary ("Émeraude") for the same tiers.
-- **`LolGameCard`'s text column needs its `min-w-0` chain.** Without it the result line's
-  `truncate` never engages: its min-content width propagates up, and anything added beside the
-  result (the LP badge did) pushes the mobile KDA off the card, which then scrolls sideways inside
-  its `overflow-hidden`.
+- **One game card for the home feed and the profile history: `LolGameCard`.** The home's version is
+  the reference; the profile once had a card of its own and the two drifted apart (backgrounds,
+  result label, LP column). Both lists feed it a `FeedEntry` from `buildFeed` — the profile passes
+  its own `playerId`, so every card is that player's and the other crew members become the "+N"
+  chip — and the profile sets `:show-player="false"`, titling the card with the champion instead of
+  a name repeated on every row. Its breakpoints are container queries (600px for the KDA / clock
+  columns, 700px for the items), so the list around it must be an `@container`: the profile's rail
+  takes 376px from the history column on desktop.
+- **`LolGameCard`'s text column needs its `minmax(0, 1fr)` track and `min-w-0` chain.** Without
+  them the title's `truncate` never engages: its min-content width propagates up, and the chips
+  beside the result push the KDA off the card.
+- **The hero's splash is read once.** `LolPlayerHeader` prefers the crew list's `mainChampionName`
+  and falls back to the profile's first `championStats` entry captured at setup — that list follows
+  the period filter, and the backdrop must not change when the period does.
+- **Charts drawn in a `preserveAspectRatio="none"` SVG stretch anything round.** The match page's
+  line charts scale their 800×220 view box to the card, so a `<circle>` becomes an ellipse: their
+  hover dot is an absolutely positioned `<span>` over the SVG, and their strokes carry
+  `vector-effect="non-scaling-stroke"`. Keep both when adding a chart of that kind.
+- **The gold race keeps one DOM order.** Its rows are laid out by `top` from their rank, but iterated
+  in roster order: re-sorting the elements themselves would re-insert them and skip the slide.
+- **Clip paths are document-wide ids.** `LolGameGoldChart` builds its two masks from `useId()`; a
+  hard-coded id would be shared by any second instance.
 
 ## Known Gaps
 

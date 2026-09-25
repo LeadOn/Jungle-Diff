@@ -1,6 +1,7 @@
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import type { LoLGameTimelineEvent, LoLGameTimelineFrame } from '~/lib/types/timeline'
 import { formatTimestamp } from './lol-match'
+import { championDisplayName } from './lol-champion'
 import {
   allTimelineEvents,
   BARON_ICON_URL,
@@ -15,7 +16,8 @@ export type KeyMomentTone = 'red' | 'blue' | 'yellow' | 'green'
 
 export interface KeyMoment {
   key: string
-  icon?: string
+  /** A short mono label ("FB", "ACE", "×3") for moments without a game sprite. */
+  glyph?: string
   iconUrl?: string
   title: string
   detail: string
@@ -40,7 +42,8 @@ const MULTI_KILL_TITLES: Record<number, string> = {
 }
 
 function playerName(players: LoLGameParticipantDto[], puuid?: string | null): string {
-  return findByPuuid(players, puuid)?.championName ?? 'Inconnu'
+  const championName = findByPuuid(players, puuid)?.championName
+  return championName ? championDisplayName(championName) : 'Inconnu'
 }
 
 function teamLabel(teamId?: number | null): string {
@@ -51,7 +54,7 @@ function teamLabel(teamId?: number | null): string {
 
 function moment(
   key: string,
-  iconSpec: { icon?: string; iconUrl?: string },
+  iconSpec: { glyph?: string; iconUrl?: string },
   title: string,
   detail: string,
   timestamp: number,
@@ -90,7 +93,7 @@ export function keyMoments(
     candidates.push(
       moment(
         'first-blood',
-        { icon: '🩸' },
+        { glyph: 'FB' },
         'Premier sang',
         `${playerName(players, firstBlood.killerPUUID)} élimine ${playerName(players, firstBlood.victimPUUID)}`,
         firstBlood.timestamp,
@@ -110,7 +113,7 @@ export function keyMoments(
     candidates.push(
       moment(
         'ace',
-        { icon: '💥' },
+        { glyph: 'ACE' },
         'Ace',
         `${playerName(players, ace.killerPUUID)} conclut, ${opponents} adversaires à terre`,
         ace.timestamp,
@@ -188,7 +191,7 @@ export function keyMoments(
     candidates.push(
       moment(
         'multi-kill',
-        { icon: '🔥' },
+        { glyph: `×${length}` },
         MULTI_KILL_TITLES[length] ?? `${length}x kill`,
         `${playerName(players, bestMulti.killerPUUID)} enchaîne ${length} éliminations`,
         bestMulti.timestamp,

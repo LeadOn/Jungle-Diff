@@ -23,9 +23,9 @@ export function kdaLabel(player: LoLGameParticipantDto): string {
 }
 
 export function kdaColorClass(value: number): string {
-  if (value >= 3) return 'text-mpGreenInk';
-  if (value >= 2) return 'text-mpYellowInk';
-  return 'text-mpTextSecondary';
+  if (value >= 3) return 'text-brand-green';
+  if (value >= 2) return 'text-brand-gold';
+  return 'text-text-sec';
 }
 
 export function itemSlots(player: LoLGameParticipantDto): number[] {
@@ -113,6 +113,22 @@ export function latestFrame(
   }
 
   return timeline.reduce((a, b) => (a.timestamp >= b.timestamp ? a : b));
+}
+
+/** Index of the frame closest to `timestamp` (ms), so an event can move the film to its minute. */
+export function nearestFrameIndex(frames: LoLGameTimelineFrame[], timestamp: number): number {
+  let bestIndex = 0;
+  let bestDiff = Infinity;
+
+  frames.forEach((frame, index) => {
+    const diff = Math.abs(frame.timestamp - timestamp);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
 }
 
 export function frameStatsFor(
@@ -327,11 +343,25 @@ export function ratingFor(
   return playerRating(player, team, timeline, durationSeconds);
 }
 
+export type RatingTone = 'gold' | 'green' | 'blue' | 'grey';
+
+export function ratingTone(rating: number): RatingTone {
+  if (rating >= 9) return 'gold';
+  if (rating >= 6.5) return 'green';
+  if (rating >= 5) return 'blue';
+  return 'grey';
+}
+
+const RATING_TONE_CLASSES: Record<RatingTone, string> = {
+  gold: 'bg-brand-gold-soft text-brand-gold',
+  green: 'bg-win-soft text-brand-green',
+  blue: 'bg-team-blue-soft text-team-blue-text',
+  grey: 'bg-surface-high text-text-sec',
+};
+
+/** The rating's chip on a light surface: a soft wash and its ink. */
 export function ratingToneClass(rating: number): string {
-  if (rating >= 9) return 'text-mpYellowInk border-mpYellow/45 bg-mpYellow/15';
-  if (rating >= 6.5) return 'text-mpGreenInk border-mpGreen/45 bg-mpGreen/15';
-  if (rating >= 5) return 'text-mpBlueInk border-mpBlue/45 bg-mpBlue/15';
-  return 'text-mpTextSecondary border-mpBorder bg-white/5';
+  return RATING_TONE_CLASSES[ratingTone(rating)];
 }
 
 export function compositeScore(
@@ -360,22 +390,37 @@ export function bestParticipant(
     .sort((a, b) => b.value - a.value)[0];
 }
 
+/** The GameOn nickname first: who the crew knows. Only the scoreboard's crew chip wants it. */
 export function playerDisplayName(player: LoLGameParticipantDto): string {
   return player.player?.nickname || player.riotIdGameName || 'Joueur inconnu';
 }
 
-export function playerFullName(player: LoLGameParticipantDto): string {
-  const riotName = player.riotIdGameName || 'Joueur inconnu';
-  const nickname = player.player?.nickname;
-
-  return nickname && nickname !== riotName
-    ? `${nickname} (${riotName})`
-    : riotName;
+/**
+ * The Riot name first, like the profile's hero and the ladder: how a participant is named everywhere
+ * on the match page. The GameOn nickname only stands in when the payload lacks the Riot ID.
+ */
+export function playerRiotName(player: LoLGameParticipantDto): string {
+  return player.riotIdGameName || player.player?.nickname || 'Joueur inconnu';
 }
 
 export function isLinkedToGameOn(player: LoLGameParticipantDto): boolean {
   return player.player != null;
 }
+
+export type TeamOutcome = 'win' | 'loss' | 'remake';
+
+/** A side's result, or `null` while the game is not synchronised (no winner recorded yet). */
+export function teamOutcome(game: LoLGameDto, teamId: number): TeamOutcome | null {
+  if (game.isRemake) return 'remake';
+  if (game.winningTeamId == null) return null;
+  return game.winningTeamId === teamId ? 'win' : 'loss';
+}
+
+export const TEAM_OUTCOME_LABELS: Record<TeamOutcome, string> = {
+  win: 'Victoire',
+  loss: 'Défaite',
+  remake: 'Remake',
+};
 
 export function gameDurationSeconds(game: LoLGameDto): number {
   const start = new Date(game.gameStart).getTime();

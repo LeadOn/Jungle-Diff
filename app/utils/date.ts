@@ -27,6 +27,7 @@ const weekdayLongFormat = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', we
 const weekdayNarrowFormat = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'narrow' })
 const shortDateFormat = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', day: 'numeric', month: 'short' })
 const dayMonthFormat = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' })
+const longDateFormat = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })
 
 const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1)
 
@@ -66,6 +67,17 @@ export function dayHeading(key: string, todayKey: string): { label: string, date
   if (age === 0) return { label: 'Aujourd\'hui', date: dayMonthFormat.format(date) }
   if (age === 1) return { label: 'Hier', date: dayMonthFormat.format(date) }
   return { label: capitalize(weekdayLongFormat.format(date)), date: shortDateFormat.format(date) }
+}
+
+/**
+ * Heading for a day of a player's history, which reaches back months: "Aujourd'hui", "Hier", then
+ * the full date with its year ("23 septembre 2026").
+ */
+export function longDayLabel(key: string, todayKey: string): string {
+  const age = daysBetween(key, todayKey)
+  if (age === 0) return 'Aujourd\'hui'
+  if (age === 1) return 'Hier'
+  return longDateFormat.format(keyToDate(key))
 }
 
 /** Labels the per-day charts print for a day key: `{ initial: "V", title: "Ven. 25 · aujourd'hui" }`. */

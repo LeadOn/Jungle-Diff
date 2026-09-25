@@ -5,8 +5,10 @@ import {useRoute, useAsyncData} from "#app";
 import {useGameOnLol} from "~/composables/useGameOnLol";
 import {formatQueue} from "~/lib/utils/lol";
 import {useLolStore} from "~/stores/lol";
+import {usePlayerStore} from "~/stores/player";
 
 import LolGameHeader from "~/components/lol/game/LolGameHeader.vue";
+import LolGameObjectives from "~/components/lol/game/LolGameObjectives.vue";
 import LolGameTabs from "~/components/lol/game/LolGameTabs.vue";
 import LolGameOverviewTab from "~/components/lol/game/LolGameOverviewTab.vue";
 import LolGameHighlights from "~/components/lol/game/LolGameHighlights.vue";
@@ -34,11 +36,13 @@ import {
   bestParticipant,
   durationSecondsFor,
   closestDdragonVersion,
+  playerRiotName,
 } from "~/utils/lol-match";
 
 const route = useRoute();
 const gameOnApi = useGameOnLol();
 const lolStore = useLolStore();
+const playerStore = usePlayerStore();
 
 const matchId = route.params.id as string;
 const playerId = route.params.playerId
@@ -71,7 +75,7 @@ if (error.value?.statusCode === 404 || !match.value) {
 
 // The timeline enriches the page (replay, minimap, charts) but does not gate it: its absence
 // degrades the display instead of failing it.
-const {data: timeline} = await useAsyncData(`timeline-${matchId}`, () =>
+const {data: timeline, refresh: refreshTimeline} = await useAsyncData(`timeline-${matchId}`, () =>
   gameOnApi.getGameTimeline(matchId).catch((e: unknown) => {
     console.error("[game] Timeline indisponible:", e);
     return null;
@@ -113,7 +117,18 @@ const queueLabel = computed(() => {
   return formatQueue(match.value.queueId, lolStore.queues);
 });
 
+/**
+ * Who is looking only matters for the "Vous" badges, and it is resolved after mount: the signed-in
+ * player is fetched client-side by the header, so the server render never carries it and the first
+ * client render must not either, or hydration would disagree.
+ */
+const isMounted = ref(false);
+const mePlayerId = computed(() =>
+  isMounted.value ? (playerStore.currentPlayer?.id ?? null) : null,
+);
+
 onMounted(() => {
+  isMounted.value = true;
   /**
    * `formatQueue` falls back to the queue list for ids the local table does not know, but this page
    * never populated it: only `/` and `/summoner/[id]` call `fetchQueues`, which is why a direct
@@ -199,11 +214,31 @@ const onPlayerSelected = (playerOrPuuid: LoLGameParticipantDto | string) => {
   }
 };
 
+/**
+ * Re-reads the match and its timeline from the GameOn API. It does not ask the API to re-import the
+ * game from Riot: the button reloads what the API already holds.
+ */
 const onSyncRequested = async () => {
   isSyncing.value = true;
-  await refresh();
-  isSyncing.value = false;
+  try {
+    await Promise.all([refresh(), refreshTimeline()]);
+  } finally {
+    isSyncing.value = false;
+  }
 };
+
+/** Back to the profile the page was opened from, or to the dashboard without one. */
+const backLink = computed(() => {
+  if (playerId == null || !Number.isFinite(playerId)) {
+    return {to: "/", label: "Retour à l'accueil"};
+  }
+  const hero = heroPlayer.value;
+  return {
+    to: `/summoner/${playerId}`,
+    // The Riot ID, which is the name the profile itself is titled with.
+    label: hero ? `Profil de ${playerRiotName(hero)}` : "Retour au profil",
+  };
+});
 
 /**
  * The coach analyses the player the page is built around, so its tab only exists when the route
@@ -217,15 +252,14 @@ const coachPlayerId = computed(() =>
 const tabs = computed(() => [
   {id: "overview", label: "Vue d'ensemble", icon: "lucide:layout-grid"},
   {id: "film", label: "Film de la partie", icon: "lucide:film"},
-  {id: "performance", label: "Performance", icon: "lucide:bar-chart-2"},
+  {id: "performance", label: "Performance", icon: "lucide:chart-no-axes-column"},
   ...(coachPlayerId.value != null
-    ? [{id: "rAImmus", label: "rAImmus", icon: "lucide:brain"}]
+    ? [{id: "rAImmus", label: "rAImmus", icon: "lucide:sparkles"}]
     : []),
-  {id: "raw", label: "Données brutes", icon: "lucide:table-properties"},
+  {id: "raw", label: "Données brutes", icon: "lucide:table"},
 ]);
 const activeTabId = ref("overview");
 
-const damageMode = ref<"dealt" | "taken">("dealt");
 const currentFrameIndex = ref(0);
 const playProgress = ref(0);
 
@@ -241,26 +275,64 @@ watch(
 </script>
 
 <template>
-  <div class="max-w-[1200px] mx-auto p-4 sm:p-6 pb-20">
-    <div class="mb-4">
-      <NuxtLink
-        :to="playerId ? `/summoner/${playerId}` : '/'"
-        class="text-text-ter hover:text-text-main inline-flex items-center gap-1 transition-colors text-sm font-medium">
-        <Icon name="lucide:arrow-left" class="w-4 h-4" /> Retour
-      </NuxtLink>
+  <div class="w-full">
+    <NuxtLink
+      :to="backLink.to"
+      class="mb-4 inline-flex h-[30px] items-center gap-2 rounded-full border border-border-base bg-surface-base pl-2.5 pr-3 text-[12.5px] font-bold transition-[border-color,translate] duration-[250ms] ease-spring hover:-translate-x-0.5 hover:border-border-accent">
+      <Icon name="lucide:arrow-left" class="size-[13px]" />
+      {{ backLink.label }}
+    </NuxtLink>
+
+    <!-- Only before the first answer: a sync re-reads the match and must not blank the page. -->
+    <div
+      v-if="!match && status === 'pending'"
+      aria-busy="true"
+      class="flex flex-col items-center gap-4 px-6 py-[110px]">
+      <img
+        src="~/assets/img/JungleDiff_Logo.png"
+        alt=""
+        class="size-[72px] animate-bob object-contain" >
+      <span
+        class="inline-flex items-center gap-[9px] text-sm font-bold text-text-sec">
+        <Icon
+          name="lucide:refresh-cw"
+          class="size-[15px] animate-spin text-win" />
+        Chargement de la partie…
+      </span>
     </div>
 
-    <div v-if="status === 'pending'">
-      <UiLoadingSpinner size="lg" />
+    <div
+      v-else-if="!match"
+      role="alert"
+      class="flex flex-wrap items-center gap-5 rounded-[26px] border border-brand-red/30 bg-surface-base p-[26px] shadow-card">
+      <img
+        src="~/assets/img/JungleDiff_Logo.png"
+        alt=""
+        class="size-20 object-contain grayscale-[0.4]" >
+      <div class="min-w-60 flex-1">
+        <h2 class="m-0 text-[26px] font-bold tracking-[-0.03em]">
+          Partie indisponible.
+        </h2>
+        <p
+          class="m-0 mt-1.5 text-pretty text-[14.5px] leading-normal text-text-sec">
+          L'API GameOn n'a pas pu charger le détail de cette partie. Réessayez
+          dans un instant.
+        </p>
+      </div>
+      <button
+        type="button"
+        :disabled="status === 'pending'"
+        class="inline-flex h-[46px] cursor-pointer items-center gap-[9px] rounded-full bg-inverse px-[22px] text-[15px] font-bold text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait"
+        @click="refresh()">
+        <Icon
+          name="lucide:refresh-cw"
+          class="size-[15px]"
+          :class="{'animate-spin': status === 'pending'}" />
+        Réessayer
+      </button>
     </div>
 
-    <div v-else-if="status === 'error' || error">
-      <UiErrorState
-        :message="error?.message || 'Failed to load match details'"
-        :retry="refresh" />
-    </div>
-
-    <div v-else-if="match" class="space-y-6">
+    <template v-else>
       <LolGameHeader
         :game="match"
         :hero-player="heroPlayer"
@@ -274,22 +346,27 @@ watch(
         :is-syncing="isSyncing"
         @sync-requested="onSyncRequested" />
 
-      <div class="mt-3">
-        <LolGameKeyMoments
-          :players="allPlayers"
-          :timeline="timeline || undefined"
-          :winning-team-id="match.winningTeamId" />
-      </div>
+      <LolGameObjectives
+        class="mt-4"
+        :game="match"
+        :team1="team1"
+        :team2="team2"
+        :timeline="timeline || undefined" />
 
-      <div class="flex justify-center mt-6">
-        <LolGameTabs
-          :tabs="tabs"
-          :active-id="activeTabId"
-          @update:active-id="activeTabId = $event" />
-      </div>
+      <LolGameKeyMoments
+        class="mt-4"
+        :players="allPlayers"
+        :timeline="timeline || undefined"
+        :winning-team-id="match.winningTeamId" />
 
-      <div class="mt-6">
-        <div v-if="activeTabId === 'overview'">
+      <LolGameTabs
+        class="mb-3 mt-5 md:mb-[18px] md:mt-7"
+        :tabs="tabs"
+        :active-id="activeTabId"
+        @update:active-id="activeTabId = $event" />
+
+      <div>
+        <div v-if="activeTabId === 'overview'" class="flex flex-col gap-4">
           <LolGameOverviewTab
             :game="match"
             :team1="team1"
@@ -299,222 +376,159 @@ watch(
             :selected-player="selectedPlayer"
             :mvp-puuid="mvpPuuid"
             :ace-puuid="acePuuid"
+            :me-player-id="mePlayerId"
             @player-selected="onPlayerSelected" />
 
-          <div
-            class="mt-4 rounded-2xl bg-surface-base border border-border-base shadow-sm">
-            <div class="border-border-base border-b px-5 py-4">
-              <p class="font-heading text-text-main text-base font-semibold">
-                Mentions spéciales
-              </p>
-            </div>
+          <section aria-labelledby="game-highlights" class="mt-5 md:mt-8">
+            <h2
+              id="game-highlights"
+              class="m-0 text-[32px] font-bold tracking-[-0.035em]">
+              Mentions spéciales
+            </h2>
+            <p class="m-0 mb-5 mt-1.5 text-sm font-semibold text-text-sec">
+              Les petits records de cette partie, sur les
+              {{ allPlayers.length }} joueurs
+            </p>
             <LolGameHighlights
               :players="allPlayers"
               :timeline="timeline || undefined"
               :duration-seconds="durationSecondsFor(match)"
-              :patch="patch" />
-          </div>
+              :patch="patch"
+              :me-player-id="mePlayerId" />
+          </section>
         </div>
 
         <div v-else-if="activeTabId === 'film'">
           <div
-            class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-            <div
-              class="border-border-base flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
-              <div>
-                <p class="font-heading text-text-main text-base font-semibold">
-                  Le film de la partie
-                </p>
-                <p class="text-text-ter mt-0.5 text-[13px]">
-                  Mini-carte, course à l'or et événements — pilotés par la même
-                  timeline
-                </p>
-              </div>
-
-              <div class="text-text-ter flex items-center gap-4 text-xs">
-                <span class="flex items-center gap-1.5">
-                  <span class="bg-brand-red h-2 w-2 rounded-full" />
-                  Éliminations
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="bg-brand-gold h-2 w-2 rounded-full" />
-                  Objectifs
-                </span>
-              </div>
-            </div>
-
-            <LolGameEventTimeline
-              v-model:current-frame-index="currentFrameIndex"
-              :timeline="timeline || undefined"
-              :players="allPlayers"
-              @play-progress-change="playProgress = $event" />
-
-            <div
-              class="border-border-base grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] border-t">
-              <LolGameMinimap
-                :timeline="timeline || undefined"
-                :players="allPlayers"
-                :current-frame-index="currentFrameIndex"
-                :patch="patch" />
-
-              <LolGameGoldRace
-                :timeline="timeline || undefined"
-                :team1="team1"
-                :team2="team2"
-                :patch="patch"
-                :current-frame-index="currentFrameIndex"
-                :play-progress="playProgress" />
-            </div>
+            v-if="!timeline?.length"
+            class="rounded-[22px] border-[1.5px] border-dashed border-border-dashed px-6 py-10 text-center text-sm font-bold text-text-sec">
+            Timeline indisponible pour cette partie : pas de film à rejouer.
           </div>
 
-          <div
-            class="grid grid-cols-[repeat(auto-fit,minmax(min(440px,100%),1fr))] items-start gap-4 mt-4">
-            <div
-              class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-              <div class="border-border-base border-b px-5 py-4">
-                <p class="font-heading text-text-main text-base font-semibold">
-                  Kill feed
-                </p>
-                <p class="text-text-ter mt-0.5 text-[13px]">
-                  Cliquez un événement pour y déplacer le film
-                </p>
+          <div v-else class="flex flex-col gap-4">
+            <section
+              aria-labelledby="game-film"
+              class="animate-rise overflow-hidden rounded-[26px] border border-border-subtle bg-surface-base shadow-card">
+              <div
+                class="flex flex-wrap items-end justify-between gap-x-5 gap-y-3 px-[22px] pt-[22px]">
+                <div>
+                  <h3
+                    id="game-film"
+                    class="m-0 text-xl font-bold tracking-[-0.025em]">
+                    Le film de la partie
+                  </h3>
+                  <p
+                    class="m-0 mt-[3px] text-[12.5px] font-semibold text-text-sec">
+                    Mini-carte, course à l'or et événements — pilotés par la
+                    même timeline
+                  </p>
+                </div>
+                <div class="flex gap-3.5 text-[12.5px] font-bold">
+                  <span class="flex items-center gap-1.5">
+                    <span class="size-[9px] rounded-full bg-loss" />
+                    Éliminations
+                  </span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="size-[9px] rounded-full bg-brand-gold-bright" />
+                    Objectifs
+                  </span>
+                </div>
               </div>
 
+              <LolGameEventTimeline
+                v-model:current-frame-index="currentFrameIndex"
+                :timeline="timeline"
+                :players="allPlayers"
+                @play-progress-change="playProgress = $event" />
+
+              <div
+                class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] border-t-[1.5px] border-dashed border-border-dashed">
+                <LolGameMinimap
+                  :timeline="timeline"
+                  :players="allPlayers"
+                  :current-frame-index="currentFrameIndex"
+                  :patch="patch" />
+                <LolGameGoldRace
+                  :timeline="timeline"
+                  :team1="team1"
+                  :team2="team2"
+                  :patch="patch"
+                  :current-frame-index="currentFrameIndex"
+                  :play-progress="playProgress" />
+              </div>
+            </section>
+
+            <div
+              class="grid grid-cols-[repeat(auto-fit,minmax(min(440px,100%),1fr))] items-start gap-4">
               <LolGameKillFeed
                 :players="allPlayers"
-                :timeline="timeline || undefined"
+                :timeline="timeline"
                 :patch="patch"
+                :current-frame-index="currentFrameIndex"
                 @frame-selected="currentFrameIndex = $event" />
-            </div>
 
-            <div class="flex flex-col gap-4">
-              <div
-                class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
+              <div class="flex flex-col gap-4">
                 <LolGameGoldChart
-                  :timeline="timeline || undefined"
+                  :timeline="timeline"
                   :team1="team1"
                   :team2="team2"
                   :selected-player="selectedPlayer"
                   :current-frame-index="currentFrameIndex" />
+                <!-- Hides itself whole when the timeline carries no champion stats. -->
+                <LolGameStatChart
+                  :timeline="timeline"
+                  :selected-player="selectedPlayer"
+                  :current-frame-index="currentFrameIndex" />
               </div>
-
-              <!-- Carries its own card chrome: it hides itself whole when the timeline has no
-                   champion stats, and an empty bordered box would remain otherwise. -->
-              <LolGameStatChart
-                :timeline="timeline || undefined"
-                :selected-player="selectedPlayer"
-                :current-frame-index="currentFrameIndex" />
             </div>
           </div>
         </div>
 
-        <div v-else-if="activeTabId === 'performance'">
+        <div
+          v-else-if="activeTabId === 'performance'"
+          class="flex flex-col gap-4">
           <LolGamePlayerPicker
             :players="allPlayers"
             :selected-puuid="selectedPlayer?.puuid"
             :patch="patch"
             @update:selected-puuid="onPlayerSelected" />
 
-          <div class="mt-4">
-            <LolGamePlayerPerformance
+          <LolGamePlayerPerformance
+            :player="selectedPlayer"
+            :players="allPlayers"
+            :timeline="timeline || undefined"
+            :patch="patch"
+            :duration-seconds="durationSecondsFor(match)"
+            :me-player-id="mePlayerId" />
+
+          <div
+            class="grid grid-cols-[repeat(auto-fit,minmax(min(440px,100%),1fr))] gap-4">
+            <LolGamePlayerRadar
               :player="selectedPlayer"
               :players="allPlayers"
+              :timeline="timeline || undefined" />
+            <LolGamePlayerDamageProfile
+              :player="selectedPlayer"
+              :players="allPlayers"
+              :timeline="timeline || undefined" />
+            <LolGamePlayerGold
+              :player="selectedPlayer"
+              :timeline="timeline || undefined" />
+            <LolGameStatChart
               :timeline="timeline || undefined"
-              :patch="patch"
-              :duration-seconds="durationSecondsFor(match)" />
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div
-              class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-              <LolGamePlayerRadar
-                :player="selectedPlayer"
-                :players="allPlayers"
-                :timeline="timeline || undefined" />
-            </div>
-
-            <div
-              class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-              <LolGamePlayerDamageProfile
-                :player="selectedPlayer"
-                :players="allPlayers"
-                :timeline="timeline || undefined" />
-            </div>
-
-            <div
-              class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-              <LolGamePlayerGold
-                :player="selectedPlayer"
-                :timeline="timeline || undefined" />
-            </div>
-
-            <div
-              class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-              <LolGameStatChart
-                :timeline="timeline || undefined"
-                :selected-player="selectedPlayer"
-                :current-frame-index="
-                  timeline?.length ? timeline.length - 1 : 0
-                " />
-            </div>
+              :selected-player="selectedPlayer"
+              :current-frame-index="timeline?.length ? timeline.length - 1 : 0"
+              :show-playhead="false" />
           </div>
 
           <div
-            class="mt-4 rounded-2xl bg-surface-base border border-border-base shadow-sm">
-            <div
-              class="border-border-base flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
-              <p class="font-heading text-text-main text-base font-semibold">
-                Dégâts aux champions
-              </p>
-
-              <div
-                class="border-border-base inline-flex items-center gap-1 rounded-full border p-1">
-                <button
-                  type="button"
-                  class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-                  :class="
-                    damageMode === 'dealt'
-                      ? 'text-text-main bg-white/10 light:bg-black/10'
-                      : 'text-text-ter hover:text-text-main hover:bg-white/5 light:hover:bg-black/5'
-                  "
-                  @click="damageMode = 'dealt'">
-                  Infligés
-                </button>
-                <button
-                  type="button"
-                  class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-                  :class="
-                    damageMode === 'taken'
-                      ? 'text-text-main bg-white/10 light:bg-black/10'
-                      : 'text-text-ter hover:text-text-main hover:bg-white/5 light:hover:bg-black/5'
-                  "
-                  @click="damageMode = 'taken'">
-                  Subis
-                </button>
-              </div>
-            </div>
-
+            class="grid grid-cols-[repeat(auto-fit,minmax(min(440px,100%),1fr))] items-start gap-4">
             <LolGameDamageChart
               :players="allPlayers"
               :timeline="timeline || undefined"
               :patch="patch"
-              :mode="damageMode"
               :selected-puuid="selectedPlayer?.puuid"
               @update:selected-puuid="onPlayerSelected" />
-          </div>
-
-          <div
-            class="mt-4 rounded-2xl bg-surface-base border border-border-base shadow-sm">
-            <div class="border-border-base border-b px-5 py-4">
-              <p class="font-heading text-text-main text-base font-semibold">
-                Comparaison des joueurs
-              </p>
-              <p class="text-text-ter mt-0.5 text-[13px]">
-                Classement des 10 joueurs sur une statistique &middot; cliquez
-                un joueur pour le mettre en avant
-              </p>
-            </div>
-
             <LolGameRankingChart
               :players="allPlayers"
               :selected-puuid="selectedPlayer?.puuid"
@@ -523,20 +537,18 @@ watch(
           </div>
         </div>
 
-        <div v-else-if="activeTabId === 'rAImmus' && coachPlayerId != null">
-          <LolGameCoachReport :match-id="matchId" :player-id="coachPlayerId" />
-        </div>
+        <LolGameCoachReport
+          v-else-if="activeTabId === 'rAImmus' && coachPlayerId != null"
+          :match-id="matchId"
+          :player-id="coachPlayerId" />
 
-        <div v-else-if="activeTabId === 'raw'">
-          <div
-            class="rounded-2xl bg-surface-base border border-border-base shadow-sm">
-            <LolGameRawStatsTable
-              :players="allPlayers"
-              :patch="patch"
-              :expanded-default="true" />
-          </div>
-        </div>
+        <LolGameRawStatsTable
+          v-else-if="activeTabId === 'raw'"
+          :players="allPlayers"
+          :patch="patch"
+          :expanded-default="true"
+          :me-player-id="mePlayerId" />
       </div>
-    </div>
+    </template>
   </div>
 </template>

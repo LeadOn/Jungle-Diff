@@ -81,9 +81,11 @@ test.describe("match detail page", () => {
     expect(response?.status()).toBe(200);
 
     // `exact` matters: key-moment captions contain phrases like "Pris par Teemo — l'équipe bleue",
-    // which a loose text match picks up and trips Playwright's strict mode on.
-    await expect(page.getByText("Équipe bleue", {exact: true})).toBeVisible();
-    await expect(page.getByText("Équipe rouge", {exact: true})).toBeVisible();
+    // which a loose text match picks up and trips Playwright's strict mode on. A side is also named
+    // by its objectives card, which a game without objectives omits: the last occurrence is the
+    // scoreboard's, whichever the case.
+    await expect(page.getByText("Équipe bleue", {exact: true}).last()).toBeVisible();
+    await expect(page.getByText("Équipe rouge", {exact: true}).last()).toBeVisible();
 
     // The tabs are <button role="tab">, so the accessible role is `tab`, not `button`.
     const tablist = page.getByRole("tablist");

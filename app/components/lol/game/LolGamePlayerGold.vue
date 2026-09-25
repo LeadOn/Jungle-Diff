@@ -1,171 +1,101 @@
-<template>
-  <div class="border-border-base border-b px-5 py-4">
-    <p class="font-heading text-text-main text-base font-semibold">Or cumulé</p>
-    <p class="text-text-ter mt-0.5 truncate text-[13px]">
-      {{ playerLabel }} — {{ finalGoldLabel }} or en fin de partie
-    </p>
-  </div>
-
-  <div class="p-5">
-    <div v-if="linePath" class="relative">
-      <div
-        v-if="hoverIndex != null"
-        class="border-border-base bg-surface-base pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs shadow-lg"
-        :style="{ left: `${hoverPercent}%` }"
-      >
-        <p class="text-text-ter">{{ hoverTimeLabel }}</p>
-        <p class="text-text-main font-semibold">{{ hoverValueLabel }}</p>
-      </div>
-
-      <svg
-        :viewBox="`0 0 ${width} ${height}`"
-        preserveAspectRatio="none"
-        class="h-56 w-full cursor-crosshair"
-        @mousemove="onChartMouseMove"
-        @mouseleave="onChartMouseLeave"
-      >
-        <path :d="areaPath" fill="rgba(240,190,78,0.22)" />
-        <path
-          :d="linePath"
-          fill="none"
-          class="stroke-brand-gold"
-          stroke-width="2"
-        />
-
-        <template v-if="hoverIndex != null">
-          <line
-            :x1="hoverX"
-            :x2="hoverX"
-            y1="0"
-            :y2="height"
-            class="stroke-brand-gold"
-            stroke-width="1"
-          />
-          <circle
-            :cx="hoverX"
-            :cy="hoverY"
-            r="4"
-            class="fill-brand-gold"
-          />
-        </template>
-      </svg>
-    </div>
-    <p v-else class="text-text-ter py-16 text-center text-sm">
-      Timeline indisponible pour cette partie.
-    </p>
-
-    <div class="text-text-ter mt-1 flex items-center justify-between text-xs">
-      <span>00:00</span>
-      <span>{{ endLabel }}</span>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import type { LoLGameTimelineFrame } from '~/lib/types/timeline'
-import {
-  formatCompact,
-  formatFull,
-  formatTimestamp,
-  frameStatsFor,
-  playerFullName,
-} from '~/utils/lol-match'
+import { formatCompact, formatFull, formatTimestamp, frameStatsFor, playerRiotName } from '~/utils/lol-match'
 
 const props = defineProps<{
   player?: LoLGameParticipantDto
   timeline?: LoLGameTimelineFrame[]
 }>()
 
-const width = 800
-const height = 220
+const WIDTH = 800
+const HEIGHT = 220
 
-const values = computed(() => {
-  const frames = props.timeline ?? []
-  return frames.map(
-    (frame) => frameStatsFor(frame, props.player?.puuid)?.totalGold ?? 0
-  )
-})
+const frames = computed(() => props.timeline ?? [])
+const values = computed(() => frames.value.map(frame => frameStatsFor(frame, props.player?.puuid)?.totalGold ?? 0))
 
-const endLabel = computed(() => {
-  const lastFrame = props.timeline?.[(props.timeline?.length ?? 0) - 1]
-  return lastFrame ? formatTimestamp(lastFrame.timestamp) : '00:00'
-})
-
-const finalGoldLabel = computed(() => {
-  const vals = values.value
-  return formatCompact(vals[vals.length - 1] ?? 0)
-})
+const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?? 0))
+const finalGoldLabel = computed(() => formatCompact(values.value.at(-1) ?? 0))
+const playerLabel = computed(() => (props.player ? playerRiotName(props.player) : ''))
 
 const points = computed(() => {
   const vals = values.value
   if (vals.length < 2) return []
-
   const max = Math.max(...vals, 1)
   return vals.map((value, index) => ({
-    x: (index / (vals.length - 1)) * width,
-    y: height - (value / max) * (height - 8),
+    x: (index / (vals.length - 1)) * WIDTH,
+    y: HEIGHT - 6 - (value / max) * (HEIGHT - 16),
   }))
 })
 
-const linePath = computed(() => {
-  const pts = points.value
-  if (pts.length < 2) return ''
-  return pts
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-    .join(' ')
-})
-
-const areaPath = computed(() => {
-  const lp = linePath.value
-  if (!lp) return ''
-  return `${lp} L${width},${height} L0,${height} Z`
-})
+const linePath = computed(() => points.value.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '))
+const areaPath = computed(() => (linePath.value ? `${linePath.value} L${WIDTH},${HEIGHT} L0,${HEIGHT} Z` : ''))
 
 const hoverIndex = ref<number | null>(null)
 
 const onChartMouseMove = (event: MouseEvent) => {
-  const pts = points.value
-  if (pts.length === 0) return
-
+  if (points.value.length === 0) return
   const rect = (event.currentTarget as SVGSVGElement).getBoundingClientRect()
-  const ratio = Math.min(
-    1,
-    Math.max(0, (event.clientX - rect.left) / rect.width)
-  )
-
-  hoverIndex.value = Math.round(ratio * (pts.length - 1))
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+  hoverIndex.value = Math.round(ratio * (points.value.length - 1))
 }
 
-const onChartMouseLeave = () => {
-  hoverIndex.value = null
-}
-
-const hoverX = computed(() => {
-  return hoverIndex.value == null ? undefined : points.value[hoverIndex.value]?.x
-})
-
-const hoverY = computed(() => {
-  return hoverIndex.value == null ? undefined : points.value[hoverIndex.value]?.y
-})
-
-const hoverPercent = computed(() => {
-  if (hoverX.value == null) return 0
-  return (hoverX.value / width) * 100
-})
-
-const hoverTimeLabel = computed(() => {
-  if (hoverIndex.value == null || props.timeline == null) return ''
-  return formatTimestamp(props.timeline[hoverIndex.value]?.timestamp ?? 0)
-})
-
-const hoverValueLabel = computed(() => {
-  if (hoverIndex.value == null) return ''
-  return `${formatFull(values.value[hoverIndex.value] ?? 0)} or`
-})
-
-const playerLabel = computed(() => {
-  return props.player ? playerFullName(props.player) : ''
+const hover = computed(() => {
+  const index = hoverIndex.value
+  const point = index == null ? undefined : points.value[index]
+  if (index == null || point == null) return null
+  return {
+    ...point,
+    percent: (point.x / WIDTH) * 100,
+    time: formatTimestamp(frames.value[index]?.timestamp ?? 0),
+    value: `${formatFull(values.value[index] ?? 0)} or`,
+  }
 })
 </script>
+
+<template>
+  <section class="rounded-[26px] border border-border-subtle bg-surface-base p-[22px] shadow-card">
+    <h3 class="m-0 text-xl font-bold tracking-[-0.025em]">Or cumulé</h3>
+    <p class="m-0 mt-[3px] truncate text-[12.5px] font-semibold text-text-sec">{{ playerLabel }} — {{ finalGoldLabel }} or en fin de partie</p>
+
+    <div v-if="linePath" class="relative mt-[18px]">
+      <span
+        v-if="hover"
+        role="tooltip"
+        class="pointer-events-none absolute -top-1.5 z-[5] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[14px] bg-ink px-[11px] py-[7px] text-ink-text"
+        :style="{ left: `${hover.percent}%` }"
+      >
+        <span class="block font-mono text-[11px] text-on-photo-green">{{ hover.time }}</span>
+        <span class="block text-[12.5px] font-bold">{{ hover.value }}</span>
+      </span>
+
+      <svg
+        :viewBox="`0 0 ${WIDTH} ${HEIGHT}`"
+        preserveAspectRatio="none"
+        class="block h-[220px] w-full cursor-crosshair"
+        @mousemove="onChartMouseMove"
+        @mouseleave="hoverIndex = null"
+      >
+        <path :d="areaPath" class="fill-brand-gold-bright/26" />
+        <path :d="linePath" fill="none" class="stroke-brand-gold-bright" stroke-width="2" vector-effect="non-scaling-stroke" />
+        <line v-if="hover" :x1="hover.x" :x2="hover.x" y1="0" :y2="HEIGHT" class="stroke-text-main/50" stroke-width="1" vector-effect="non-scaling-stroke" />
+      </svg>
+
+      <!-- Outside the SVG: its non-uniform scaling would stretch a circle into an ellipse. -->
+      <span
+        v-if="hover"
+        class="pointer-events-none absolute -ml-1 -mt-1 size-2 rounded-full bg-brand-gold-bright"
+        :style="{ left: `${hover.percent}%`, top: `${(hover.y / HEIGHT) * 100}%` }"
+      />
+    </div>
+    <p v-else class="m-0 mt-[18px] rounded-[14px] border-[1.5px] border-dashed border-border-dashed px-4 py-16 text-center text-[13px] font-semibold text-text-sec">
+      Timeline indisponible pour cette partie.
+    </p>
+
+    <div class="mt-1.5 flex justify-between font-mono text-[11.5px] text-text-sec">
+      <span>00:00</span>
+      <span>{{ endLabel }}</span>
+    </div>
+  </section>
+</template>

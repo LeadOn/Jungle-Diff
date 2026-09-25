@@ -1,131 +1,29 @@
-<template>
-  <div class="p-5">
-    <div
-      v-if="mode === 'dealt'"
-      class="text-text-ter mb-3 flex items-center justify-end gap-4 text-xs"
-    >
-      <span class="flex items-center gap-1.5">
-        <span class="bg-brand-gold h-2 w-2 rounded-full"/>
-        Physique
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="bg-blue-400 h-2 w-2 rounded-full"/>
-        Magique
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="bg-text-main h-2 w-2 rounded-full"/>
-        Brut
-      </span>
-    </div>
-
-    <div class="space-y-2.5">
-      <div
-        v-for="row in rows"
-        :key="row.player.puuid"
-        class="group relative flex cursor-pointer items-center gap-3 rounded-lg p-1.5 transition-colors"
-        :class="
-          selectedPuuid === row.player.puuid
-            ? 'light:bg-black/5 bg-white/10'
-            : 'light:hover:bg-black/5 hover:bg-white/5'
-        "
-        @click="select(row.player)"
-      >
-        <!-- The split behind each bar is only readable on hover. -->
-        <div
-          class="border-border-base bg-surface-base pointer-events-none absolute right-16 top-1/2 z-20 hidden -translate-y-1/2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[11px] shadow-lg group-hover:block"
-        >
-          <template v-if="mode === 'dealt'">
-            <p class="text-brand-gold">
-              Physique · {{ formatNumber(row.physical) }}
-            </p>
-            <p class="text-blue-400">
-              Magique · {{ formatNumber(row.magic) }}
-            </p>
-            <p class="text-text-main">
-              Brut · {{ formatNumber(row.trueDamage) }}
-            </p>
-          </template>
-          <template v-else>
-            <p class="text-brand-red">
-              Dégâts subis · {{ formatNumber(row.taken) }}
-            </p>
-          </template>
-        </div>
-        
-        <div class="flex w-36 min-w-0 shrink-0 items-center gap-2">
-          <span
-            class="h-2 w-2 shrink-0 rounded-full"
-            :class="row.player.teamId === 100 ? 'bg-brand-green' : 'bg-brand-red'"
-          />
-          <UiAppImage
-            :src="championIconUrl(row.player)"
-            :alt="row.player.championName"
-            class="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
-          />
-          <span class="text-text-main truncate text-xs font-medium">
-            {{ row.player.riotIdGameName }}
-          </span>
-        </div>
-
-        <div
-          class="h-4 flex-1 overflow-hidden rounded-full bg-white/5 light:bg-black/5"
-        >
-          <div
-            v-if="mode === 'dealt'"
-            class="flex h-full overflow-hidden rounded-full transition-all duration-500"
-            :style="{ width: `${widthPercent(row.total)}%` }"
-          >
-            <div
-              class="bg-brand-gold h-full"
-              :style="{ width: `${segmentPercent(row.physical, row.total)}%` }"
-            />
-            <div
-              class="bg-blue-400 h-full"
-              :style="{ width: `${segmentPercent(row.magic, row.total)}%` }"
-            />
-            <div
-              class="bg-text-main h-full"
-              :style="{ width: `${segmentPercent(row.trueDamage, row.total)}%` }"
-            />
-          </div>
-          <div
-            v-else
-            class="bg-brand-red h-full rounded-full transition-all duration-500"
-            :style="{ width: `${widthPercent(row.taken)}%` }"
-          />
-        </div>
-
-        <span
-          class="text-text-secondary w-16 shrink-0 text-right text-xs font-semibold"
-        >
-          {{ formatNumber(mode === 'dealt' ? row.total : row.taken) }}
-        </span>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import type { LoLGameParticipantDto } from '~/lib/types/match'
 import type { LoLGameTimelineFrame } from '~/lib/types/timeline'
-import {
-  championIconUrl as getChampionIconUrl,
-  damageSplitFor,
-  latestStatsFor,
-} from '~/utils/lol-match'
+import { championIconUrl, damageSplitFor, formatCompact, formatFull, latestStatsFor } from '~/utils/lol-match'
+import { useEntered } from '~/composables/useEntered'
 
 const props = defineProps<{
   players: LoLGameParticipantDto[]
   timeline?: LoLGameTimelineFrame[]
   patch: string
-  mode: 'dealt' | 'taken'
   selectedPuuid?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:selectedPuuid', puuid: string): void
 }>()
+
+type Mode = 'dealt' | 'taken'
+const MODES: { value: Mode, label: string }[] = [
+  { value: 'dealt', label: 'Infligés' },
+  { value: 'taken', label: 'Subis' },
+]
+const mode = ref<Mode>('dealt')
+
+const entered = useEntered()
 
 interface DamageRow {
   player: LoLGameParticipantDto
@@ -136,8 +34,10 @@ interface DamageRow {
   total: number
 }
 
-const rows = computed<DamageRow[]>(() => {
-  const r = props.players.map((player) => {
+const valueOf = (row: DamageRow) => (mode.value === 'dealt' ? row.total : row.taken)
+
+const rows = computed<DamageRow[]>(() => props.players
+  .map((player) => {
     const stats = latestStatsFor(props.timeline, player.puuid)
     const split = damageSplitFor(player, props.timeline)
     return {
@@ -149,39 +49,91 @@ const rows = computed<DamageRow[]>(() => {
       total: stats?.totalDamageDoneToChampions ?? 0,
     }
   })
+  .sort((a, b) => valueOf(b) - valueOf(a)))
 
-  const key = props.mode === 'dealt'
-    ? (x: DamageRow) => x.total
-    : (x: DamageRow) => x.taken
+const maxValue = computed(() => rows.value.reduce((m, r) => Math.max(m, valueOf(r)), 0) || 1)
 
-  return r.sort((a, b) => key(b) - key(a))
-})
+const widthPercent = (row: DamageRow) => (entered.value ? Math.max(2, (valueOf(row) / maxValue.value) * 100) : 0)
+const segmentPercent = (value: number, total: number) => (total <= 0 ? 0 : (value / total) * 100)
 
-const maxValue = computed(() => {
-  const key = props.mode === 'dealt'
-    ? (r: DamageRow) => r.total
-    : (r: DamageRow) => r.taken
+const championStyle = (player: LoLGameParticipantDto) => ({ backgroundImage: `url('${championIconUrl(player.championName, props.patch)}')` })
 
-  return rows.value.reduce((m, r) => Math.max(m, key(r)), 0) || 1
-})
-
-const widthPercent = (value: number): number => {
-  return Math.max(2, (value / maxValue.value) * 100)
-}
-
-const segmentPercent = (value: number, total: number): number => {
-  return total <= 0 ? 0 : (value / total) * 100
-}
-
-const championIconUrl = (player: LoLGameParticipantDto): string => {
-  return getChampionIconUrl(player.championName ?? '', props.patch)
-}
-
-const select = (player: LoLGameParticipantDto) => {
-  emit('update:selectedPuuid', player.puuid ?? '')
-}
-
-const formatNumber = (value: number) => {
-  return Math.round(value).toString()
+/** The picked player's bar turns ink; the others keep their side's colour. */
+const takenBarClass = (row: DamageRow) => {
+  if (row.player.puuid === props.selectedPuuid) return 'bg-text-main'
+  return row.player.teamId === 100 ? 'bg-team-blue' : 'bg-team-red'
 }
 </script>
+
+<template>
+  <section class="rounded-[26px] border border-border-subtle bg-surface-base p-[22px] shadow-card">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h3 class="m-0 text-xl font-bold tracking-[-0.025em]">Dégâts aux champions</h3>
+      <div role="group" aria-label="Dégâts affichés" class="flex rounded-full border border-border-subtle bg-surface-muted p-[3px]">
+        <button
+          v-for="m in MODES"
+          :key="m.value"
+          type="button"
+          :aria-pressed="mode === m.value"
+          class="cursor-pointer rounded-full px-[13px] py-1.5 text-[12.5px] font-bold transition-colors duration-200"
+          :class="mode === m.value ? 'bg-inverse text-inverse-text' : 'text-text-main'"
+          @click="mode = m.value"
+        >
+          {{ m.label }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="mode === 'dealt'" class="mb-3 flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs font-bold text-text-sec">
+      <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-dmg-physical" />Physiques</span>
+      <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-dmg-magic" />Magiques</span>
+      <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-dmg-true" />Bruts</span>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <button
+        v-for="row in rows"
+        :key="row.player.puuid"
+        type="button"
+        class="group relative flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-[5px] text-left transition-colors duration-200"
+        :class="selectedPuuid === row.player.puuid ? 'bg-surface-selected' : 'hover:bg-surface-muted'"
+        @click="emit('update:selectedPuuid', row.player.puuid ?? '')"
+      >
+        <!-- The split behind each bar is only readable on hover. -->
+        <span class="pointer-events-none absolute right-16 top-1/2 z-20 hidden -translate-y-1/2 whitespace-nowrap rounded-[14px] bg-ink px-[11px] py-[7px] text-[11.5px] font-bold text-ink-text group-hover:block">
+          <template v-if="mode === 'dealt'">
+            <span class="block">Physiques · {{ formatFull(row.physical) }}</span>
+            <span class="block">Magiques · {{ formatFull(row.magic) }}</span>
+            <span class="block">Bruts · {{ formatFull(row.trueDamage) }}</span>
+          </template>
+          <span v-else class="block">Dégâts subis · {{ formatFull(row.taken) }}</span>
+        </span>
+
+        <span
+          class="size-[26px] shrink-0 rounded-lg bg-surface-sunken bg-[length:112%] bg-center ring-2"
+          :class="row.player.teamId === 100 ? 'ring-team-blue' : 'ring-team-red'"
+          :style="championStyle(row.player)"
+        />
+        <span class="w-24 shrink-0 truncate text-[13px] font-bold">{{ row.player.riotIdGameName }}</span>
+        <span class="h-3 flex-1 overflow-hidden rounded-full bg-surface-high">
+          <span
+            v-if="mode === 'dealt'"
+            class="flex h-full overflow-hidden rounded-full transition-[width] duration-800 ease-spring-soft"
+            :style="{ width: `${widthPercent(row)}%` }"
+          >
+            <span class="h-full bg-dmg-physical" :style="{ width: `${segmentPercent(row.physical, row.total)}%` }" />
+            <span class="h-full bg-dmg-magic" :style="{ width: `${segmentPercent(row.magic, row.total)}%` }" />
+            <span class="h-full bg-dmg-true" :style="{ width: `${segmentPercent(row.trueDamage, row.total)}%` }" />
+          </span>
+          <span
+            v-else
+            class="block h-full rounded-full transition-[width] duration-800 ease-spring-soft"
+            :class="takenBarClass(row)"
+            :style="{ width: `${widthPercent(row)}%` }"
+          />
+        </span>
+        <span class="w-12 shrink-0 text-right font-mono text-xs font-semibold">{{ formatCompact(valueOf(row)) }}</span>
+      </button>
+    </div>
+  </section>
+</template>
