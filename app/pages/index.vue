@@ -1,36 +1,45 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter, useAsyncData } from '#app'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { refreshNuxtData, useAsyncData } from '#app'
 import { useLolStore } from '~/stores/lol'
 import { usePatchStore } from '~/stores/patch'
-import type { LoLFunStatDto } from '~/lib/types/home'
-import StatCard from '~/components/home/StatCard.vue'
-import LadderTable from '~/components/home/LadderTable.vue'
-import RecentGames from '~/components/home/RecentGames.vue'
-import SideCard from '~/components/home/SideCard.vue'
-import { getChampionIconUrl } from '~/utils/ddragon'
-import { AWARD_MAPPINGS, PRIORITY_KEYS } from '~/utils/lol-awards'
-import type { AwardMeta, LoLGlobalStatAwardKey } from '~/utils/lol-awards'
 import { cacheOnlyDuringHydration } from '~/utils/async-data'
-import { findPlayerByName } from '~/utils/player-search'
+import { isSmurf } from '~/utils/lol-smurf'
+import { dayRange, parisDayKey, timeAgo } from '~/utils/date'
+import WeekBento from '~/components/home/WeekBento.vue'
+import LiveStrip from '~/components/home/LiveStrip.vue'
+import CrewLadder from '~/components/home/CrewLadder.vue'
+import RecentGames from '~/components/home/RecentGames.vue'
+import PlayerOfTheWeek from '~/components/home/PlayerOfTheWeek.vue'
+import MonthRecords from '~/components/home/MonthRecords.vue'
+import CrewChampions from '~/components/home/CrewChampions.vue'
 
 const store = useLolStore()
 const patchStore = usePatchStore()
 
 /**
  * Owned by the page because it governs the whole dashboard, not just the ladder. Three different
- * mechanisms answer to it: `/lol/Home` re-queried with `includeSmurfs` (weekly tiles, fact of the
- * week, crew records), the ladder filtered in place from the full roster, and the recent-games list
- * filtered client side because `/lol/Match/last` still takes no such parameter.
+ * mechanisms answer to it: `/lol/Home` re-queried with `includeSmurfs` (weekly tiles, player of the
+ * week, crew records), the ladder filtered in place from the full roster, and the recent games
+ * re-queried through `/lol/Match/last`, which refills its page.
  *
  * Defaults to excluding smurfs, like `/stats`.
  */
 const includeSmurfs = ref(false)
 
-const router = useRouter()
-const searchName = ref('')
-const isSearchFocused = ref(false)
-const searchError = ref<string | null>(null)
+// "Synchro il y a 4 min" depends on the reader's clock, and `/` is served from a shared SWR cache:
+// the relative time only exists client side, refreshed every minute.
+const now = ref<number | null>(null)
+let clock: ReturnType<typeof setInterval> | undefined
+
+// Lifecycle hooks go before the first top-level `await`, or they are silently dropped.
+onMounted(() => {
+  now.value = Date.now()
+  clock = setInterval(() => { now.value = Date.now() }, 60_000)
+  // Queue labels gate no blocking render, so they load off the critical path.
+  store.fetchQueues()
+})
+onBeforeUnmount(() => clearInterval(clock))
 
 // The handler replays on every return to the home page (see cacheOnlyDuringHydration); the store's
 // freshness window is what decides whether the API actually needs to be called again.
@@ -64,341 +73,115 @@ useSeoMeta({
 // which could not tell "the API is down" apart from "the API answered, there is nothing to show".
 const hasApiError = computed(() => homeStatsError.value != null)
 
-onMounted(() => {
-  // Queue labels gate no blocking render, so they load off the critical path.
-  store.fetchQueues()
+// `/lol/Home` is asked for the last 7 days (`window=Last7Days`), and says which days it covered.
+const periodLabel = computed(() => {
+  const activity = store.homeStats?.weeklyActivity
+  // An API without the window fields answered for the calendar week: no label beats a wrong one.
+  if (!activity?.windowStart || !activity.windowEnd) return null
+  return `7 derniers jours · ${dayRange(parisDayKey(activity.windowStart), parisDayKey(activity.windowEnd))}`
 })
 
-/**
- * The GameOn API has no search-by-name (only `GET /lol/summoner/{id:int}` exists), and the crew
- * fits in the list already loaded for the ladder, so the nickname is resolved locally before
- * navigating. Pushing the raw nickname into the URL always led to an empty page.
- */
-const onSearch = () => {
-  const query = searchName.value.trim()
-  searchError.value = null
-  if (!query) return
+/** "16.19" out of Data Dragon's "16.19.1". */
+const patchLabel = computed(() => patchStore.currentPatch.split('.').slice(0, 2).join('.'))
 
-  const player = findPlayerByName(store.players, query)
-  if (!player) {
-    searchError.value = `Aucun joueur du crew ne correspond à « ${query} ».`
-    return
+/** Accounts the dashboard counts under the smurf flag: the denominator of "joueurs actifs". */
+const crewSize = computed(() => (includeSmurfs.value ? store.players.length : store.players.filter(player => !isSmurf(player)).length))
+
+/** The most recent rank refresh across the crew: when the API last synchronised anyone. */
+const lastSyncedAt = computed(() => store.players.reduce<string | null>(
+  (latest, player) => (player.lolRefreshedOn && (!latest || player.lolRefreshedOn > latest) ? player.lolRefreshedOn : latest),
+  null
+))
+
+const syncLabel = computed(() => (now.value !== null && lastSyncedAt.value ? `Synchro ${timeAgo(lastSyncedAt.value, now.value)}` : 'Synchro'))
+
+const reloading = ref(false)
+
+/** Re-reads the dashboard from the API. It does not ask the API to re-synchronise with Riot. */
+const reload = async () => {
+  if (reloading.value) return
+  reloading.value = true
+  store.invalidateDashboard()
+  try {
+    await refreshNuxtData(['homeStats', 'players', 'lastMatches'])
+    now.value = Date.now()
+  } finally {
+    reloading.value = false
   }
-
-  router.push(`/summoner/${player.id}`)
 }
-
-const netLpFormatted = computed(() => {
-  const lp = store.homeStats?.weeklyActivity.netLpChangeThisWeek
-  if (lp === undefined || lp === null) return '0 LP'
-  if (lp > 0) return `+${lp} LP`
-  return `${lp} LP`
-})
-
-const netLpColor = computed(() => {
-  const lp = store.homeStats?.weeklyActivity.netLpChangeThisWeek
-  if (lp === undefined || lp === null || lp === 0) return ''
-  return lp > 0 ? 'text-brand-green' : 'text-brand-red'
-})
-
-// Fact of the week logic
-const fact = computed(() => store.homeStats?.factOfTheWeek)
-
-const factLpFormatted = computed(() => {
-  if (!fact.value) return ''
-  const lp = fact.value.lpChange
-  if (lp > 0) return `+${lp} LP`
-  if (lp < 0) return `${lp} LP`
-  return `0 LP`
-})
-
-const factLpColor = computed(() => {
-  if (!fact.value) return ''
-  const lp = fact.value.lpChange
-  if (lp > 0) return 'text-brand-green'
-  if (lp < 0) return 'text-brand-red'
-  return 'text-text-main'
-})
-
-const factText = computed(() => {
-  if (!fact.value) return ''
-  const f = fact.value
-  let text = `enchaîne ${f.gamesThisWeek} partie${f.gamesThisWeek > 1 ? 's' : ''} à ${f.winRateThisWeek} % de victoires`
-  if (f.longestWinStreakThisWeek > 1) {
-    text += `, dont ${f.longestWinStreakThisWeek} succès d'affilée.`
-  } else {
-    text += `.`
-  }
-  return text
-})
-
-const factPlayerName = computed(() => {
-  if (!fact.value) return ''
-  const p = fact.value.player
-  return p.riotGamesNickname || p.nickname
-})
-
-const factPlayerLink = computed(() => {
-  if (!fact.value) return ''
-  return `/summoner/${fact.value.player.id}`
-})
-
-// Crew Records logic
-const topAwards = computed(() => {
-  const records = store.homeStats?.crewRecords
-  if (!records) return []
-  
-  const results: Array<{ key: LoLGlobalStatAwardKey, stat: LoLFunStatDto, meta: AwardMeta }> = []
-  for (const key of PRIORITY_KEYS) {
-    const stat = records[key]
-    const meta = AWARD_MAPPINGS[key]
-    if (stat && meta) {
-      results.push({ key, stat, meta })
-    }
-  }
-  
-  return results.slice(0, 3)
-})
-
-const formatChampionName = (name: string): string => {
-  const overrides: Record<string, string> = {
-    'MonkeyKing': 'Wukong',
-    'Chogath': "Cho'Gath",
-    'Kaisa': "Kai'Sa",
-    'Khazix': "Kha'Zix",
-    'Velkoz': "Vel'Koz",
-    'Belveth': "Bel'Veth",
-    'RekSai': "Rek'Sai",
-    'KogMaw': "Kog'Maw",
-    'DrMundo': 'Dr. Mundo',
-    'Nunu': 'Nunu & Willump',
-    'Renata': 'Renata Glasc',
-    'AurelionSol': 'Aurelion Sol',
-    'JarvanIV': 'Jarvan IV',
-    'LeeSin': 'Lee Sin',
-    'MasterYi': 'Master Yi',
-    'MissFortune': 'Miss Fortune',
-    'TahmKench': 'Tahm Kench',
-    'TwistedFate': 'Twisted Fate',
-    'XinZhao': 'Xin Zhao',
-  }
-  return overrides[name] || name.replace(/([A-Z])/g, ' $1').trim()
-}
-
-const topChampions = computed(() => {
-  return store.homeStats?.crewRecords?.topChampions || []
-})
 </script>
 
 <template>
-  <div class="w-full">
-    <!-- Hero Section -->
-    <div class="flex flex-col md:flex-row items-center justify-between gap-12 mb-16 animate-fade-in-up relative z-50" style="animation-delay: 50ms;">
-      <!-- Left text & search -->
-      <div class="w-full md:w-2/3 flex flex-col items-start text-left">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-accent bg-surface-high text-text-ter font-mono text-[10.5px] font-bold mb-6 tracking-[0.1em] uppercase">
-          <span class="w-1.5 h-1.5 rounded-full bg-brand-gold"/>
-          EUW · PATCH {{ patchStore.currentPatch }}
-        </div>
-        
-        <h1 class="text-[44px] md:text-7xl lg:text-[80px] font-extrabold text-text-main leading-none mb-6 tracking-[-0.03em]">
-          Dominez la Faille,<br >analysez vos résultats.
-        </h1>
-        
-        <p class="text-lg text-text-sec mb-10 max-w-[500px] leading-relaxed font-medium">
-          Ranks, forme, historique et records — mis à jour à chaque fin de partie.
-        </p>
-        
-        <!--
-          Search is deliberately hidden: the suggestions panel below is still placeholder content.
-          The resolution logic (`onSearch`) is however functional — removing this `v-if` and the
-          mock suggestions is all it takes to enable it.
-        -->
-        <div v-if="false" class="flex items-center gap-6 w-full flex-wrap relative z-50">
-          <div class="relative w-full max-w-full md:max-w-[380px]">
-            <form
-class="flex items-center bg-surface-base rounded-full p-1.5 shadow-sm border transition-all duration-300" 
-                  :class="isSearchFocused ? 'border-brand-gold ring-4 ring-brand-gold/10' : 'border-border-base hover:border-border-accent'"
-                  @submit.prevent="onSearch">
-              <div class="pl-4 pr-2 text-text-ter flex items-center justify-center">
-                <Icon name="lucide:search" class="text-[18px] opacity-80" style="stroke-width: 2.5px;" />
-              </div>
-              <input 
-                v-model="searchName" 
-                type="text" 
-                placeholder="Riot ID (Pseudo#TAG)"
-                aria-label="Rechercher un invocateur par Riot ID"
-                class="flex-1 bg-transparent border-none outline-none text-text-main placeholder-text-ter px-2 font-bold text-sm w-full"
-                @focus="isSearchFocused = true"
-                @blur="isSearchFocused = false"
-              >
-              <button type="submit" class="px-6 py-2 bg-brand-gold hover:opacity-90 text-brand-gold-text rounded-full font-bold transition-opacity shadow-sm text-sm">
-                Chercher
-              </button>
-            </form>
+  <div>
+    <section aria-label="Les 7 derniers jours du crew">
+      <div class="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          title="Recharger les données du crew"
+          class="chip cursor-pointer bg-surface-base transition-colors duration-200 hover:border-border-accent"
+          @click="reload"
+        >
+          <Icon name="lucide:refresh-cw" class="size-[13px] text-win" :class="reloading ? 'animate-spin' : ''" />
+          {{ reloading ? 'Chargement…' : syncLabel }}
+        </button>
+        <span v-if="periodLabel" class="chip bg-brand-gold-soft">{{ periodLabel }}</span>
+        <span class="chip bg-surface-base">EUW · Patch {{ patchLabel }}</span>
+      </div>
 
-            <p v-if="searchError" class="mt-2 px-4 text-[13px] font-medium text-brand-red">
-              {{ searchError }}
-            </p>
+      <template v-if="!hasApiError && store.homeStats">
+        <WeekBento :activity="store.homeStats.weeklyActivity" :crew-size="crewSize" />
+        <LiveStrip :include-smurfs="includeSmurfs" />
+      </template>
 
-            <!-- Search Suggestions Overlay (Mock) -->
-            <div v-if="isSearchFocused" class="absolute z-50 top-[calc(100%+8px)] left-0 w-full bg-surface-base border border-border-base rounded-2xl shadow-xl overflow-hidden py-2 animate-fade-in-up" style="animation-delay: 0ms;">
-              <div class="px-4 py-2 font-mono text-[10px] text-text-ter font-bold uppercase tracking-[0.1em]">Récents</div>
-              <button disabled class="w-full flex items-center justify-between px-4 py-2.5 bg-surface-base opacity-50 cursor-not-allowed text-left group">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-surface-high border border-border-subtle flex items-center justify-center text-sm">💎</div>
-                  <div>
-                    <div class="font-bold text-[13px] text-text-main group-hover:text-brand-gold transition-colors">Hugo</div>
-                    <div class="text-[11px] text-text-ter font-medium">Diamond IV</div>
-                  </div>
-                </div>
-                <span class="font-mono text-[9px] font-bold bg-surface-base text-text-ter px-1.5 py-0.5 rounded border border-border-subtle tracking-widest uppercase">CREW</span>
-              </button>
-              <button disabled class="w-full flex items-center justify-between px-4 py-2.5 bg-surface-base opacity-50 cursor-not-allowed text-left group">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-surface-high border border-border-subtle flex items-center justify-center text-sm">🌲</div>
-                  <div>
-                    <div class="font-bold text-[13px] text-text-main group-hover:text-brand-gold transition-colors">Théo</div>
-                    <div class="text-[11px] text-text-ter font-medium">Emerald II</div>
-                  </div>
-                </div>
-                <span class="font-mono text-[9px] font-bold bg-surface-base text-text-ter px-1.5 py-0.5 rounded border border-border-subtle tracking-widest uppercase">CREW</span>
-              </button>
-            </div>
-          </div>
+      <div v-else class="flex flex-wrap items-center gap-5 rounded-[26px] border border-brand-red/30 bg-surface-base p-[26px] shadow-card">
+        <img src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-20 object-contain grayscale-[0.4]">
+        <div class="min-w-60 flex-1">
+          <div class="text-[26px] font-bold tracking-[-0.03em]">Oups, l'API ne répond pas.</div>
+          <p class="mt-1.5 text-pretty text-[14.5px] leading-normal text-text-sec">
+            Impossible de récupérer les statistiques du crew et l'historique récent. Le serveur semble indisponible pour le moment.
+          </p>
         </div>
+        <button
+          type="button"
+          :disabled="reloading"
+          class="inline-flex h-[46px] cursor-pointer items-center rounded-full bg-inverse px-[22px] text-[15px] font-bold text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
+          @click="reload"
+        >
+          {{ reloading ? 'Chargement…' : 'Réessayer' }}
+        </button>
       </div>
-      
-      <!-- Right Image (Logo/Hero) -->
-      <div class="w-full md:w-1/3 flex flex-col items-center justify-center relative">
-        <div class="relative w-64 h-64 md:w-[230px] md:h-[230px] flex items-center justify-center mb-8">
-          <!-- Soft glow behind character -->
-          <div class="absolute inset-0 bg-brand-gold rounded-full blur-[80px] opacity-10"/>
-          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Hero" class="relative z-10 w-full h-full object-contain drop-shadow-2xl animate-float" >
-          <div class="absolute -bottom-4 w-32 h-4 bg-(--color-mascot-shadow) blur-xl rounded-full"/>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Error Banner -->
-    <div v-if="hasApiError" class="mb-12 bg-brand-red/10 border border-brand-red/20 rounded-2xl p-6 flex items-start gap-4 animate-fade-in-up">
-      <!-- Icon -->
-      <div class="w-10 h-10 rounded-full bg-brand-red/20 flex items-center justify-center flex-shrink-0 text-brand-red">
-        <Icon name="lucide:triangle-alert" class="text-[20px]" style="stroke-width: 2.5px;" />
-      </div>
-      <div class="flex-1">
-        <h3 class="text-text-main font-bold text-lg mb-1">Erreur de connexion à l'API</h3>
-        <p class="text-text-sec text-sm font-medium leading-relaxed mb-1">
-          Impossible de récupérer les statistiques du crew et l'historique récent. Le serveur API semble indisponible ou rencontre des difficultés techniques.
-        </p>
-      </div>
-    </div>
+    </section>
 
-    <!-- Stats Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="animate-fade-in-up relative" style="animation-delay: 100ms;">
-        <StatCard 
-          title="PARTIES · CETTE SEMAINE" 
-          :value="(store.homeStats?.weeklyActivity.gamesThisWeek ?? 0).toString()" 
-          :subtitle="((store.homeStats?.weeklyActivity.gamesThisWeek ?? 0) >= (store.homeStats?.weeklyActivity.gamesLastWeek ?? 0) ? '+' : '') + ((store.homeStats?.weeklyActivity.gamesThisWeek ?? 0) - (store.homeStats?.weeklyActivity.gamesLastWeek ?? 0)) + ' vs semaine passée'" 
+    <div v-if="!hasApiError" class="mt-9 grid items-start gap-9 md:mt-12 rail:grid-cols-[minmax(0,1fr)_340px]">
+      <div class="flex min-w-0 flex-col gap-9 md:gap-12">
+        <CrewLadder v-model:include-smurfs="includeSmurfs" :players="store.players" />
+        <RecentGames
+          :include-smurfs="includeSmurfs"
+          :active-players="store.homeStats?.weeklyActivity.activePlayers ?? []"
+          :ranked-games="store.homeStats?.weeklyActivity.gamesThisWeek ?? null"
         />
       </div>
-      <div class="animate-fade-in-up relative" style="animation-delay: 150ms;">
-        <StatCard 
-          title="WINRATE DU CREW" 
-          :value="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) + ' %'" 
-          :subtitle="(store.homeStats?.weeklyActivity.winsThisWeek ?? 0) + ' victoires - ' + (store.homeStats?.weeklyActivity.lossesThisWeek ?? 0) + ' défaites'" 
-          :value-class="(store.homeStats?.weeklyActivity.winRateThisWeek ?? 0) >= 50 ? 'text-brand-green' : 'text-brand-red'" 
-        />
-      </div>
-      <div class="animate-fade-in-up relative" style="animation-delay: 200ms;">
-        <StatCard 
-          title="LP NETS" 
-          :value="netLpFormatted" 
-          subtitle="Cumul du crew cette semaine" 
-          :value-class="netLpColor" 
-        />
-      </div>
-      <div class="animate-fade-in-up relative" style="animation-delay: 250ms;">
-        <StatCard 
-          title="TEMPS DE JEU" 
-          :value="Math.round((store.homeStats?.weeklyActivity.totalPlaytimeMinutesThisWeek ?? 0) / 60) + ' h'" 
-          :subtitle="(store.homeStats?.weeklyActivity.averageGameDurationMinutesThisWeek ?? 0) + ' min par partie'" 
-        />
-      </div>
-    </div>
 
-    <!-- Main Content Layout (2 columns) -->
-    <div v-if="!hasApiError" class="flex flex-col lg:flex-row gap-6">
-      <!-- Left Column: Ladder & Recent Games -->
-      <div class="flex-1 relative animate-fade-in-up" style="animation-delay: 300ms;">
-        <div class="relative mb-6">
-          <LadderTable v-model:include-smurfs="includeSmurfs" :players="store.players" />
+      <aside class="min-w-0">
+        <div class="grid items-start gap-7 md:max-rail:grid-cols-2">
+          <PlayerOfTheWeek
+            v-if="store.homeStats?.factOfTheWeek"
+            :fact="store.homeStats.factOfTheWeek"
+            :players="store.players"
+            class="md:max-rail:col-span-2"
+          />
+          <MonthRecords v-if="store.homeStats" :records="store.homeStats.crewRecords" />
+          <CrewChampions v-if="store.homeStats" :champions="store.homeStats.crewRecords.topChampions ?? []" />
         </div>
-        <div class="relative">
-          <RecentGames :include-smurfs="includeSmurfs" />
-        </div>
-      </div>
-      
-      <!-- Right Column: Highlights -->
-      <div class="w-full lg:w-[320px] flex flex-col gap-4 animate-fade-in-up" style="animation-delay: 350ms;">
-        <!-- Fait de la semaine -->
-        <div v-if="fact" class="relative">
-          <SideCard title="FAIT DE LA SEMAINE">
-            <div class="text-[32px] font-black mb-3 mt-1 leading-none tabular-nums" :class="factLpColor">{{ factLpFormatted }}</div>
-            <p class="text-[13px] text-text-sec leading-relaxed font-medium">Meilleure performance de la semaine : <span class="font-extrabold text-text-main">{{ factPlayerName }}</span> {{ factText }}</p>
-            <NuxtLink :to="factPlayerLink" class="block text-center w-full mt-5 py-2.5 bg-surface-high hover:bg-surface-base hover:text-brand-gold text-text-main border border-border-subtle font-bold rounded-xl text-[13px] transition-colors shadow-sm">
-              Voir sa fiche
-            </NuxtLink>
-          </SideCard>
-        </div>
-        
-        <!-- Records du crew -->
-        <div v-if="topAwards.length > 0" class="relative">
-          <SideCard title="Records de la semaine" badge="Voir tout" badge-link="/stats">
-            <div class="flex flex-col gap-4 mt-4">
-              <template v-for="(award, index) in topAwards" :key="award.key">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <div class="font-extrabold text-text-main text-[13px]">{{ award.meta.title }}</div>
-                    <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">{{ award.meta.getSubtitle(award.stat) }}</div>
-                  </div>
-                  <div class="text-[16px] font-black tabular-nums" :class="award.meta.color">{{ award.stat.value }}{{ award.meta.unit }}</div>
-                </div>
-                <div v-if="index < topAwards.length - 1" class="w-full h-px bg-border-subtle"/>
-              </template>
-            </div>
-          </SideCard>
-        </div>
-
-        <!-- Champions du crew -->
-        <div v-if="topChampions.length > 0" class="relative">
-          <!--
-            `crewRecords` (and its `topChampions`) is fetched by the API over a rolling month, not a
-            calendar week, deliberately: a single week rarely holds enough ranked games for the
-            awards to be meaningful. See GetLoLHomeStatsQueryHandler.Handle in the GameOn API.
-          -->
-          <SideCard title="Champions - 30 derniers jours">
-            <div class="flex flex-col gap-3 mt-4">
-              <div v-for="champ in topChampions" :key="champ.championName" class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-surface-high overflow-hidden flex-shrink-0 border border-border-accent">
-                  <img :src="getChampionIconUrl(champ.championName, patchStore.currentPatch)" :alt="formatChampionName(champ.championName)" class="w-full h-full object-cover">
-                </div>
-                <div class="flex-grow">
-                  <div class="font-extrabold text-[13px] text-text-main">{{ formatChampionName(champ.championName) }}</div>
-                  <div class="w-full bg-border-subtle rounded-full h-1 mt-1.5 overflow-hidden">
-                    <div class="h-1 rounded-full" :class="champ.winRate >= 50 ? 'bg-brand-green' : 'bg-brand-red'" :style="{ width: champ.winRate + '%' }"/>
-                  </div>
-                </div>
-                <div class="text-right flex flex-col justify-end h-full">
-                  <div class="text-[13px] font-black leading-none tabular-nums" :class="champ.winRate >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ champ.winRate }}%</div>
-                  <div class="font-mono text-[9px] text-text-ter font-bold tracking-[0.1em] uppercase mt-1">{{ champ.gamesPlayed }} PARTIE{{ champ.gamesPlayed > 1 ? 'S' : '' }}</div>
-                </div>
-              </div>
-            </div>
-          </SideCard>
-        </div>
-      </div>
+      </aside>
     </div>
   </div>
 </template>
+
+<style scoped>
+@reference "../assets/css/main.css";
+
+.chip {
+  @apply inline-flex h-[30px] items-center gap-[7px] rounded-full border border-border-base px-3 text-[12.5px] font-bold text-text-main;
+}
+</style>
