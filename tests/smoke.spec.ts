@@ -90,6 +90,16 @@ test.describe('GameOn proxy guards', () => {
     expect(response.status()).toBe(405)
   })
 
+  test('lets a DELETE through on the smurf-unlink route and nowhere else', async ({ request }) => {
+    // Same prefix, other shapes: still refused before the upstream is contacted.
+    expect((await request.delete('/api/gameon/lol/summoner/12')).status()).toBe(405)
+    expect((await request.delete('/api/gameon/lol/summoner/smurfs/12/rank')).status()).toBe(405)
+
+    // Past the guard: whatever answers now is the upstream (401 from a live API, 502 with none).
+    const unlink = await request.delete('/api/gameon/lol/summoner/smurfs/12')
+    expect([403, 405]).not.toContain(unlink.status())
+  })
+
   test('reports an unreachable upstream as 502, not 500', async ({ request }) => {
     // The config points the proxy at a dead port unless a real API URL is provided.
     test.skip(!!process.env.NUXT_PUBLIC_GAME_ON_API_URL, 'a real API is configured')
@@ -121,6 +131,28 @@ test.describe('authentication', () => {
     // A GET sign-out can be triggered from a third-party <img> tag.
     const response = await request.get('/api/auth/logout')
     expect(response.status()).toBe(404)
+  })
+})
+
+test.describe('admin space', () => {
+  // Holds with no Keycloak: the redirect to `/api/auth/login` is asserted, not followed.
+
+  test('sends an anonymous visitor to sign in instead of rendering the page', async ({ request }) => {
+    const response = await request.get('/admin/players', { maxRedirects: 0 })
+
+    expect(response.status()).toBe(302)
+    expect(response.headers().location).toBe('/api/auth/login?redirect=%2Fadmin%2Fplayers')
+    expect(response.headers()['cache-control']).toContain('no-store')
+  })
+
+  test('guards every spelling of the path the router still matches', async ({ request }) => {
+    // vue-router matches case-insensitively and after decoding: each of these renders the admin
+    // page, so each must go through the same session check.
+    for (const path of ['/admin', '/admin/', '/ADMIN', '/%61dmin/games']) {
+      const response = await request.get(path, { maxRedirects: 0 })
+      expect(response.status(), path).toBe(302)
+      expect(response.headers().location, path).toContain('/api/auth/login?redirect=')
+    }
   })
 })
 

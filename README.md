@@ -18,11 +18,13 @@ OIDC authentication.
 ### Application (`app/`)
 
 - `app/pages/` — page components and data orchestration via `useAsyncData`.
-- `app/components/` — reusable components, split into `ui/`, `home/` and `lol/` domains. The layout
-  mounts `ui/AppHeader`, `ui/AppBottomNav` (phones) and `lol/LolPlayerPalette` (crew search) once.
+- `app/components/` — reusable components, split into `ui/`, `home/`, `lol/` and `admin/` domains.
+  The default layout mounts `ui/AppHeader`, `ui/AppBottomNav` (phones) and `lol/LolPlayerPalette`
+  (crew search) once; `app/layouts/admin.vue` is the admin space's own chrome.
 - `app/composables/` — reusable logic, including API client injection.
 - `app/stores/` — Pinia stores. `usePatchStore` is a read-only view over `useLolStore.versions`, so
-  there is exactly one Data Dragon version list per request.
+  there is exactly one Data Dragon version list per request. `useAdminStore` holds the admin space's
+  account list, its in-flight actions, its toasts and the coach requests it follows.
 - `app/lib/api/` — typed HTTP services. Every call carries a 120 s timeout, retries once on reads
   only (never on writes), maps failures to `AppError`, and encodes path segments. The ceiling is wide
   because the API is slow on its aggregates; it has to stay in step with the proxy's own timeout. A
@@ -45,11 +47,14 @@ OIDC authentication.
   24 h stale window.
 - `server/middleware/security-headers.ts` and `server/plugins/csp.ts` — security headers and the
   per-render CSP nonce.
+- `server/middleware/admin-session.ts` — resolves the session of admin page requests so SSR can
+  refuse the admin space to anyone but a `gameon_admin` (see Authentication).
 - `server/routes/healthz.get.ts` — dependency-free liveness probe for orchestrators.
 
 ### Shared (`shared/`)
 
-Contracts used by both Nitro and the app (e.g. `SessionState`), imported via `#shared`.
+Contracts used by both Nitro and the app (e.g. `SessionState`), imported via `#shared`, and the
+little logic both sides run (`shared/utils/admin-access.ts`: the admin role, the admin path test).
 
 ## 📐 Conventions
 
@@ -100,7 +105,16 @@ safe here precisely because it stays server-side; in a browser-storage design it
 most valuable thing an XSS could steal.
 
 Data calls go to `/api/gameon/...` and the proxy authenticates them. The only direct hits to the
-GameOn API are anonymous `<img src>` URLs built from `config.public.gameOnApiUrl`.
+GameOn API are anonymous `<img src>` URLs built from `config.public.gameOnApiUrl`. The proxy accepts
+`DELETE` on one route shape only (unlinking a smurf); anywhere else it is a `405`.
+
+Pages are public unless they say otherwise. `definePageMeta({ auth: true })` asks for a session, and
+is checked in the browser. `definePageMeta({ admin: true })` asks for the `gameon_admin` realm role
+and is checked **during SSR too**: `server/middleware/admin-session.ts` resolves the session of an
+admin page request, and the route middleware answers an anonymous visitor with a redirect to sign-in
+and a signed-in member without the role with a real `403` — neither ever receives the admin shell.
+The path test normalises case and percent-encoding the way the router does, so `/ADMIN` or
+`/%61dmin` are guarded like `/admin`. The GameOn API checks the role again on every admin route.
 
 ## 🧠 rAImmus, the AI coach
 
@@ -140,6 +154,37 @@ Five things shape the implementation:
 
 `generatedOn` and `modelName` are shown in the card's footer, alongside a plain statement that the
 text was written by an AI.
+
+## 🛠️ Admin space
+
+`/admin`, from the Claude Design mock-up "JungleDiff Admin v2", reachable from `/settings` by
+`gameon_admin` holders only. Four sections share one account list, read on mount (every account,
+crew or not, archived or not) and re-read after every write:
+
+- **Vue d'ensemble** — counters that deep-link into the players filter, the two maintenance jobs the
+  API exposes (refresh every crew rank, resync the queue referential), the accounts synced the longest
+  ago, and "Pas encore possible": what the mock-up would like and no route allows yet.
+- **Joueurs** — every account with its Solo/Duo rank, JungleDiff account and last sync; a Riot refresh
+  per row; "Gérer" (nickname, full name, archive, Riot ID, crew membership, smurfs) and "Lier un
+  smurf".
+- **Parties** — re-synchronise a match from Riot, import a custom game from the JSON the League client
+  dumps (`fetch_custom_games_lcu.py` in the API repository; the game and its `.timeline.json` can be
+  dropped together), recompute the LP of every ranked game or one account's.
+- **rAImmus** — read the state of an analysis, launch it, or regenerate an existing one, then follow
+  it until the report lands.
+
+Each action prints the API route it calls. A few API behaviours shape the screens:
+
+- `PATCH /Player` overwrites the whole account (including its Keycloak link) and refuses an empty
+  name, so the admin sends the account as read, and only offers name and archive on accounts with a
+  Keycloak user.
+- `PATCH /lol/Summoner/{id}/admin` answers `200` even when it changed nothing (unknown Riot ID, or one
+  already taken): the screen compares the Riot ID it gets back. It also looks the account up again by
+  `keycloakId`, which on an account without one (a smurf) targets another account — so the Riot ID is
+  read-only there; unlink and relink instead.
+- While a forced regeneration waits, `GET /lol/Coach/...` keeps serving the old report: the screen
+  watches `generatedOn` change instead of waiting for a `202`, and gives up after a few estimated
+  waits, since an abandoned regeneration leaves no trace.
 
 ## 🛡️ Security Posture
 
@@ -203,7 +248,7 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   On the profile, the "Progression classement" card adds a bar per ranked game under the rank
   sparkline (`GET /lol/summoner/{id}/rank/changes`), with the average gain on wins and loss on
   defeats; a game with unknown LP stays on the axis as a grey bar.
-- **Tests & container:** 18 Playwright tests, 14 of which need no upstream, plus a non-root Node 24
+- **Tests & container:** 21 Playwright tests, 17 of which need no upstream, plus a non-root Node 24
   image with a health probe. `vue` is pinned to `^3.5.42`; it was `latest`, which let two installs a
   week apart produce different builds. Delivery is manual — see "Checks Before Deploying".
 - **Design v7** (2026-09-25): the home page was rebuilt from the Claude Design mock-up
@@ -231,6 +276,11 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   promised it, the event was never emitted), and the rating and KDA tones render again (they pointed
   at colour classes that no longer existed). The team and damage-type colours are now design tokens.
   "Synchroniser" still re-reads the match rather than asking the API to re-import it.
+- **Admin space** (2026-09-26): `/admin`, from the Claude Design mock-up "JungleDiff Admin v2",
+  wired to every admin route the GameOn API exposes for League of Legends (see "Admin space"). It is
+  refused during SSR to anyone but a signed-in `gameon_admin`. The proxy gained `DELETE` for the
+  smurf-unlink route only. Not in the mock-up and so not built: changelog management and the API's
+  `GET /Admin/dashboard` (mostly FIFA counters).
 - **Home on live data** (2026-09-25): the GameOn API now serves everything the v7 home needs, and the
   temporary placeholders are gone. `GET /lol/Home?window=Last7Days` gives a rolling 7-day window with
   its bounds, a per-day breakdown (games, playtime, net LP), the active players, and last week's wins
@@ -245,9 +295,17 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 **No rate limiting in front of the coach.** The proxy's allowlist bounds paths, not request volume,
 and the coach `POST` is the one endpoint where a request costs real money. The API's queue and its
 `(matchId, playerId)` deduplication now bound the spend, but only the crew's own authentication
-stands in front of the endpoint itself. The API does accept `?force=true` on the `POST` to
-rewrite a report, but honours it for `gameon_admin` only and nothing in the UI sends it — so from the
-front end a report is written once and a poor one stays as it is.
+stands in front of the endpoint itself. The API accepts `?force=true` on the `POST` to rewrite a
+report, honoured for `gameon_admin` only; the admin space is the one place that sends it.
+
+**The admin Riot ID route can hit the wrong account.** `PATCH /lol/Summoner/{id}/admin` re-reads the
+account by `keycloakId`; for an account without one, that matches the first Keycloak-less account in
+the database. The admin space works around it (read-only Riot ID on those accounts), but the route
+should look the account up by id.
+
+**What the admin space cannot show.** No operations log, no full coach queue (it lives in memory and
+drops abandoned tickets), no health or quota figures, no Keycloak user management, no API version, and
+accounts without a Riot PUUID are left out of `GET /lol/summoner`.
 
 **No search by name.** The only profile route is `GET /lol/summoner/{id:int}`, so the search palette
 resolves nicknames client-side against the crew list (`app/utils/player-search.ts`). That works for a
@@ -257,8 +315,9 @@ closed crew but will not scale to arbitrary summoners.
 page says "parties classées", and the feed filters count ranked games while the feed itself lists
 every queue: there is no per-player "all queues over 7 days" figure upstream.
 
-**No crew-wide resync.** The "Synchro" chip re-reads the API; asking the API to re-synchronise every
-account with Riot would need an endpoint that does not exist (only the per-player `PATCH`).
+**No crew-wide resync.** The "Synchro" chip re-reads the API. The admin space can ask the API to
+refresh every crew *rank* (`PATCH /lol/Summoner/ranks`), but a full re-synchronisation of every account
+with Riot would need an endpoint that does not exist (only the per-player `PATCH`).
 
 Everything else is backed by real endpoints. `GameOnClient.getPlayerById(id, period?)` calls
 `GET /lol/summoner/{id}?period=AllTime|Week|Month|ThreeMonths|SixMonths` (default `AllTime`) and

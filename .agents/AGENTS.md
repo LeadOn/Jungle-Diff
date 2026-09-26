@@ -71,7 +71,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
   moves the film there), Performance (player picker, KPI tiles, radar and damage/gold/stat/ranking
   charts), rAImmus (the AI coach report), and a collapsible Données brutes table. "Synchroniser"
   re-reads the match and its timeline from the API; it does not call `refreshGame` (the API's
-  `POST /lol/match/{id}/update`), which nothing in the UI sends. The viewer's "Vous" badges are
+  `POST /lol/match/{id}/update`), which only the admin space sends. The viewer's "Vous" badges are
   resolved after mount, like everywhere else. Participants are named by their Riot ID through
   `playerRiotName` (`lol-match.ts`), like the profile's hero; the GameOn nickname
   (`playerDisplayName`) only appears on a scoreboard row's crew chip, next to the Riot ID.
@@ -88,8 +88,29 @@ public sign-up — authentication exists so a crew member can edit their own pro
   has asked; `POST` is authenticated and answers `200` or `202`. The component owns five states —
   not generated yet, queued, report, abandoned, error — polls the `GET` every 5 s while queued, and
   the tab is only offered when the route carries a usable `playerId`.
-- `/settings` — the only authenticated page (`definePageMeta({ auth: true })`): edit nickname, full
-  name, Riot ID and avatar; shows an admin panel to holders of the `gameon_admin` realm role.
+- `/settings` — authenticated (`definePageMeta({ auth: true })`): edit nickname, full name, Riot ID
+  and avatar; holders of the `gameon_admin` realm role get a link to the admin space.
+- `/admin` — the admin space, built from the Claude Design mock-up "JungleDiff Admin v2", reserved to
+  signed-in `gameon_admin` holders (`definePageMeta({ admin: true })`, see Authentication). Its own
+  layout (`app/layouts/admin.vue`: "Admin" chip, "Retour au site", no crew search or mobile bar), a
+  section rail, and four child routes over one store (`useAdminStore`, `app/stores/admin.ts`), which
+  reads every account once — `GET /lol/summoner` with `includeOutOfCrew=true`, once per `archived`
+  value — and re-reads it after every write:
+  - `/admin` — Vue d'ensemble: counters (crew, smurfs, hors crew, archivés) deep-linking into the
+    players filter, maintenance (`PATCH /lol/summoner/ranks`, `POST /lol/queue/sync`), the four
+    accounts synced the longest ago, and "Pas encore possible", what no route allows yet.
+  - `/admin/players` — every account, filtered by status (in the URL, `?filter=`) and searched by
+    Riot ID, nickname or name; per row a Riot refresh and "Gérer" (`AdminAccountModal`: nickname,
+    full name and archive through `PATCH /player`, Riot ID through `PATCH /lol/summoner/{id}/admin`,
+    crew membership through `PATCH /lol/summoner/{id}/crew`, link / unlink smurfs), plus "Lier un
+    smurf" (`AdminLinkSmurfModal`, `POST /lol/summoner/{id}/smurfs`).
+  - `/admin/games` — re-synchronise a match from Riot, import a custom game from the JSON the League
+    client dumps (`app/utils/lol-custom-game.ts` reads the game, its `.timeline.json`, or both), and
+    recompute the LP of ranked games for everyone or one account.
+  - `/admin/coach` — read the state of a rAImmus analysis for a (match, player) pair, launch it, or
+    regenerate an existing one (`?force=true`), then follow it; "Demandes de cette session" lists the
+    requests made from the page, since the API cannot list its queue.
+  Every action prints the API route it calls in mono under it, as the mock-up does.
 - `/healthz` — liveness probe, not a user-facing page.
 
 ## Directory Layout
@@ -97,12 +118,15 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - `app/pages/` — orchestrate data loading with `useAsyncData` and own the page layout.
 - `app/components/ui/` — generic, domain-free UI.
 - `app/components/home/`, `app/components/lol/`, `app/components/lol/game/` — business components.
+- `app/components/admin/` — the admin space's components, all prefixed `Admin`.
 - `app/composables/` — reusable logic and API client injection.
 - `app/stores/` — Pinia setup stores.
 - `app/lib/api/` — typed HTTP clients built on `BaseApiService`.
 - `app/lib/types/` — domain interfaces, re-exported through `app/lib/types/index.ts`.
 - `app/utils/` — pure helpers.
 - `shared/types/` — contracts used by both Nitro and the app, imported via `#shared`.
+- `shared/utils/` — logic both sides run, imported explicitly via `#shared/utils/...`
+  (`admin-access.ts`: `ADMIN_ROLE`, `isAdminPath`).
 - `server/api/`, `server/routes/`, `server/middleware/`, `server/plugins/`, `server/utils/` — Nitro.
 - `tests/` — Playwright specs.
 
@@ -156,8 +180,20 @@ public sign-up — authentication exists so a crew member can edit their own pro
   directly from the browser — the only exception is anonymous `<img src>` URLs built from
   `config.public.gameOnApiUrl`.
 - `ALLOWED_PREFIXES` in the proxy bounds what the front end may reach. Widen it deliberately.
+  `DELETE` is allowlisted by exact path shape on top (`DELETE_PATHS`, today only
+  `lol/summoner/smurfs/{id}`); any other `DELETE` is a `405`.
 - Roles come from the session, not from decoding a token client-side: `authStore.isAdmin` checks the
-  `gameon_admin` realm role.
+  `gameon_admin` realm role (`ADMIN_ROLE` in `shared/utils/admin-access.ts`).
+- Pages are public by default. `definePageMeta({ auth: true })` requires a session and is checked on
+  the client only. `admin: true` (implies `auth`) requires `gameon_admin` and is **also checked
+  during SSR**, so a non-admin never receives the admin shell: `server/middleware/admin-session.ts`
+  resolves the session on admin page requests (`isAdminPath`, which normalises case and
+  percent-encoding the way vue-router matches) into `event.context.sessionUser`, and
+  `app/middleware/auth.global.ts` reads it — anonymous → `302` to `/api/auth/login`, signed in
+  without the role → a real `403` through `error.vue` ("Accès réservé"). The session is resolved in
+  Nitro middleware rather than by an SSR call to `/api/auth/session` because a refresh there rotates
+  the refresh token, and an internal sub-request would drop the rotated cookie. The GameOn API still
+  checks the role on every admin route; this guard only decides who gets the page.
 
 ## Data Flow
 
@@ -179,8 +215,12 @@ public sign-up — authentication exists so a crew member can edit their own pro
   never runs, and forcing the handler alone breaks the SSR match.
 - `usePatchStore` is a read-only view over `useLolStore.versions`. There is one version list per
   request, not one per store.
-- `/` and `/stats` are served through Nitro's SWR cache (60 s); `/settings` and `/api/auth/**` are
-  explicitly `no-store`.
+- `/` and `/stats` are served through Nitro's SWR cache (60 s); `/settings`, `/admin/**` and
+  `/api/auth/**` are explicitly `no-store`.
+- **Authenticated reads run after mount.** Nuxt's global `$fetch` does not forward the browser's
+  cookies on an SSR call to `/api/gameon`, so a read made during SSR reaches the API anonymously.
+  `/settings` and the admin space therefore load their data in `onMounted`; server-render only what
+  is anonymous upstream.
 - The home page's reload chip calls `useLolStore().invalidateDashboard()` then `refreshNuxtData` on
   `homeStats`, `players` and `lastMatches`: it re-reads the API, it does not ask the API to
   re-synchronise with Riot. Its "Synchro il y a X min" is the latest `lolRefreshedOn` of the crew.
@@ -457,6 +497,33 @@ Each of these is easy to reintroduce and hard to diagnose.
 - **Clip paths are document-wide ids.** `LolGameGoldChart` builds its two masks from `useId()`; a
   hard-coded id would be shared by any second instance.
 
+- **`PATCH /player` (admin) overwrites the whole account.** It writes `fullName`, `nickname`,
+  `keycloakId` and `archived` from the body, so the admin space always sends the account as read —
+  a partial body detaches the Keycloak user or blanks the name. Its model validation also rejects an
+  empty `fullName` or `nickname`, which is why nickname, full name and archive are only offered on an
+  account with a Keycloak user (smurfs have no full name).
+- **`PATCH /lol/summoner/{id}/admin` answers `200` even when it changed nothing** — when Riot does
+  not know the Riot ID, or another account already holds it. Compare the Riot ID it returns with the
+  one sent (`sameRiotId`) before reporting success.
+- **The same route must not be used on an account without `keycloakId`.** The API looks the account
+  up again by `keycloakId`, and a `null` one matches the first Keycloak-less account in the database
+  — another smurf. The admin space disables the Riot ID field there; unlink and relink instead. This
+  is an API bug, not a front-end rule to relax.
+- **`GET /lol/summoner` filters `archived` by equality and drops accounts without a Riot PUUID.**
+  There is no "both": the admin space asks for each value and concatenates. An account whose owner
+  signed in but never set a Riot ID is invisible to it.
+- **A forced coach regeneration is invisible to `GET`.** `GET /lol/coach/...` reads the stored report
+  before the queue, so while a `force=true` slot waits it keeps answering `200` with the **old**
+  report, never `202`. The admin space tracks it by `generatedOn` changing, with the `POST`'s own
+  estimate as its only wait figure, and stops after `max(3 × estimate, 5 min)` ("Toujours l'ancien
+  rapport"), since an abandoned regeneration leaves no trace at all. Never poll the `POST` instead:
+  once the slot is done, a second `force` call pays for a second generation.
+- **Link / unlink refusals are plain sentences.** `POST /lol/summoner/{id}/smurfs` answers two
+  different `404`s and two different `409`s with an English message body; `linkSmurfErrorMessage`
+  reads it only to tell them apart and words them in French.
+- **A match resync on a match the API does not store is a `500`,** and so is one Riot does not serve
+  (every custom game): the handler throws. The admin card says so rather than "server error".
+
 ## Known Gaps
 
 - **No search by name on the API.** Only `GET /lol/summoner/{id:int}` exists, so the crew search
@@ -474,9 +541,14 @@ Each of these is easy to reintroduce and hard to diagnose.
   `POST` is the one endpoint where that actually costs money; the API's own queue and its
   `(matchId, playerId)` deduplication now bound the spend, and only the crew's own authentication
   stands in front of the endpoint itself.
-- **The front end never regenerates a coach report.** The API takes `?force=true` on the `POST` but
-  honours it only for `gameon_admin`; nothing in the UI sends it, so a report written from a bad
-  payload stays as it is and the button only ever reloads the stored one.
+- **Only the admin space regenerates a coach report.** The API takes `?force=true` on the `POST` but
+  honours it only for `gameon_admin`; the match page never sends it, so there a report written from a
+  bad payload stays as it is and the button only ever reloads the stored one. `/admin/coach` does.
+- **The admin space cannot see everything the mock-up would like**: no operations log, no full
+  coach queue, no health or quota figures, no Keycloak user or role management, no cache purge
+  ("Pas encore possible" on its overview), and no API version to print beside the front's. The API
+  also manages the changelog (`/Changelog`, admin writes) and serves `GET /Admin/dashboard`, but the
+  mock-up uses neither and the proxy allows neither prefix.
 - **A `404` on the coach `POST` means the API does not have that match**, or that player did not play
   it — not that the endpoint is missing, and not the abandoned-generation `404` the poll can see. Check which API the server is actually proxying before
   reading it as a front-end bug: `NUXT_PUBLIC_GAME_ON_API_URL` in the process environment wins over

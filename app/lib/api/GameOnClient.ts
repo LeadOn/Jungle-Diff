@@ -1,6 +1,6 @@
 import { BaseApiService, encodePathSegment as segment } from './BaseApiService'
 import type { RequestOptions } from './BaseApiService'
-import type { LoLQueue, LoLHomeStatsDto, LoLHomeWindow, LoLLiveGameDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLRankChangeEntryDto, LoLRankChangeQueue, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto } from '../types'
+import type { LoLQueue, LoLHomeStatsDto, LoLHomeWindow, LoLLiveGameDto, LeaguePlayer, PaginatedMatchResponse, LeagueOfLegendsRank, LoLRankHistoryGranularity, LoLRankChangeEntryDto, LoLRankChangeQueue, LoLStatsPeriod, LoLGameTimelineFrame, LoLGameDto, LoLGlobalStatsDto, LoLCoachReportDto, LoLCoachQueueStatusDto, LoLAdminAccountDto, GameOnPlayerDto, UpdatePlayerDto, LoLSetCrewMembershipResultDto, LoLLinkSmurfAccountResultDto, LoLRecomputeRankChangesResultDto, LoLCustomGameImportPayload, LoLImportCustomGameResultDto } from '../types'
 
 /**
  * What either coach route may answer.
@@ -154,8 +154,13 @@ export class GameOnClient extends BaseApiService {
     return this.get<LoLGameTimelineFrame[]>(`/lol/match/${segment(matchId)}/timeline`, GameOnClient.opts(signal))
   }
 
-  public refreshGame(matchId: string, signal?: AbortSignal) {
-    return this.post<LoLGameDto>(`/lol/match/${segment(matchId)}/update`, null, GameOnClient.opts(signal))
+  /**
+   * Re-reads a stored match and its timeline from Riot. Answers `204` with no body. The API throws
+   * (a `500`) when the match is not in its database, or when Riot does not serve it — which is the
+   * case of every custom game: those come in through `importCustomGame` instead.
+   */
+  public async refreshGame(matchId: string, signal?: AbortSignal): Promise<void> {
+    await this.post<unknown>(`/lol/match/${segment(matchId)}/update`, null, GameOnClient.opts(signal))
   }
 
   /**
@@ -197,6 +202,97 @@ export class GameOnClient extends BaseApiService {
       null,
       GameOnClient.opts(signal)
     )
+  }
+
+  /**
+   * Regenerates a report that already exists: the stored one is thrown away and the model is paid
+   * again. The API honours `force` for `gameon_admin` only and ignores it for anyone else.
+   *
+   * The queued slot is only visible in this answer. While it waits, `GET` keeps serving the *old*
+   * report with a `200` — it reads the store before the queue — so a caller tracking the regeneration
+   * compares `generatedOn` instead of waiting for a `202` that never comes. Never poll this route: once
+   * the slot is done, a second `force` call buys a second generation.
+   */
+  public regenerateCoachReport(matchId: string, playerId: string | number, signal?: AbortSignal) {
+    return this.post<LoLCoachResponse>(
+      `/lol/coach/${segment(matchId)}/player/${segment(playerId)}?force=true`,
+      null,
+      GameOnClient.opts(signal)
+    )
+  }
+
+  // --- Admin space -------------------------------------------------------------------------------
+  // Routes marked `gameon_admin` are refused upstream to anyone else. The rest are anonymous on the
+  // API and merely called from the admin UI.
+
+  /**
+   * Every account of one `archived` value, crew or not, smurfs included. The API filters on
+   * `archived ==`, with no "both", so the admin space asks for each value in turn. Accounts without
+   * a Riot PUUID are left out upstream.
+   */
+  public getAdminAccounts(archived: boolean, signal?: AbortSignal) {
+    const params = new URLSearchParams({ archived: String(archived), includeOutOfCrew: 'true', includeSmurfs: 'true' })
+    return this.get<LoLAdminAccountDto[]>(`/lol/summoner?${params.toString()}`, GameOnClient.opts(signal))
+  }
+
+  /** Re-reads every crew rank from Riot, as the API's own job does every 20 min. Answers `204`. */
+  public async refreshAllRanks(signal?: AbortSignal): Promise<void> {
+    await this.patch<unknown>('/lol/summoner/ranks', null, GameOnClient.opts(signal))
+  }
+
+  /** Reloads the queue referential (game mode names) from Riot. `gameon_admin`. Answers `204`. */
+  public async syncQueues(signal?: AbortSignal): Promise<void> {
+    await this.post<unknown>('/lol/queue/sync', null, GameOnClient.opts(signal))
+  }
+
+  /** `gameon_admin`. Overwrites the four fields it reads: always send the whole account. */
+  public updatePlayer(player: UpdatePlayerDto, signal?: AbortSignal) {
+    return this.patch<GameOnPlayerDto>('/player', player, GameOnClient.opts(signal))
+  }
+
+  /**
+   * Points an account at another Riot ID. `gameon_admin`. The API answers `200` with the account
+   * unchanged when Riot does not know that ID or when another account already uses it, so callers
+   * compare the Riot ID they get back with the one they sent.
+   *
+   * Only safe on an account linked to a Keycloak user: the API looks the account up again by
+   * `keycloakId`, and for an account without one (every smurf) that lookup matches the first
+   * Keycloak-less account in the database rather than the one asked for.
+   */
+  public updateRiotId(playerId: number, gameName: string, tagLine: string, signal?: AbortSignal) {
+    const params = new URLSearchParams({ riotGamesNickname: gameName, riotGamesTagLine: tagLine })
+    return this.patch<GameOnPlayerDto>(`/lol/summoner/${segment(playerId)}/admin?${params.toString()}`, null, GameOnClient.opts(signal))
+  }
+
+  /** `gameon_admin`. Taking a main out of the crew takes its smurfs out too; the reverse does not. */
+  public setCrewMembership(playerId: number, inCrew: boolean, signal?: AbortSignal) {
+    return this.patch<LoLSetCrewMembershipResultDto>(`/lol/summoner/${segment(playerId)}/crew?inCrew=${inCrew}`, null, GameOnClient.opts(signal))
+  }
+
+  /**
+   * Attaches a Riot account to a main as its smurf, creating it when unknown and importing its rank
+   * and recent games. `gameon_admin`. `404`: main or Riot account not found. `409`: the Riot account
+   * already belongs to another player, or the target is itself a smurf.
+   */
+  public linkSmurf(mainPlayerId: number, gameName: string, tagLine: string, signal?: AbortSignal) {
+    const params = new URLSearchParams({ riotGamesNickname: gameName, riotGamesTagLine: tagLine })
+    return this.post<LoLLinkSmurfAccountResultDto>(`/lol/summoner/${segment(mainPlayerId)}/smurfs?${params.toString()}`, null, GameOnClient.opts(signal))
+  }
+
+  /** Detaches a smurf from its main; the account and its history stay. `gameon_admin`. */
+  public unlinkSmurf(smurfId: number, signal?: AbortSignal) {
+    return this.delete<GameOnPlayerDto>(`/lol/summoner/smurfs/${segment(smurfId)}`, GameOnClient.opts(signal))
+  }
+
+  /** Re-attributes the LP of every ranked game from the rank snapshots. `gameon_admin`, no Riot call. */
+  public recomputeRankChanges(playerId: number | null, signal?: AbortSignal) {
+    const query = playerId != null ? `?playerId=${segment(playerId)}` : ''
+    return this.post<LoLRecomputeRankChangesResultDto>(`/lol/match/rank-changes/recompute${query}`, null, GameOnClient.opts(signal))
+  }
+
+  /** Imports a custom game dumped from the League client. `gameon_admin`; `400` on a bad payload. */
+  public importCustomGame(payload: LoLCustomGameImportPayload, signal?: AbortSignal) {
+    return this.post<LoLImportCustomGameResultDto>('/lol/match/custom/import', payload, GameOnClient.opts(signal))
   }
 
   public getCurrentPlayer(signal?: AbortSignal) {

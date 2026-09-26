@@ -23,3 +23,13 @@ export interface SessionState {
   /** Server-side access token expiry, in ms since epoch. 0 when there is no session. */
   expiresAt: number
 }
+
+declare module 'h3' {
+  interface H3EventContext {
+    /**
+     * The signed-in user of an admin page request, `null` when anonymous. Only ever set by
+     * `server/middleware/admin-session.ts`, and only on admin paths: `undefined` anywhere else.
+     */
+    sessionUser?: SessionUser | null
+  }
+}

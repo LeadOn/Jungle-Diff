@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { SessionState, SessionUser } from '#shared/types/auth'
+import { ADMIN_ROLE } from '#shared/utils/admin-access'
 
 /**
  * Browser-side user session.
@@ -15,7 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isInitialized = ref(false)
   const user = ref<SessionUser | null>(null)
 
-  const isAdmin = computed(() => user.value?.roles.includes('gameon_admin') ?? false)
+  const isAdmin = computed(() => user.value?.roles.includes(ADMIN_ROLE) ?? false)
 
   const displayName = computed(() => user.value?.name || user.value?.preferredUsername || null)
 

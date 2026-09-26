@@ -2,7 +2,14 @@ import { Buffer } from 'node:buffer'
 import { createError, defineEventHandler, getRequestHeader, readRawBody, setResponseHeader, setResponseStatus } from 'h3'
 import { resolveAccessToken } from '../../utils/access-token'
 
-const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH'])
+const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+
+/**
+ * DELETE is needed on one route only: unlinking a smurf from the admin space. It is allowlisted by
+ * exact shape rather than opened on every prefix, so a script injected into the page cannot use the
+ * admin's session to delete anything else the API would let a DELETE reach.
+ */
+const DELETE_PATHS = [/^lol\/summoner\/smurfs\/\d+$/i]
 
 /**
  * GameOn API prefixes the front end is allowed to reach. The proxy runs with the user's token, so
@@ -63,6 +70,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Upstream path not allowed' })
   }
 
+  if (method === 'DELETE' && !DELETE_PATHS.some(pattern => pattern.test(path))) {
+    throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' })
+  }
+
   const url = new URL(`${baseUrl}/${path}`)
   const incomingUrl = getRequestURL(event)
   incomingUrl.searchParams.forEach((value, key) => url.searchParams.append(key, value))
@@ -79,12 +90,12 @@ export default defineEventHandler(async (event) => {
   const body = method === 'GET' ? undefined : await readRawBody(event, false)
 
   const response = await $fetch.raw<ArrayBuffer>(url.toString(), {
-    method: method as 'GET' | 'POST' | 'PUT' | 'PATCH',
+    method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     headers,
     body,
     responseType: 'arrayBuffer',
     timeout: UPSTREAM_TIMEOUT_MS,
-    // One retry, and only on reads: replaying a POST or PATCH would duplicate a side effect.
+    // One retry, and only on reads: replaying a write would duplicate a side effect.
     retry: method === 'GET' ? 1 : 0,
     retryDelay: 300,
     retryStatusCodes: [408, 425, 429, 500, 502, 503, 504],

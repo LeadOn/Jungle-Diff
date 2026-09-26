@@ -14,7 +14,7 @@ const DEFAULT_TIMEOUT_MS = 120000
 /** Statuses where another attempt has a chance of succeeding (transient unavailability). */
 const RETRYABLE_STATUS = [408, 425, 429, 500, 502, 503, 504]
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH'
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 /**
  * Per-call options callers may set.
@@ -136,5 +136,10 @@ export class BaseApiService {
 
   public patch<T>(endpoint: string, data?: unknown, options: RequestOptions = {}): Promise<T> {
     return this.request<T>(endpoint, 'PATCH', data, options, 0)
+  }
+
+  // The proxy only lets a DELETE through on the routes it allowlists for it (see `DELETE_PATHS`).
+  public delete<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    return this.request<T>(endpoint, 'DELETE', undefined, options, 0)
   }
 }
