@@ -4,10 +4,11 @@ import {useAsyncData} from "#app";
 import type {LoLCoachQueueStatusDto, LoLCoachReportDto} from "~/lib/types";
 import type {LoLCoachResponse} from "~/lib/api/GameOnClient";
 import {isCoachQueued} from "~/lib/api/GameOnClient";
-import {AppError, isAbortError} from "~/lib/types/error";
+import {errorStatusCode, isAbortError} from "~/lib/types/error";
 import {useGameOnLol} from "~/composables/useGameOnLol";
 import {useAuthStore} from "~/stores/auth";
 import {decimalLabel, formatDateTime} from "~/utils/lol-match";
+import {formatCoachWait} from "~/utils/lol-coach";
 
 /**
  * "rAImmus" — Rammus + AI — is the public name of the coach. It lives here, in the labels: the API
@@ -38,15 +39,6 @@ const POLL_INTERVAL_MS = 5000;
  * running upstream, so the report is simply there on the next visit.
  */
 const controller = new AbortController();
-
-const statusCodeOf = (error: unknown): number => {
-  if (error instanceof AppError) return error.statusCode;
-  if (error && typeof error === "object" && "statusCode" in error) {
-    const code = (error as {statusCode?: unknown}).statusCode;
-    return typeof code === "number" ? code : 0;
-  }
-  return 0;
-};
 
 /** Set as soon as either route answers `202`; cleared the moment the report arrives. */
 const queueStatus = ref<LoLCoachQueueStatusDto | null>(null);
@@ -104,7 +96,7 @@ const {
        * for this analysis yet, which is exactly the state that offers the button. Left unmapped,
        * `useAsyncData` would park it in `error` and the tab would read as broken.
        */
-      if (statusCodeOf(error) === 404) return null;
+      if (errorStatusCode(error) === 404) return null;
       console.error("[coach] Report read failed:", error);
       throw error;
     }
@@ -140,7 +132,7 @@ const pollOnce = async () => {
      * make that failure indistinguishable from the starting state, and the player would sit there
      * re-clicking a button that can only fail again.
      */
-    if (statusCodeOf(error) === 404) {
+    if (errorStatusCode(error) === 404) {
       stopPolling();
       queueStatus.value = null;
       hasBeenAbandoned.value = true;
@@ -220,7 +212,7 @@ const errorCopy = computed(() => {
   const error = generationError.value ?? loadError.value;
   if (!error) return null;
 
-  const code = statusCodeOf(error);
+  const code = errorStatusCode(error);
 
   if (code === 401 || code === 403) {
     return {
@@ -274,18 +266,8 @@ const queueTitle = computed(() => {
   return `${position}ᵉ dans la file.`;
 });
 
-/**
- * Below ~90 s the seconds say something a minute count cannot: "~40 s" is a wait you sit through,
- * "~1 min" is not. Above it, minutes read better than a three-digit second count. Values are
- * rounded to 5 s steps so a moving server-side estimate does not flicker digit by digit.
- */
-const formatWait = (seconds: number): string => {
-  if (seconds < 90) return `~${Math.max(5, Math.round(seconds / 5) * 5)} s`;
-  return `~${Math.round(seconds / 60)} min`;
-};
-
 const waitLabel = computed(() =>
-  queueStatus.value ? formatWait(queueStatus.value.estimatedWaitSeconds) : "",
+  queueStatus.value ? formatCoachWait(queueStatus.value.estimatedWaitSeconds) : "",
 );
 
 /** Context for the estimate: it is long because others are ahead, not because it is slow. */
