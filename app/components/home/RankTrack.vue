@@ -4,11 +4,11 @@ import type { LadderEntry } from '~/utils/lol-ladder'
 import { usePatchStore } from '~/stores/patch'
 import { useEntered } from '~/composables/useEntered'
 import { getProfileIconUrl } from '~/utils/ddragon'
-import { TIER_ORDER, TIER_SPAN, tierEmblemUrl, tierLabel, tierTint } from '~/utils/lol-tier'
+import { TIER_ORDER, TIER_SPAN, tierEmblemUrl, tierLabel, tierTint, trackScore } from '~/utils/lol-tier'
 import { formatSigned } from '~/utils/number'
 
 /**
- * "L'échelle des rangs": every ranked player placed on one continuous axis (`rankScore`), over
+ * "L'échelle des rangs": every ranked player placed on one continuous axis (`trackScore`), over
  * pastel tier bands, with a trail back to where they stood 7 days ago (`lpChange7Days*`).
  *
  * Players too close to share a line are pushed onto extra lanes, which needs the real width of the
@@ -45,10 +45,15 @@ onBeforeUnmount(() => observer?.disconnect())
 const trackWidth = computed(() => width.value || 700)
 const dotSize = computed(() => (trackWidth.value >= 520 ? 36 : 30))
 
-const placed = computed(() => props.entries.filter(entry => entry.score !== null))
+/** Each ranked entry with its position now and 7 days ago, both on the banded `trackScore` axis. */
+const placed = computed(() => props.entries.flatMap((entry) => {
+  const now = entry.rank ? trackScore(entry.rank) : null
+  const before = entry.rank ? trackScore(entry.rank, -entry.delta) : null
+  return now === null || before === null ? [] : [{ entry, now, before }]
+}))
 
 const bounds = computed(() => {
-  const points = placed.value.flatMap(entry => [entry.score!, entry.score! - entry.delta])
+  const points = placed.value.flatMap(({ now, before }) => [now, before])
   if (points.length === 0) return { low: 800, high: 2000 }
   return {
     low: Math.floor(Math.min(...points) / TIER_SPAN) * TIER_SPAN,
@@ -87,9 +92,9 @@ const laneStep = computed(() => dotSize.value + 14)
 const lanes = computed(() => {
   const ends: number[] = []
   const laneOf = new Map<number, number>()
-  const byPosition = [...placed.value].sort((a, b) => toX(a.score!) - toX(b.score!))
-  for (const entry of byPosition) {
-    const px = (toX(entry.score!) / 100) * trackWidth.value
+  const byPosition = [...placed.value].sort((a, b) => a.now - b.now)
+  for (const { entry, now } of byPosition) {
+    const px = (toX(now) / 100) * trackWidth.value
     let lane = 0
     while (ends[lane] !== undefined && px - ends[lane]! < dotSize.value + 10) lane++
     ends[lane] = px
@@ -99,13 +104,13 @@ const lanes = computed(() => {
 })
 
 const isDimmed = (id: number) => props.hoveredId !== null && props.hoveredId !== id
-  && placed.value.some(entry => entry.id === props.hoveredId)
+  && placed.value.some(({ entry }) => entry.id === props.hoveredId)
 
-const dots = computed(() => placed.value.map((entry, index) => {
+const dots = computed(() => placed.value.map(({ entry, now, before }, index) => {
   const hovered = props.hoveredId === entry.id
   const top = railY.value + (lanes.value.laneOf.get(entry.id) ?? 0) * laneStep.value
-  const previousX = toX(entry.score! - entry.delta)
-  const x = toX(entry.score!)
+  const previousX = toX(before)
+  const x = toX(now)
   const isMe = props.meId === entry.id
   return {
     entry,
