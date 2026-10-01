@@ -96,6 +96,22 @@ export const TIER_ORDER = [
 
 export const TIER_SPAN = 400
 
+/**
+ * Where a rank sits on a scale drawn as one `TIER_SPAN`-wide band per tier. Below Master it is
+ * `rankScore`. Apex LP are unbounded, so `rankScore` would push a Master on 600 LP into the
+ * Grandmaster band: there they are squeezed into the tier's own band instead, keeping their order.
+ * `lpOffset` shifts the LP first (e.g. `-delta` for where the player stood before); apex LP that go
+ * negative fall back below Master, linearly, as a demotion to Diamond would.
+ */
+export function trackScore(rank: RankPosition, lpOffset = 0): number | null {
+  const base = divisionScore(rank)
+  if (base === null) return null
+  const lp = rank.leaguePoints + lpOffset
+  if (!APEX_TIERS.has(rank.tier.toUpperCase())) return base + lp
+  if (lp < 0) return TIER_BASE_POINTS.MASTER! + lp
+  return base + (TIER_SPAN * lp) / (lp + TIER_SPAN)
+}
+
 const TIER_TINTS: Record<string, string> = {
   IRON: '#C9BFB6',
   BRONZE: '#F1B48A',

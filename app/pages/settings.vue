@@ -189,6 +189,12 @@ const logout = () => {
         <p class="m-0 text-[13px] font-medium text-text-sec">
           Votre compte dispose du rôle <span class="font-mono font-bold text-brand-gold">gameon_admin</span>.
         </p>
+        <NuxtLink to="/admin" class="mt-4 flex items-center justify-between w-full p-4 rounded-xl bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-high/80 text-text-main transition-colors group">
+          <span class="flex items-center gap-3 font-bold text-[13px]">
+            Ouvrir l'espace d'administration
+          </span>
+          <Icon name="lucide:arrow-right" class="text-[16px] text-text-ter group-hover:text-brand-gold transition-colors" />
+        </NuxtLink>
       </div>
 
       <!-- LoL Block -->

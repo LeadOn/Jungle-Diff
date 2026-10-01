@@ -30,3 +30,17 @@ export const isAbortError = (error: unknown): boolean => {
   if (error instanceof AppError) return error.aborted
   return error instanceof Error && error.name === 'AbortError'
 }
+
+/**
+ * The HTTP status carried by a failure, `0` when there is none (no answer at all, or not an HTTP
+ * error). Reads `AppError` first, then any object exposing a numeric `statusCode`, which is what a
+ * Nuxt error carries.
+ */
+export const errorStatusCode = (error: unknown): number => {
+  if (error instanceof AppError) return error.statusCode
+  if (error && typeof error === 'object' && 'statusCode' in error) {
+    const code = (error as { statusCode?: unknown }).statusCode
+    return typeof code === 'number' ? code : 0
+  }
+  return 0
+}

@@ -50,6 +50,9 @@ export default defineNuxtConfig({
     '/stats': { swr: 60 },
     // Authenticated pages must never be cached.
     '/settings': { swr: false, headers: { 'cache-control': 'no-store' } },
+    // The admin space is rendered per user (and refused to non-admins): never cache it.
+    '/admin': { swr: false, headers: { 'cache-control': 'no-store' } },
+    '/admin/**': { swr: false, headers: { 'cache-control': 'no-store' } },
     '/api/auth/**': { headers: { 'cache-control': 'no-store' } }
   },
 

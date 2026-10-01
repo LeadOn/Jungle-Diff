@@ -7,8 +7,13 @@ const props = defineProps<{
 }>()
 
 const isNotFound = computed(() => props.error?.statusCode === 404)
+const isForbidden = computed(() => props.error?.statusCode === 403)
 
-const title = computed(() => (isNotFound.value ? 'Page introuvable' : 'Une erreur est survenue'))
+const title = computed(() => {
+  if (isNotFound.value) return 'Page introuvable'
+  if (isForbidden.value) return 'Accès réservé'
+  return 'Une erreur est survenue'
+})
 
 const message = computed(() => {
   if (isNotFound.value) return "Cette page n'existe pas ou a été déplacée."
@@ -16,7 +21,11 @@ const message = computed(() => {
 })
 
 useSeoMeta({
-  title: computed(() => (isNotFound.value ? 'Page introuvable' : 'Erreur')),
+  title: computed(() => {
+    if (isNotFound.value) return 'Page introuvable'
+    if (isForbidden.value) return 'Accès réservé'
+    return 'Erreur'
+  }),
 })
 
 const handleHome = () => clearError({ redirect: '/' })
