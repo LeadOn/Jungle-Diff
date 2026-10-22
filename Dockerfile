@@ -1,9 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Node 24 is the current LTS line. The previous image pinned 23.6.1 — an odd-numbered release that
-# never had long-term support and is now end-of-life, so it stopped receiving security patches.
-# The major is pinned rather than the patch, so rebuilds pick up Node security fixes automatically.
-FROM node:24-alpine AS builder
+FROM node:alpine AS builder
 
 WORKDIR /app
 
@@ -21,7 +18,7 @@ COPY . .
 RUN npx nuxi prepare && npm run build
 
 # --- Runtime image -----------------------------------------------------------------------------
-FROM node:24-alpine AS runner
+FROM node:alpine AS runner
 
 WORKDIR /app
 

@@ -1,6 +1,6 @@
 {
   "name": "junglediff",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,30 +18,25 @@
     "typecheck": "nuxt prepare && vue-tsc --noEmit"
   },
   "dependencies": {
-    "@pinia/nuxt": "^1.0.2",
-    "chart.js": "^4.5.1",
+    "@pinia/nuxt": "^1.0.3",
+    "chart.js": "^4.6.1",
     "date-fns": "^4.4.0",
-    "nuxt": "^4.5.2",
-    "pinia": "^4.0.3",
-    "vue": "^3.5.42",
+    "nuxt": "^4.6.2",
+    "pinia": "^4.1.0",
+    "vue": "^3.5.44",
     "vue-chartjs": "^5.3.4"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.138",
+    "@iconify-json/lucide": "^1.2.147",
     "@nuxt/eslint": "^1.17.0",
-    "@nuxt/fonts": "^0.14.0",
+    "@nuxt/fonts": "^1.0.1",
     "@nuxt/icon": "^2.5.1",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.6.3",
-    "eslint": "^10.10.0",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vue-tsc": "^3.3.11"
-  },
-  "overrides": {
-    "nanoid": "^5.1.16",
-    "esbuild": "^0.25.0",
-    "h3": "^1.15.5"
+    "vue-tsc": "^3.3.13"
   }
 }

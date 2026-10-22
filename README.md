@@ -5,7 +5,7 @@ OIDC authentication.
 
 ## 🚀 Technology Stack
 
-- **Framework:** Nuxt 4.5.2 (SSR enabled, `app/` structure, Nitro server routes under `server/`)
+- **Framework:** Nuxt 4.6.2 (SSR enabled, `app/` structure, Nitro server routes under `server/`)
 - **Language:** TypeScript (strict mode, no `any`)
 - **Styling:** Tailwind CSS v4 with a custom CSS-variable design system
 - **State:** Pinia (setup stores)

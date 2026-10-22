@@ -7,7 +7,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
 
 # Technology Stack
 
-- Nuxt 4.5.2, SSR enabled, `app/` directory structure, Nitro server routes under `server/`
+- Nuxt 4.6.2, SSR enabled, `app/` directory structure, Nitro server routes under `server/`
 - Vue Composition API, `<script setup>` only
 - TypeScript strict; `any` is a lint error
 - Tailwind CSS v4 driven by a custom CSS-variable design system
