@@ -33,9 +33,9 @@ export default defineNuxtConfig({
       {
         name: 'Archivo',
         provider: 'google',
-        weights: ['400 800'],
+        weights: ['100 900'],
         styles: ['normal'],
-        variableAxis: { wdth: [['62', '125']] },
+        variableAxis: { wdth: [{ min: 62, max: 125 }] },
       },
       { name: 'Geist Mono', provider: 'google', weights: [400, 500, 600, 700] }
     ]

@@ -1,7 +1,7 @@
 <template>
-  <span class="inline-flex items-center gap-1 whitespace-nowrap" :title="summary">
+  <span class="inline-flex items-center gap-1.5 whitespace-nowrap" :title="summary">
     <span
-      class="rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none"
+      class="inline-flex h-[22px] items-center rounded-full px-[9px] font-mono text-[11.5px] font-semibold leading-none tabular-nums"
       :class="deltaClass"
     >
       {{ deltaLabel }}
@@ -10,13 +10,12 @@
     <!-- The tier tint and emblem are those of the rank reached, so a promotion reads as the new tier. -->
     <span
       v-if="transition"
-      class="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none text-text-main"
-      :class="transitionBorderClass"
-      :style="{ backgroundColor: afterTierBackground }"
+      class="inline-flex h-[22px] items-center gap-1 rounded-1 pr-2 pl-0.5 text-[11.5px] font-[650] leading-none text-ink"
+      :style="{ backgroundColor: afterPromoBackground }"
       :title="`${transitionPrefix} ${afterLabel} · ${summary}`"
     >
       <Icon :name="transitionIcon" class="h-3 w-3 shrink-0" :class="transitionIconClass" />
-      <UiAppImage :src="afterEmblemUrl" alt="" class="h-3.5 w-3.5 shrink-0" />
+      <UiAppImage :src="afterEmblemUrl" alt="" class="h-5 w-5 shrink-0" />
       <span class="sr-only">{{ transitionPrefix }}</span>
       <span>{{ afterLabel }}</span>
     </span>
@@ -33,7 +32,7 @@ import {
   rankChangeSummary,
   rankTransition,
 } from '~/utils/lol-rank-change'
-import { tierEmblemUrl, tierGlowBackground, tierLabel } from '~/utils/lol-tier'
+import { tierEmblemUrl, tierLabel, tierTint } from '~/utils/lol-tier'
 
 /**
  * LP won or lost on one game. Callers render it only for a non-null `rankChange`: a null one is
@@ -47,9 +46,9 @@ const deltaLabel = computed(() => formatLpDelta(props.change.leaguePointsChange)
 const summary = computed(() => rankChangeSummary(props.change))
 
 const DELTA_CLASSES = {
-  gain: 'text-brand-green border-brand-green/45 bg-brand-green/15',
-  loss: 'text-brand-red border-brand-red/45 bg-brand-red/15',
-  neutral: 'text-text-sec border-border-base bg-white/5 light:bg-black/5',
+  gain: 'bg-win-soft text-win-ink',
+  loss: 'bg-loss-soft text-loss-ink',
+  neutral: 'bg-neutral-soft text-ink-2 light:bg-neutral-soft',
 } as const
 const deltaClass = computed(() => DELTA_CLASSES[lpDeltaTone(props.change.leaguePointsChange)])
 
@@ -57,18 +56,18 @@ const transition = computed(() => rankTransition(props.change))
 const after = computed(() => rankAfter(props.change))
 const afterLabel = computed(() => tierLabel(after.value))
 const afterEmblemUrl = computed(() => tierEmblemUrl(after.value))
-const afterTierBackground = computed(() => tierGlowBackground(after.value))
+const afterPromoBackground = computed(() => {
+  const tint = tierTint(after.value.tier) ?? 'var(--color-tier-emerald)'
+  return `color-mix(in oklch, ${tint} 32%, var(--surface))`
+})
 
 const transitionIcon = computed(() =>
   transition.value === 'promotion' ? 'lucide:chevrons-up' : 'lucide:chevrons-down',
 )
 const transitionIconClass = computed(() =>
-  transition.value === 'promotion' ? 'text-brand-green' : 'text-brand-red',
-)
-const transitionBorderClass = computed(() =>
-  transition.value === 'promotion' ? 'border-brand-green/45' : 'border-brand-red/45',
+  transition.value === 'promotion' ? 'text-win-ink' : 'text-loss-ink',
 )
 const transitionPrefix = computed(() =>
-  transition.value === 'promotion' ? 'Promotion en' : 'Rétrogradation en',
+  transition.value === 'promotion' ? 'Promu' : 'Rétrogradé',
 )
 </script>

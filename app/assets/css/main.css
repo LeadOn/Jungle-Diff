@@ -331,6 +331,16 @@
 @utility bg-photo-scrim { background-image: var(--photo-scrim-value); }
 @utility bg-scrim-rise { background-image: var(--scrim-rise-value); }
 @utility bg-scrim-side { background-image: var(--scrim-side-value); }
+@utility skel { border-radius: var(--radius-1); background: linear-gradient(90deg, var(--neutral-soft) 0%, var(--sunken) 50%, var(--neutral-soft) 100%); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; }
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+@keyframes live {
+  0% { opacity: 0.7; transform: scale(0.6); }
+  70%, 100% { opacity: 0; transform: scale(1.5); }
+}
 
 /* v7 utilities kept alive by the bridge until their last user is restyled (phase 7 removes them):
    shadow-card-hover, shadow-hero, shadow-podium(-hover), bg-scrim-hero, bg-scrim-soft, bg-page-wash.
