@@ -30,8 +30,14 @@ export default defineNuxtConfig({
     // Fonts are downloaded at build time and served from our own origin: no render-blocking
     // request to fonts.googleapis.com at runtime (performance + GDPR), and a third-party-free CSP.
     families: [
-      { name: 'Archivo', provider: 'google', weights: [400, 500, 600, 700, 800] },
-      { name: 'Geist Mono', provider: 'google', weights: [400, 500, 600] }
+      {
+        name: 'Archivo',
+        provider: 'google',
+        weights: ['400 800'],
+        styles: ['normal'],
+        variableAxis: { wdth: [['62', '125']] },
+      },
+      { name: 'Geist Mono', provider: 'google', weights: [400, 500, 600, 700] }
     ]
   },
 

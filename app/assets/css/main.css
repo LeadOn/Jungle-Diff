@@ -308,6 +308,7 @@
 }
 
 /* Archivo's width axis (wdth 62–125): three voices from one family */
+@source inline("font-wide font-cond");
 @utility font-wide { font-stretch: 118%; }
 @utility font-cond { font-stretch: 72%; }
 
