@@ -255,7 +255,7 @@ const logout = () => {
           </div>
 
           <div class="mt-4">
-            <button type="submit" :disabled="saving" class="w-full md:w-auto px-8 py-3 rounded-full bg-brand-gold text-brand-gold-text font-black text-[13px] hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait">
+            <button type="submit" :disabled="saving" class="w-full md:w-auto px-8 py-3 rounded-full bg-gold text-brand-gold-text font-black text-[13px] hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait">
               <Icon v-if="saving" name="lucide:loader-2" class="animate-spin text-[16px]" />
               <Icon v-else name="lucide:save" class="text-[16px]" />
               {{ saving ? 'Enregistrement...' : 'Enregistrer les modifications' }}

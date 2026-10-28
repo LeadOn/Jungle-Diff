@@ -145,7 +145,7 @@ const cards = computed(() => CONFIGS.map((config) => {
         <span class="block truncate text-[14.5px] font-bold">{{ card.config.title }}</span>
         <span v-if="card.player" class="mt-0.5 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-text-sec">
           <span class="truncate"><span :class="{ 'text-brand-green': card.isLinked }">{{ card.holderName }}</span> · {{ card.championName }}</span>
-          <span v-if="card.isMe" class="shrink-0 rounded-full bg-brand-gold px-1.5 text-[10.5px] font-bold text-brand-gold-text">Vous</span>
+          <span v-if="card.isMe" class="shrink-0 rounded-full bg-gold px-1.5 text-[10.5px] font-bold text-brand-gold-text">Vous</span>
         </span>
         <span v-else class="mt-0.5 block text-xs font-semibold text-text-ter">Pas assez de données</span>
         <span class="mt-0.5 block truncate text-[11.5px] font-medium text-text-sec">{{ card.config.subtitle }}</span>

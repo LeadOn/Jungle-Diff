@@ -64,7 +64,7 @@ const deltaClass = computed(() => {
       <span class="flex min-w-0 flex-col gap-px">
         <span class="flex min-w-0 items-center gap-1.5">
           <span class="truncate text-[15px] font-bold">{{ entry.name }}</span>
-          <span v-if="isMe" class="shrink-0 rounded-full bg-brand-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
+          <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
           <span
             v-if="entry.smurf"
             :title="entry.mainName ? `Compte secondaire de ${entry.mainName}` : 'Compte secondaire'"

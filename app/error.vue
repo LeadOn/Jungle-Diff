@@ -59,7 +59,7 @@ const handleHome = () => clearError({ redirect: '/' })
         </p>
         <button
           type="button"
-          class="mt-2 inline-flex items-center gap-2 rounded-full bg-brand-gold px-5 py-2.5 text-sm font-bold text-brand-gold-text transition-opacity hover:opacity-90"
+          class="mt-2 inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-bold text-brand-gold-text transition-opacity hover:opacity-90"
           @click="handleHome"
         >
           <Icon name="lucide:arrow-left" class="h-4 w-4" />

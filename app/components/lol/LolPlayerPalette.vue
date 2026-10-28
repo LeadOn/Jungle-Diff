@@ -210,7 +210,7 @@ onBeforeUnmount(() => {
             <span class="flex min-w-0 flex-1 items-center gap-[7px] overflow-hidden whitespace-nowrap">
               <span class="text-[15px] font-bold text-text-main">{{ playerName(item.player) }}</span>
               <span class="text-[12.5px] font-semibold text-text-sec">{{ playerTag(item.player) }}</span>
-              <span v-if="isMe(item.player)" class="rounded-full bg-brand-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
+              <span v-if="isMe(item.player)" class="rounded-full bg-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
               <span v-if="isSmurf(item.player)" class="rounded-full border border-border-accent px-1.5 text-[10.5px] font-bold text-text-main">Smurf</span>
             </span>
             <span class="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] font-bold text-text-main">

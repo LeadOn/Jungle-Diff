@@ -120,7 +120,7 @@ const toggleTheme = () => {
           <button
             v-else
             type="button"
-            class="flex h-10 cursor-pointer items-center whitespace-nowrap rounded-full border border-border-base bg-brand-gold px-4 text-sm font-bold text-brand-gold-text shadow-card md:px-[18px]"
+            class="flex h-10 cursor-pointer items-center whitespace-nowrap rounded-full border border-border-base bg-gold px-4 text-sm font-bold text-brand-gold-text shadow-card md:px-[18px]"
             @click="authStore.login()"
           >
             Se connecter

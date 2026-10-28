@@ -562,7 +562,7 @@ const generatedOnLabel = computed(() =>
         </p>
         <button
           type="button"
-          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-bold text-brand-gold-text transition-transform duration-[250ms] ease-spring hover:scale-105"
+          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-gold px-5 text-sm font-bold text-brand-gold-text transition-transform duration-[250ms] ease-spring hover:scale-105"
           @click="authStore.login()">
           <Icon name="lucide:log-in" class="size-4" />
           Se connecter

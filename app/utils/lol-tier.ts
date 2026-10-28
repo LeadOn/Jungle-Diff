@@ -113,16 +113,16 @@ export function trackScore(rank: RankPosition, lpOffset = 0): number | null {
 }
 
 const TIER_TINTS: Record<string, string> = {
-  IRON: '#C9BFB6',
-  BRONZE: '#F1B48A',
-  SILVER: '#CBD4E1',
-  GOLD: '#E3B54F',
-  PLATINUM: '#7EE8D6',
-  EMERALD: '#5BE3A1',
-  DIAMOND: '#9DB2FF',
-  MASTER: '#DA9BFF',
-  GRANDMASTER: '#FF8C8C',
-  CHALLENGER: '#8EDCFF',
+  IRON: 'oklch(0.72 0.02 50)',
+  BRONZE: 'oklch(0.74 0.085 55)',
+  SILVER: 'oklch(0.82 0.025 250)',
+  GOLD: 'oklch(0.83 0.115 85)',
+  PLATINUM: 'oklch(0.8 0.085 185)',
+  EMERALD: 'oklch(0.78 0.13 155)',
+  DIAMOND: 'oklch(0.76 0.1 265)',
+  MASTER: 'oklch(0.74 0.13 315)',
+  GRANDMASTER: 'oklch(0.72 0.14 25)',
+  CHALLENGER: 'oklch(0.82 0.1 220)',
 }
 
 /**

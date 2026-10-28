@@ -167,7 +167,7 @@ const tiles = computed<StatTile[]>(() => {
         <div class="min-w-0">
           <div class="flex min-w-0 items-center gap-2">
             <span class="truncate text-2xl font-bold tracking-[-0.03em]">{{ name }}</span>
-            <span v-if="isMe" class="shrink-0 rounded-full bg-brand-gold px-2 py-0.5 text-[11px] font-bold text-brand-gold-text">Vous</span>
+            <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-bold text-brand-gold-text">Vous</span>
           </div>
           <div class="mt-0.5 text-[13px] font-semibold text-text-sec">{{ subtitle }}</div>
         </div>

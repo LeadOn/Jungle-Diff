@@ -296,7 +296,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
           <span class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
             <span class="min-w-0 truncate text-[14.5px] font-bold">{{ player.riotIdGameName }}<span class="font-medium text-text-sec">#{{ player.riotIdTagLine }}</span></span>
 
-            <span v-if="isMe" class="shrink-0 rounded-full bg-brand-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
+            <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
             <span
               v-else-if="isLinked"
               title="Joueur suivi par JungleDiff"
@@ -308,7 +308,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
                 v-if="primaryPlayerId"
                 :to="`/summoner/${primaryPlayerId}`"
                 :aria-label="`Smurf de ${primaryPlayerName || 'un joueur du crew'} : voir le compte principal`"
-                class="inline-flex size-[18px] items-center justify-center rounded-full bg-brand-gold-soft text-brand-gold transition-colors hover:bg-brand-gold hover:text-brand-gold-text"
+                class="inline-flex size-[18px] items-center justify-center rounded-full bg-brand-gold-soft text-brand-gold transition-colors hover:bg-gold hover:text-brand-gold-text"
               >
                 <Icon name="lucide:bot" class="size-2.5" />
               </NuxtLink>

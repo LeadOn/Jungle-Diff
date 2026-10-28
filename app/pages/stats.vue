@@ -116,7 +116,7 @@ const getPlayerAvatarUrl = (p: PlayerDto) => {
           v-for="opt in queueOptions"
           :key="opt.value"
           class="rounded-full px-4 py-1.5 text-sm font-bold transition-colors"
-          :class="queue === opt.value ? 'bg-brand-gold text-brand-gold-text shadow-sm' : 'text-text-ter hover:text-text-main'"
+          :class="queue === opt.value ? 'bg-gold text-brand-gold-text shadow-sm' : 'text-text-ter hover:text-text-main'"
           @click="setQueue(opt.value)"
         >
           {{ opt.label }}

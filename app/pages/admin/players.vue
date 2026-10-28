@@ -57,7 +57,7 @@ const describe = (account: LoLAdminAccountDto) => {
   const main = isSmurf(account) ? admin.accountById(account.primaryPlayerId) : undefined
   const isMe = playerStore.currentPlayer?.id === account.id
   const chips: Chip[] = []
-  if (isMe) chips.push({ label: 'Vous', tone: 'bg-brand-gold text-brand-gold-text' })
+  if (isMe) chips.push({ label: 'Vous', tone: 'bg-gold text-brand-gold-text' })
   if (isSmurf(account)) chips.push({ label: `Smurf de ${main ? accountRiotName(main) : '?'}`, tone: 'border border-border-accent bg-surface-base text-text-main' })
   if (!account.inCrew && !account.archived) chips.push({ label: 'Hors crew', tone: 'bg-brand-gold-soft text-brand-gold' })
   if (account.archived) chips.push({ label: 'Archivé', tone: 'bg-surface-high text-text-sec' })

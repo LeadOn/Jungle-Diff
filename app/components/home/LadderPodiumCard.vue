@@ -66,9 +66,9 @@ const gapText = computed(() => (props.entry.gap === null
       <span class="absolute inset-0 bg-scrim-soft" />
       <span
         class="absolute left-3 top-3 rounded-full px-[11px] py-1 text-[12.5px] font-bold"
-        :class="isFirst ? 'bg-brand-gold-bright text-night' : 'bg-night/60 text-white'"
+        :class="isFirst ? 'bg-brand-gold-bright text-night' : 'bg-night text-on-night'"
       >{{ medal }}</span>
-      <span v-if="mainChampion" class="absolute right-3 top-3.5 text-[11.5px] font-bold text-white text-shadow-md">{{ championDisplayName(mainChampion) }}</span>
+      <span v-if="mainChampion" class="absolute right-3 top-3 rounded-full bg-night/80 px-[9px] py-1 text-[11.5px] font-bold text-on-night">{{ championDisplayName(mainChampion) }}</span>
     </span>
     <img :src="tierEmblemUrl(entry.rank)" alt="" class="absolute right-3 top-[62px] size-[68px] object-contain drop-shadow-lg">
     <span
@@ -77,7 +77,7 @@ const gapText = computed(() => (props.entry.gap === null
     />
     <span class="mt-3 flex min-w-0 items-center gap-1.5">
       <span class="truncate text-[21px] font-bold tracking-[-0.02em]">{{ entry.name }}</span>
-      <span v-if="isMe" class="shrink-0 rounded-full bg-brand-gold px-2 py-0.5 text-[11px] font-bold text-brand-gold-text">Vous</span>
+      <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-bold text-brand-gold-text">Vous</span>
       <span
         v-if="entry.smurf"
         :title="entry.mainName ? `Compte secondaire de ${entry.mainName}` : 'Compte secondaire'"
