@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAsyncData } from '#app'
 import type { LoLActivePlayerDto, LoLGameDto, PlayerDto } from '~/lib/types'
 import { RECENT_MATCHES_PAGE_SIZE, useLolStore } from '~/stores/lol'
+import { usePlayerStore } from '~/stores/player'
 import { usePatchStore } from '~/stores/patch'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { cacheOnlyDuringHydration } from '~/utils/async-data'
@@ -13,7 +14,6 @@ import { playerDisplayName } from '~/utils/lol-ladder'
 import { isSmurf } from '~/utils/lol-smurf'
 import { getProfileIconUrl } from '~/utils/ddragon'
 import { dayHeading, parisDayKey } from '~/utils/date'
-import { formatSigned } from '~/utils/number'
 import LolGameCard from '~/components/lol/LolGameCard.vue'
 
 const props = withDefaults(defineProps<{
@@ -22,14 +22,19 @@ const props = withDefaults(defineProps<{
   includeSmurfs?: boolean
   /** `weeklyActivity.activePlayers`: the chips and their counts (ranked games over 7 days). */
   activePlayers?: LoLActivePlayerDto[]
-  /** `weeklyActivity.gamesThisWeek`, the count on "Tout le crew". */
+  /** `weeklyActivity.gamesThisWeek`, kept for compatibility. */
   rankedGames?: number | null
 }>(), { includeSmurfs: false, activePlayers: () => [], rankedGames: null })
 
 const store = useLolStore()
+const playerStore = usePlayerStore()
 const patchStore = usePatchStore()
 const gameOnApi = useGameOnLol()
 const pageSize = RECENT_MATCHES_PAGE_SIZE
+
+const isMounted = ref(false)
+const meId = computed(() => (isMounted.value ? playerStore.currentPlayer?.id ?? null : null))
+onMounted(() => { isMounted.value = true })
 
 const { status, error } = useAsyncData(
   'recentGames',
@@ -168,10 +173,9 @@ const days = computed(() => {
     return {
       ...group,
       ...dayHeading(group.key, todayKey),
-      record: `${wins}V · ${losses}D`,
+      record: `${wins} V · ${losses} D`,
       // Only when at least one game of the day carries its LP: a sum over nothing is not a 0.
-      lp: known.length > 0 ? `${formatSigned(lp)} LP` : null,
-      lpClass: lp > 0 ? 'bg-win-soft text-brand-green' : lp < 0 ? 'bg-loss-soft text-brand-red' : 'bg-surface-base text-text-main',
+      lp: known.length > 0 ? lp : null,
     }
   })
 })
@@ -195,7 +199,7 @@ const chips = computed(() => {
     .map(player => chip(player, null))
 
   return [
-    { id: null, label: 'Tout le crew', iconUrl: null, count: props.rankedGames },
+    { id: null, label: 'Tout le crew', iconUrl: null, count: null },
     ...[...active, ...others].slice(0, 10),
   ]
 })
@@ -203,8 +207,8 @@ const chips = computed(() => {
 const subtitle = computed(() => {
   const selected = store.players.find(player => player.id === selectedPlayerId.value)
   return selected
-    ? `Les parties de ${playerDisplayName(selected)}, toutes files confondues`
-    : 'Tout le crew, toutes files confondues'
+    ? `Les parties de ${playerDisplayName(selected)}, toutes files confondues.`
+    : 'Toutes files confondues. Le chiffre de chaque joueur compte ses parties classées sur 7 jours.'
 })
 
 const isPending = computed(() => (selectedPlayerId.value === null ? status.value === 'pending' : playerLoading.value))
@@ -212,56 +216,73 @@ const hasError = computed(() => (selectedPlayerId.value === null ? error.value !
 </script>
 
 <template>
-  <section aria-labelledby="recent-games-title" class="@container">
-    <h2 id="recent-games-title" class="text-[32px] font-bold tracking-[-0.035em]">Dernières parties</h2>
-    <p class="mt-1.5 text-sm font-semibold text-text-sec">{{ subtitle }}</p>
+  <section aria-labelledby="recent-games-title" class="games @container">
+    <div class="mb-3.5 flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
+      <div>
+        <h2 id="recent-games-title" class="type-d2">Dernières parties</h2>
+        <p class="mt-1 text-[13px] text-ink-2">{{ subtitle }}</p>
+      </div>
+    </div>
 
-    <div role="group" aria-label="Filtrer par joueur" class="mt-4 flex flex-wrap gap-2">
-      <button
+    <div role="group" aria-label="Filtrer par joueur" class="flex flex-wrap gap-1.5">
+      <UiPlayerChip
         v-for="chip in chips"
         :key="chip.id ?? 'crew'"
-        type="button"
-        :aria-pressed="selectedPlayerId === chip.id"
-        class="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border pr-[13px] text-[13px] font-bold transition-[background-color,color,translate] duration-[250ms] ease-spring hover:-translate-y-0.5"
-        :class="[
-          chip.iconUrl ? 'pl-[5px]' : 'pl-3.5',
-          selectedPlayerId === chip.id ? 'border-inverse bg-inverse text-inverse-text' : 'border-border-base bg-surface-base text-text-main',
-        ]"
+        :label="chip.label"
+        :avatar-url="chip.iconUrl"
+        :count="chip.count"
+        :pressed="selectedPlayerId === chip.id"
+        :title="chip.count !== null ? `${chip.count} parties classées sur 7 jours` : undefined"
         @click="selectPlayer(chip.id)"
-      >
-        <span v-if="chip.iconUrl" class="size-[26px] rounded-full bg-surface-sunken bg-cover bg-center" :style="{ backgroundImage: `url('${chip.iconUrl}')` }" />
-        {{ chip.label }}
-        <span v-if="chip.count !== null" class="font-mono text-[11px] font-medium opacity-65" title="Parties classées sur 7 jours">{{ chip.count }}</span>
-      </button>
+      />
     </div>
 
-    <div v-if="isPending && entries.length === 0" class="mt-6 flex items-center gap-2 text-sm font-bold text-text-sec">
-      <Icon name="lucide:loader-circle" class="animate-spin" /> Chargement…
+    <div v-if="isPending && entries.length === 0" class="mt-5 grid gap-2.5">
+      <UiSkeleton class="h-20 rounded-5" />
+      <UiSkeleton class="h-20 rounded-5" />
+      <UiSkeleton class="h-20 rounded-5" />
     </div>
-    <p v-else-if="hasError" class="mt-6 text-sm font-bold text-brand-red">Erreur lors du chargement des parties récentes.</p>
-    <p v-else-if="entries.length === 0" class="mt-6 text-sm font-bold text-text-sec">Aucune partie trouvée.</p>
+    <UiErrorState
+      v-else-if="hasError"
+      class="mt-5"
+      title="Parties indisponibles"
+      message="Erreur lors du chargement des parties récentes."
+    />
+    <UiEmptyState
+      v-else-if="entries.length === 0"
+      class="mt-5"
+      title="Aucune partie trouvée."
+    />
 
-    <div v-for="day in days" :key="day.key" class="mt-6">
-      <div class="mb-3 flex flex-wrap items-center gap-2">
-        <span class="text-lg font-bold tracking-[-0.02em]">{{ day.label }}</span>
-        <span class="text-[13px] font-semibold text-text-sec">{{ day.date }}</span>
-        <span class="h-0 min-w-5 flex-1 border-t-[1.5px] border-dashed border-border-dashed" />
-        <span class="rounded-full border border-border-base bg-surface-base px-2.5 py-[3px] text-xs font-bold">{{ day.record }}</span>
-        <span v-if="day.lp" class="rounded-full px-2.5 py-[3px] font-mono text-[11.5px] font-semibold" :class="day.lpClass">{{ day.lp }}</span>
+    <div v-for="day in days" :key="day.key">
+      <div class="mb-2 mt-[22px] flex flex-wrap items-center gap-2.5">
+        <b class="text-[15px] font-[660]">{{ day.label }}</b>
+        <span class="type-mono text-ink-3">{{ day.date }}</span>
+        <span class="h-px min-w-5 flex-1 bg-line" />
+        <span class="font-mono text-[11.5px] text-ink-2">{{ day.record }}</span>
+        <LolLpBadge v-if="day.lp !== null" :value="day.lp" />
       </div>
-      <div class="flex flex-col gap-2.5">
-        <LolGameCard v-for="entry in day.entries" :key="entry.key" :entry="entry" />
+      <div class="grid gap-2.5">
+        <LolGameCard
+          v-for="entry in day.entries"
+          :key="entry.key"
+          :entry="entry"
+          :is-me="meId !== null && entry.participant.playerId === meId"
+        />
       </div>
     </div>
 
-    <button
+    <UiButton
       v-if="hasMore && entries.length > 0"
-      type="button"
+      variant="secondary"
+      size="lg"
+      block
+      :busy="loadingMore"
       :disabled="loadingMore"
-      class="mt-5 flex h-[50px] w-full cursor-pointer items-center justify-center rounded-full bg-inverse text-[15px] font-bold text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-[1.015] disabled:cursor-wait disabled:opacity-60"
+      class="mt-4"
       @click="loadMore"
     >
       {{ loadingMore ? 'Chargement…' : 'Voir plus de parties' }}
-    </button>
+    </UiButton>
   </section>
 </template>

@@ -103,37 +103,61 @@ const entries = computed(() => games.value.map((game) => {
 </script>
 
 <template>
-  <!-- `relative` on purpose: the bento's cards above are positioned, so their shadows paint over any
-       plain block below them. Positioned and later in the page, the strip paints over the shadows. -->
   <div
     v-if="entries.length > 0"
-    class="relative mt-4 flex animate-rise flex-wrap items-center gap-x-5 gap-y-3 rounded-[22px] border border-border-subtle bg-surface-base py-2.5 pl-[18px] pr-3 shadow-card"
+    aria-label="En partie maintenant"
+    class="flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-3 border border-line bg-surface px-3 py-2.5"
   >
-    <span class="inline-flex items-center gap-2.5 whitespace-nowrap text-[13.5px] font-bold">
-      <span class="relative size-2.5">
-        <span class="absolute inset-0 animate-ping-slow rounded-full bg-loss" />
-        <span class="absolute inset-0 rounded-full bg-loss" />
-      </span>
-      En partie maintenant
+    <span class="inline-flex items-center gap-2 whitespace-nowrap text-[13px] font-[650]">
+      <span class="live-dot" aria-hidden="true" />
+      En partie
     </span>
-    <div class="flex flex-1 flex-wrap gap-2.5">
-      <NuxtLink
-        v-for="entry in entries"
-        :key="entry.key"
-        :to="`/summoner/${entry.playerId}`"
-        :title="entry.title"
-        class="flex items-center gap-2.5 rounded-full border border-border-subtle bg-surface-muted py-[5px] pl-[5px] pr-1.5 transition-[background-color,translate] duration-300 ease-spring hover:-translate-y-0.5 hover:bg-surface-high"
-      >
-        <span
-          class="size-9 shrink-0 rounded-full bg-surface-sunken bg-[length:115%] bg-center shadow-[0_0_0_2px_var(--color-surface),0_0_0_3.5px_var(--color-loss-fill)]"
-          :style="{ backgroundImage: `url('${entry.iconUrl}')` }"
-        />
-        <span class="flex min-w-0 flex-col gap-px">
-          <span class="whitespace-nowrap text-sm font-bold">{{ entry.name }} <span class="font-semibold text-text-sec">· {{ entry.champion }}</span></span>
-          <span class="whitespace-nowrap text-xs font-semibold text-text-sec">{{ entry.meta }}</span>
-        </span>
-        <span class="ml-2 rounded-full bg-loss-soft px-[9px] py-1 font-mono text-xs font-semibold text-brand-red">{{ entry.clock }}</span>
-      </NuxtLink>
-    </div>
+    <NuxtLink
+      v-for="entry in entries"
+      :key="entry.key"
+      :to="`/summoner/${entry.playerId}`"
+      :title="entry.title"
+      class="inline-flex items-center gap-2.5 rounded-2 bg-sunken py-1 pl-1 pr-2.5 text-ink no-underline transition-colors duration-120 ease-out hover:bg-neutral-soft"
+    >
+      <img :src="entry.iconUrl" alt="" class="size-[30px] shrink-0 rounded-1 object-cover">
+      <span class="min-w-0 leading-tight">
+        <b class="block truncate text-[13px] font-[640]">{{ entry.name }}</b>
+        <span class="block truncate text-xs text-ink-2">{{ entry.champion }}<template v-if="entry.meta"> · {{ entry.meta }}</template></span>
+      </span>
+      <span class="font-mono text-xs font-semibold tabular-nums text-loss-ink">{{ entry.clock }}</span>
+    </NuxtLink>
   </div>
 </template>
+
+<style scoped>
+@reference "../../assets/css/main.css";
+
+.live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--loss);
+}
+
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--loss);
+  opacity: 0;
+  animation: live 2.4s var(--ease-out) infinite;
+}
+
+@keyframes live {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.6);
+  }
+  70%, 100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+</style>

@@ -22,20 +22,16 @@ const patchStore = usePatchStore()
 const isFirst = computed(() => props.entry.position === 1)
 const medal = computed(() => (isFirst.value ? '1er' : `${props.entry.position}e`))
 
-// The backdrop is the player's most played champion of the month, or the tier's pastel without one.
 const mainChampion = computed(() => props.entry.mainChampion)
-const backdropStyle = computed(() => (mainChampion.value
-  ? { backgroundImage: `url('${championSplashUrl(mainChampion.value)}')` }
-  : { backgroundColor: tierTint(props.entry.rank?.tier) ?? undefined }))
+const splashUrl = computed(() => (mainChampion.value ? championSplashUrl(mainChampion.value) : null))
 
-const iconStyle = computed(() => (props.entry.iconId != null
-  ? { backgroundImage: `url('${getProfileIconUrl(props.entry.iconId, patchStore.currentPatch)}')` }
-  : {}))
+const iconUrl = computed(() => (props.entry.iconId != null
+  ? getProfileIconUrl(props.entry.iconId, patchStore.currentPatch)
+  : null))
 
-const deltaClass = computed(() => {
-  if (props.entry.delta > 0) return 'bg-win-soft text-brand-green'
-  if (props.entry.delta < 0) return 'bg-loss-soft text-brand-red'
-  return 'bg-surface-muted text-text-main'
+const tierStyle = computed(() => {
+  const tint = tierTint(props.entry.rank?.tier)
+  return tint ? { '--tier': tint } : undefined
 })
 
 const gapText = computed(() => (props.entry.gap === null
@@ -46,60 +42,265 @@ const gapText = computed(() => (props.entry.gap === null
 <template>
   <NuxtLink
     :to="`/summoner/${entry.id}`"
-    class="relative block overflow-hidden rounded-3xl border border-border-subtle bg-surface-base px-[18px] pb-[18px] transition-[translate,box-shadow] duration-[350ms] ease-spring"
+    :data-flip-id="`pod-${entry.id}`"
+    class="pod"
     :class="[
-      hovered ? '-translate-y-1.5' : '',
-      isFirst ? (hovered ? 'shadow-podium-hover' : 'shadow-podium') : (hovered ? 'shadow-card-hover' : 'shadow-card'),
+      `p${entry.position}`,
+      { first: isFirst, me: isMe, hovered },
     ]"
+    :style="tierStyle"
+    :aria-label="`${medal}, ${entry.name}${isMe ? ' (vous)' : ''}, ${tierLabel(entry.rank)} ${entry.rank?.leaguePoints ?? 0} LP`"
     @mouseenter="emit('hover', entry.id)"
     @mouseleave="emit('hover', null)"
   >
     <span
       :title="mainChampion ? `Champion le plus joué (30 j) : ${championDisplayName(mainChampion)}` : undefined"
-      class="relative -mx-[18px] block h-[100px] overflow-hidden bg-surface-sunken"
+      class="pod-art"
     >
-      <span
-        class="absolute inset-0 bg-cover bg-[position:center_18%] transition-transform duration-1000 ease-out-expo"
-        :class="hovered ? 'scale-[1.08]' : 'scale-100'"
-        :style="backdropStyle"
-      />
-      <span class="absolute inset-0 bg-scrim-soft" />
-      <span
-        class="absolute left-3 top-3 rounded-full px-[11px] py-1 text-[12.5px] font-bold"
-        :class="isFirst ? 'bg-brand-gold-bright text-night' : 'bg-night text-on-night'"
-      >{{ medal }}</span>
-      <span v-if="mainChampion" class="absolute right-3 top-3 rounded-full bg-night/80 px-[9px] py-1 text-[11.5px] font-bold text-on-night">{{ championDisplayName(mainChampion) }}</span>
+      <img v-if="splashUrl" :src="splashUrl" alt="">
+      <span class="pod-medal">{{ medal }}</span>
+      <span v-if="mainChampion" class="pod-champ">{{ championDisplayName(mainChampion) }}</span>
     </span>
-    <img :src="tierEmblemUrl(entry.rank)" alt="" class="absolute right-3 top-[62px] size-[68px] object-contain drop-shadow-lg">
-    <span
-      class="relative -mt-[29px] block size-[58px] rounded-[18px] border-[3px] border-surface-base bg-surface-base bg-cover bg-center shadow-md"
-      :style="iconStyle"
-    />
-    <span class="mt-3 flex min-w-0 items-center gap-1.5">
-      <span class="truncate text-[21px] font-bold tracking-[-0.02em]">{{ entry.name }}</span>
-      <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-bold text-brand-gold-text">Vous</span>
-      <span
-        v-if="entry.smurf"
-        :title="entry.mainName ? `Compte secondaire de ${entry.mainName}` : 'Compte secondaire'"
-        class="shrink-0 cursor-help rounded-full border border-border-accent px-[7px] py-px text-[11px] font-bold"
-      >Smurf</span>
+
+    <img :src="tierEmblemUrl(entry.rank)" alt="" class="pod-emb">
+
+    <span class="pod-av">
+      <img v-if="iconUrl" :src="iconUrl" alt="">
     </span>
-    <span class="mt-0.5 block text-sm font-bold text-text-sec">{{ tierLabel(entry.rank) }} · {{ entry.rank?.leaguePoints }} LP</span>
-    <span class="mt-3.5 flex flex-wrap items-center gap-1.5">
-      <span title="Progression sur 7 jours" class="whitespace-nowrap rounded-full px-[9px] py-[3px] font-mono text-[11.5px] font-semibold" :class="deltaClass">{{ formatSigned(entry.delta) }} LP</span>
-      <span v-if="entry.winRate !== null" class="whitespace-nowrap rounded-full bg-surface-muted px-[9px] py-[3px] text-xs font-bold">{{ formatPercent(entry.winRate) }} WR</span>
-    </span>
-    <span class="mt-3.5 flex items-center justify-between gap-2 border-t border-dashed border-border-dashed pt-3">
-      <span class="min-w-0 truncate text-[12.5px] font-bold">{{ gapText }}</span>
-      <span class="flex shrink-0 gap-[3px]">
-        <span
-          v-for="(win, index) in entry.form"
-          :key="index"
-          :title="win ? 'Victoire' : 'Défaite'"
-          class="size-[9px] rounded-full"
-          :class="win ? 'bg-win' : 'bg-loss'"
-        />
+
+    <span class="pod-body">
+      <span class="pod-name">
+        <b>{{ entry.name }}</b>
+        <UiStatus v-if="isMe" variant="me">Vous</UiStatus>
+        <UiStatus
+          v-if="entry.smurf"
+          variant="smurf"
+          :title="entry.mainName ? `Compte secondaire de ${entry.mainName}` : 'Compte secondaire'"
+        >Smurf</UiStatus>
+      </span>
+      <span class="pod-rank">{{ tierLabel(entry.rank) }} · {{ entry.rank?.leaguePoints }} LP</span>
+      <span class="pod-chips">
+        <LolLpBadge :value="entry.delta" title="Variation sur 7 jours" />
+        <span v-if="entry.winRate !== null" class="pod-wr">{{ formatPercent(entry.winRate) }} V</span>
+      </span>
+      <span class="pod-foot">
+        <span class="min-w-0 truncate">{{ gapText }}</span>
+        <LolFormPills :form="entry.form" />
       </span>
     </span>
   </NuxtLink>
 </template>
+
+<style scoped>
+@reference "../../assets/css/main.css";
+
+.pod {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-5);
+  background: var(--surface);
+  border: 1px solid color-mix(in oklch, var(--line) 70%, transparent);
+  box-shadow: var(--shadow-card-value);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 120ms var(--ease-out);
+}
+
+.pod:hover,
+.pod.hovered {
+  box-shadow: var(--shadow-card-value), 0 0 0 1px var(--line-strong);
+}
+
+.pod.me {
+  box-shadow: var(--shadow-card-value), 0 0 0 2px color-mix(in oklch, var(--gold) 60%, var(--line));
+}
+
+.pod.first {
+  box-shadow: var(--shadow-card-value), 0 0 0 2px var(--gold);
+}
+
+.pod.moving {
+  z-index: 3;
+}
+
+.pod-art {
+  position: relative;
+  display: block;
+  height: 96px;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--tier, var(--tier-none)) 55%, var(--night));
+}
+
+.pod-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+}
+
+.pod-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--photo-scrim-value);
+}
+
+.pod-medal,
+.pod-champ {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--on-night);
+}
+
+.pod-medal {
+  left: 12px;
+  background: var(--night);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pod.first .pod-medal {
+  background: var(--gold);
+  color: var(--on-tier);
+}
+
+.pod-champ {
+  right: 12px;
+  max-width: calc(100% - 80px);
+  background: color-mix(in oklch, var(--night) 80%, transparent);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pod-emb {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  top: 58px;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px color-mix(in oklch, var(--night) 45%, transparent));
+}
+
+.pod-av {
+  position: absolute;
+  z-index: 2;
+  left: 14px;
+  top: 66px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--sunken);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--tier, var(--line-strong));
+  overflow: hidden;
+}
+
+.pod-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.pod-body {
+  display: grid;
+  gap: 6px;
+  padding: 36px 14px 14px;
+}
+
+.pod-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.pod-name b {
+  font-stretch: 118%;
+  font-weight: 740;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-rank {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.pod-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pod-wr {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.pod-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--line-strong);
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+@container ladder (min-width: 640px) {
+  .pod-art {
+    height: 112px;
+  }
+
+  .pod-emb {
+    top: 74px;
+  }
+
+  .pod-av {
+    top: 82px;
+  }
+
+  .pod.first .pod-art {
+    height: 128px;
+  }
+
+  .pod.first .pod-emb {
+    top: 90px;
+  }
+
+  .pod.first .pod-av {
+    top: 98px;
+  }
+}
+</style>

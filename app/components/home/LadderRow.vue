@@ -20,95 +20,310 @@ const patchStore = usePatchStore()
 
 const ranked = computed(() => props.entry.rank !== null)
 
-const iconStyle = computed(() => (props.entry.iconId != null
-  ? { backgroundImage: `url('${getProfileIconUrl(props.entry.iconId, patchStore.currentPatch)}')` }
-  : {}))
+const iconUrl = computed(() => (props.entry.iconId != null
+  ? getProfileIconUrl(props.entry.iconId, patchStore.currentPatch)
+  : null))
 
-const positionStyle = computed(() => ({ backgroundColor: tierTint(props.entry.rank?.tier) ?? undefined }))
-
-const rowClass = computed(() => {
-  if (props.hovered) return 'bg-surface-hover'
-  if (props.isMe) return 'bg-surface-highlight'
-  return 'bg-surface-base'
+const tierStyle = computed(() => {
+  const tint = tierTint(props.entry.rank?.tier)
+  return tint ? { '--tier': tint } : undefined
 })
 
 const lpText = computed(() => (props.entry.rank ? `${props.entry.rank.leaguePoints} LP` : ''))
 
 const winRateClass = computed(() => {
-  if (props.entry.winRate === null) return 'text-text-sec'
-  return props.entry.winRate >= 50 ? 'text-brand-green' : 'text-brand-red'
+  if (props.entry.winRate === null) return ''
+  return props.entry.winRate >= 50 ? 'win' : 'loss'
 })
 
 const deltaClass = computed(() => {
-  if (!ranked.value || props.entry.delta === 0) return 'text-text-sec'
-  return props.entry.delta > 0 ? 'text-brand-green' : 'text-brand-red'
+  if (!ranked.value || props.entry.delta === 0) return 'text-ink-3'
+  return props.entry.delta > 0 ? 'text-win-ink' : 'text-loss-ink'
 })
 </script>
 
 <template>
   <NuxtLink
     :to="`/summoner/${entry.id}`"
-    class="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-3 border-b-[1.5px] border-dashed border-border-dashed p-3 transition-colors duration-200 last:border-b-0 sm:grid-cols-[28px_minmax(0,1.4fr)_minmax(0,1.2fr)_70px_60px_58px_48px]"
-    :class="rowClass"
+    :data-flip-id="`row-${entry.id}`"
+    class="lrow"
+    :class="{ me: isMe, hovered }"
+    :style="tierStyle"
+    :aria-label="`${ranked ? `${entry.position}e, ` : ''}${entry.name}${isMe ? ' (vous)' : ''}, ${tierLabel(entry.rank)}${lpText ? ` ${lpText}` : ''}`"
     @mouseenter="emit('hover', entry.id)"
     @mouseleave="emit('hover', null)"
   >
-    <span
-      class="flex size-[26px] items-center justify-center rounded-full border border-border-accent text-xs font-bold"
-      :class="ranked ? 'text-night' : 'bg-surface-sunken'"
-      :style="positionStyle"
-    >{{ entry.position ?? '—' }}</span>
+    <span class="lpos" :class="{ none: !ranked }">{{ entry.position ?? '—' }}</span>
 
-    <span class="flex min-w-0 items-center gap-3">
-      <span class="size-[38px] shrink-0 rounded-xl border border-border-base bg-surface-sunken bg-cover bg-center" :style="iconStyle" />
-      <span class="flex min-w-0 flex-col gap-px">
-        <span class="flex min-w-0 items-center gap-1.5">
-          <span class="truncate text-[15px] font-bold">{{ entry.name }}</span>
-          <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
-          <span
+    <span class="lid">
+      <span class="avatar">
+        <img v-if="iconUrl" :src="iconUrl" alt="">
+      </span>
+      <span class="lname">
+        <span class="lname-top">
+          <b>{{ entry.name }}</b>
+          <UiStatus v-if="isMe" variant="me">Vous</UiStatus>
+          <UiStatus
             v-if="entry.smurf"
+            variant="smurf"
             :title="entry.mainName ? `Compte secondaire de ${entry.mainName}` : 'Compte secondaire'"
-            class="shrink-0 cursor-help rounded-full border border-border-accent px-1.5 text-[10.5px] font-bold"
-          >Smurf</span>
+          >Smurf</UiStatus>
         </span>
-        <span class="hidden text-xs font-medium text-text-sec sm:block">{{ entry.tag }}</span>
-        <span class="whitespace-nowrap text-xs font-semibold text-text-sec sm:hidden">{{ tierLabel(entry.rank) }}<template v-if="lpText"> · {{ lpText }}</template></span>
+        <span class="lsub lsub-tag">{{ entry.tag }}<template v-if="entry.smurf && entry.mainName"> · de {{ entry.mainName }}</template></span>
+        <span class="lsub lsub-rank">{{ tierLabel(entry.rank) }}<template v-if="lpText"> · {{ lpText }}</template></span>
       </span>
     </span>
 
-    <span class="hidden min-w-0 items-center gap-2 sm:flex">
-      <img
-        :src="tierEmblemUrl(entry.rank)"
-        alt=""
-        class="size-8 shrink-0 object-contain"
-        :class="ranked ? '' : 'opacity-40 grayscale'"
-      >
-      <span class="flex min-w-0 flex-col">
-        <span class="whitespace-nowrap text-sm font-bold" :class="ranked ? 'text-text-main' : 'text-text-sec'">{{ tierLabel(entry.rank) }}</span>
-        <span class="font-mono text-[11px] text-text-sec">{{ lpText }}</span>
+    <span class="ltier" :class="{ none: !ranked }">
+      <img :src="tierEmblemUrl(entry.rank)" alt="">
+      <span>
+        <b>{{ tierLabel(entry.rank) }}</b>
+        <span>{{ lpText }}</span>
       </span>
     </span>
 
-    <span class="hidden sm:block">
+    <span class="lgap">
       <span
         v-if="entry.gap !== null"
         :title="`${entry.gap} LP pour dépasser ${entry.previousName}`"
-        class="whitespace-nowrap rounded-full border border-border-accent bg-surface-muted px-2 py-[3px] font-mono text-[11px] font-semibold"
+        class="gap-chip"
       >{{ formatSigned(-entry.gap) }} LP</span>
     </span>
 
-    <span class="hidden gap-[3px] sm:flex">
-      <span
-        v-for="(win, index) in entry.form"
-        :key="index"
-        :title="win ? 'Victoire' : 'Défaite'"
-        class="size-[9px] rounded-full border border-border-accent"
-        :class="win ? 'bg-win' : 'bg-loss'"
-      />
+    <span class="lform">
+      <LolFormPills v-if="ranked" :form="entry.form" />
     </span>
 
-    <span class="hidden text-sm font-bold sm:block" :class="winRateClass">{{ entry.winRate === null ? '—' : formatPercent(entry.winRate) }}</span>
+    <span class="lwr" :class="winRateClass">{{ entry.winRate === null ? '—' : formatPercent(entry.winRate) }}</span>
 
-    <span class="text-right font-mono text-[13px] font-semibold" :class="deltaClass">{{ ranked ? formatSigned(entry.delta) : '—' }}</span>
+    <span class="ld7 fig" :class="deltaClass">{{ ranked ? formatSigned(entry.delta) : '—' }}</span>
   </NuxtLink>
 </template>
+
+<style scoped>
+@reference "../../assets/css/main.css";
+
+.lrow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 12px 16px 12px 14px;
+  border-bottom: 1.5px dashed var(--line);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 120ms var(--ease-out);
+}
+
+.lrow:last-child {
+  border-bottom: 0;
+}
+
+.lrow:hover,
+.lrow.hovered {
+  background: color-mix(in oklch, var(--sunken) 70%, var(--surface));
+}
+
+.lrow.me {
+  background: var(--gold-soft);
+}
+
+.lrow.me .lsub,
+.lrow.me .ltier span span {
+  color: var(--ink-2);
+}
+
+.lrow:focus-visible {
+  outline-offset: -3px;
+}
+
+.lrow.moving {
+  z-index: 3;
+}
+
+.lpos {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tier, var(--tier-none));
+  color: var(--on-tier);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lpos.none {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.lid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lid .avatar {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sunken);
+  box-shadow: 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+
+.lid .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.lname {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.lname-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lname-top b {
+  font-weight: 660;
+  font-size: 0.9375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lsub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lsub-tag {
+  display: none;
+}
+
+.ltier,
+.lgap,
+.lform,
+.lwr {
+  display: none;
+}
+
+.ltier {
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ltier img {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  object-fit: contain;
+}
+
+.ltier b {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ltier span span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.ltier.none img {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.ltier.none b {
+  color: var(--ink-3);
+  font-weight: 520;
+}
+
+.gap-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--sunken);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lwr {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.lwr.win {
+  color: var(--win-ink);
+}
+
+.lwr.loss {
+  color: var(--loss-ink);
+}
+
+.ld7 {
+  text-align: right;
+  font-size: 1.125rem;
+}
+
+@container ladder (min-width: 560px) {
+  .lrow {
+    grid-template-columns: 30px minmax(0, 1.3fr) minmax(0, 1fr) 78px 56px;
+  }
+
+  .lsub-tag {
+    display: block;
+  }
+
+  .lsub-rank {
+    display: none;
+  }
+
+  .ltier,
+  .lgap {
+    display: flex;
+  }
+}
+
+@container ladder (min-width: 760px) {
+  .lrow {
+    grid-template-columns: 30px minmax(0, 1.3fr) minmax(0, 1fr) 78px 64px 50px 56px;
+  }
+
+  .lform,
+  .lwr {
+    display: block;
+  }
+}
+</style>

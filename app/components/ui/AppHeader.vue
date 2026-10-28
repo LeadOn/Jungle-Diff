@@ -66,70 +66,65 @@ const toggleTheme = () => {
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 border-b border-border-base bg-header backdrop-blur-[14px]">
-    <div class="mx-auto flex h-[58px] max-w-[1280px] items-center gap-[22px] px-4 md:h-[68px] md:px-8">
-      <NuxtLink to="/" aria-label="JungleDiff, accueil" class="group flex shrink-0 items-center gap-2.5">
-        <span class="flex size-10 items-center justify-center rounded-xl transition-transform duration-300 ease-spring group-hover:scale-[1.08]">
-          <img src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-8 object-contain">
-        </span>
-        <span class="text-[21px] font-bold tracking-[-0.03em] text-text-main">JungleDiff</span>
+  <header class="sticky top-0 z-50 border-b border-line bg-header backdrop-blur-[12px]">
+    <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-3 px-4 md:px-6 rail:px-8">
+      <NuxtLink to="/" aria-label="JungleDiff, accueil" class="flex shrink-0 items-center gap-2 text-ink no-underline">
+        <img src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-[30px] object-contain">
+        <b class="font-wide text-[17px] font-[780] tracking-[-0.035em] md:text-[18px]">JungleDiff</b>
       </NuxtLink>
 
-      <nav aria-label="Navigation principale" class="hidden items-center gap-1.5 md:flex">
-        <NuxtLink to="/" class="nav-pill">Accueil</NuxtLink>
-        <NuxtLink to="/stats" class="nav-pill">Records</NuxtLink>
+      <nav aria-label="Navigation principale" class="ml-3 hidden items-center gap-0.5 md:flex">
+        <NuxtLink to="/" class="navtab">Accueil</NuxtLink>
+        <NuxtLink to="/stats" class="navtab">Records</NuxtLink>
       </nav>
 
       <span class="flex-1" />
 
-      <div class="flex items-center gap-2.5">
-        <button
-          type="button"
-          aria-label="Chercher un joueur du crew"
-          class="hidden h-10 w-[260px] cursor-pointer items-center gap-2.5 rounded-full border border-border-base bg-surface-base py-0 pl-3.5 pr-1.5 text-[13.5px] font-medium text-text-sec shadow-card transition-transform duration-200 hover:-translate-x-px hover:-translate-y-px md:flex"
-          @click="palette.open()"
-        >
-          <Icon name="lucide:search" class="size-4 shrink-0" />
-          <span class="flex-1 text-left">Chercher un joueur…</span>
-          <kbd class="rounded-full bg-surface-high px-2 py-1.5 font-mono text-[11px] font-semibold leading-none text-text-sec">{{ shortcutLabel }}</kbd>
-        </button>
+      <button
+        type="button"
+        aria-label="Chercher un joueur du crew"
+        class="hidden h-9 w-[260px] cursor-text items-center gap-2 rounded-2 border border-line bg-sunken pl-2.5 pr-1.5 text-left text-[13px] font-medium text-ink-3 transition-colors duration-120 ease-out hover:border-line-strong md:inline-flex"
+        @click="palette.open()"
+      >
+        <Icon name="lucide:search" class="size-4 shrink-0" />
+        <span class="min-w-0 flex-1 truncate">Chercher un joueur…</span>
+        <kbd class="inline-flex h-[22px] items-center rounded-1 border border-line bg-surface px-1.5 font-mono text-[11px] font-medium text-ink-2">{{ shortcutLabel }}</kbd>
+      </button>
 
-        <button
-          type="button"
-          :aria-label="isDark ? 'Passer au thème clair' : 'Passer au thème sombre'"
-          :title="isDark ? 'Thème clair' : 'Thème sombre'"
-          class="flex size-10 cursor-pointer items-center justify-center rounded-full border border-border-base bg-surface-base text-text-sec transition-colors hover:text-text-main"
-          @click="toggleTheme"
-        >
-          <Icon :name="isDark ? 'lucide:sun' : 'lucide:moon'" class="size-[17px]" />
-        </button>
+      <button
+        type="button"
+        :aria-label="isDark ? 'Passer au thème clair' : 'Passer au thème sombre'"
+        :title="isDark ? 'Thème clair' : 'Thème sombre'"
+        class="inline-flex size-9 cursor-pointer items-center justify-center rounded-2 text-ink-2 transition-colors duration-120 ease-out hover:bg-neutral-soft hover:text-ink"
+        @click="toggleTheme"
+      >
+        <Icon :name="isDark ? 'lucide:sun' : 'lucide:moon'" class="size-4" />
+      </button>
 
-        <ClientOnly>
-          <NuxtLink
-            v-if="authStore.isAuthenticated"
-            to="/settings"
-            title="Paramètres du compte"
-            class="flex h-10 items-center gap-[9px] rounded-full border border-border-base bg-surface-base py-[3px] pl-[3px] pr-[3px] md:pr-3.5"
-          >
-            <span class="flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-base bg-brand-gold-bright text-[13px] font-bold text-night">
-              <UiAppImage v-if="avatarUrl" :src="avatarUrl" alt="" class="size-full object-cover" />
-              <span v-else>{{ avatarInitial }}</span>
-            </span>
-            <span class="hidden max-w-[150px] truncate text-[13.5px] font-bold text-text-main md:block">{{ profileLabel }}</span>
-          </NuxtLink>
-          <button
-            v-else
-            type="button"
-            class="flex h-10 cursor-pointer items-center whitespace-nowrap rounded-full border border-border-base bg-gold px-4 text-sm font-bold text-brand-gold-text shadow-card md:px-[18px]"
-            @click="authStore.login()"
-          >
-            Se connecter
-          </button>
-          <template #fallback>
-            <div class="h-10 w-10 animate-pulse rounded-full border border-border-base bg-surface-base md:w-28" />
-          </template>
-        </ClientOnly>
-      </div>
+      <ClientOnly>
+        <NuxtLink
+          v-if="authStore.isAuthenticated"
+          to="/settings"
+          title="Paramètres du compte"
+          class="inline-flex h-9 items-center gap-2 rounded-2 border border-line bg-surface pl-[3px] pr-[3px] text-[13px] font-[620] text-ink no-underline transition-colors duration-120 ease-out hover:border-line-strong md:pr-2.5"
+        >
+          <span class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gold text-xs font-bold text-on-tier shadow-[0_0_0_1px_var(--line)]">
+            <UiAppImage v-if="avatarUrl" :src="avatarUrl" alt="" class="size-full object-cover" />
+            <span v-else>{{ avatarInitial }}</span>
+          </span>
+          <span class="hidden max-w-[150px] truncate md:inline">{{ profileLabel }}</span>
+        </NuxtLink>
+        <UiButton
+          v-else
+          variant="gold"
+          @click="authStore.login()"
+        >
+          Se connecter
+        </UiButton>
+        <template #fallback>
+          <UiSkeleton class="h-9 w-9 rounded-2 md:w-28" />
+        </template>
+      </ClientOnly>
     </div>
   </header>
 </template>
@@ -137,11 +132,34 @@ const toggleTheme = () => {
 <style scoped>
 @reference "../../assets/css/main.css";
 
-.nav-pill {
-  @apply rounded-full px-3.5 py-[7px] text-sm font-semibold text-text-main transition-colors duration-200 hover:bg-text-main/[0.06];
+.navtab {
+  position: relative;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+  font-weight: 560;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: var(--radius-1);
+  transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out);
 }
 
-.nav-pill[aria-current='page'] {
-  @apply bg-inverse font-bold text-inverse-text hover:bg-inverse;
+.navtab:hover {
+  color: var(--ink);
+  background: var(--neutral-soft);
+}
+
+.navtab[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 640;
+}
+
+.navtab[aria-current='page']::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -10px;
+  height: 2px;
+  background: var(--ink);
 }
 </style>
