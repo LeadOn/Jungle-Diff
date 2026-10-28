@@ -70,7 +70,7 @@ const externalSlug = computed(() => (props.player.riotGamesNickname && props.pla
 </script>
 
 <template>
-  <section aria-label="Identité" class="relative animate-rise overflow-hidden rounded-[30px] bg-ink px-5 py-[22px] text-white shadow-hero md:px-8 md:py-[30px]">
+  <section aria-label="Identité" class="relative animate-rise overflow-hidden rounded-[30px] bg-night px-5 py-[22px] text-white shadow-hero md:px-8 md:py-[30px]">
     <div aria-hidden="true" class="absolute inset-0 bg-cover bg-no-repeat bg-[position:right_22%]" :style="heroStyle" />
     <div aria-hidden="true" class="absolute inset-0 bg-scrim-hero" />
 
@@ -83,7 +83,7 @@ const externalSlug = computed(() => (props.player.riotGamesNickname && props.pla
           <span
             v-if="player.lolSummonerLevel != null"
             title="Niveau d'invocateur"
-            class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2.5 py-[3px] font-mono text-[11.5px] font-semibold text-ink"
+            class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2.5 py-[3px] font-mono text-[11.5px] font-semibold text-night"
           >{{ player.lolSummonerLevel }}</span>
         </span>
 
@@ -142,7 +142,7 @@ const externalSlug = computed(() => (props.player.riotGamesNickname && props.pla
           type="button"
           :disabled="isRefreshing"
           :aria-busy="isRefreshing"
-          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-5 text-sm font-bold text-ink transition-[scale,opacity] duration-[250ms] ease-spring hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-5 text-sm font-bold text-night transition-[scale,opacity] duration-[250ms] ease-spring hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-60"
           @click="emit('refresh')"
         >
           <Icon name="lucide:refresh-cw" class="size-3.5" :class="{ 'animate-spin': isRefreshing }" />

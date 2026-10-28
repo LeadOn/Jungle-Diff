@@ -100,7 +100,7 @@ const takenBarClass = (row: DamageRow) => {
         @click="emit('update:selectedPuuid', row.player.puuid ?? '')"
       >
         <!-- The split behind each bar is only readable on hover. -->
-        <span class="pointer-events-none absolute right-16 top-1/2 z-20 hidden -translate-y-1/2 whitespace-nowrap rounded-[14px] bg-ink px-[11px] py-[7px] text-[11.5px] font-bold text-ink-text group-hover:block">
+        <span class="pointer-events-none absolute right-16 top-1/2 z-20 hidden -translate-y-1/2 whitespace-nowrap rounded-[14px] bg-night px-[11px] py-[7px] text-[11.5px] font-bold text-on-night group-hover:block">
           <template v-if="mode === 'dealt'">
             <span class="block">Physiques · {{ formatFull(row.physical) }}</span>
             <span class="block">Magiques · {{ formatFull(row.magic) }}</span>

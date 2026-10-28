@@ -93,7 +93,7 @@ const hasObjectives = computed(() => rows.value.some((row) => row.kills > 0 || r
           :title="badge.label"
           class="inline-flex h-[30px] items-center gap-[5px] rounded-full border border-border-subtle bg-surface-muted pl-1.5 pr-2.5 font-mono text-[12.5px] font-semibold"
         >
-          <span class="flex size-5 items-center justify-center rounded-full bg-ink">
+          <span class="flex size-5 items-center justify-center rounded-full bg-night">
             <UiAppImage :src="badge.iconUrl" alt="" class="size-3.5 object-contain" />
           </span>
           {{ badge.value }}

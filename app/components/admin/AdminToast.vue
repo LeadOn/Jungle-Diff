@@ -10,7 +10,7 @@ const admin = useAdminStore()
     <div
       v-if="admin.toastState"
       :key="admin.toastState.message"
-      class="flex animate-pop items-center gap-3.5 rounded-full bg-ink px-[18px] py-2.5 text-ink-text shadow-float"
+      class="flex animate-pop items-center gap-3.5 rounded-full bg-night px-[18px] py-2.5 text-on-night shadow-float"
     >
       <Icon
         :name="admin.toastState.tone === 'success' ? 'lucide:check' : 'lucide:triangle-alert'"

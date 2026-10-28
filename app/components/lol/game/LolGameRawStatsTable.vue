@@ -65,7 +65,7 @@ const championStyle = (player: LoLGameParticipantDto) => ({ backgroundImage: `ur
                   <span
                     v-if="roleIconUrl(player.teamPosition)"
                     :title="roleLabel(player.teamPosition)"
-                    class="absolute -left-[5px] -top-[5px] flex size-3.5 items-center justify-center rounded-full bg-ink"
+                    class="absolute -left-[5px] -top-[5px] flex size-3.5 items-center justify-center rounded-full bg-night"
                   >
                     <img :src="roleIconUrl(player.teamPosition)" alt="" class="size-2 brightness-0 invert">
                   </span>

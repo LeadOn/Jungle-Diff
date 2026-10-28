@@ -66,7 +66,7 @@ const gapText = computed(() => (props.entry.gap === null
       <span class="absolute inset-0 bg-scrim-soft" />
       <span
         class="absolute left-3 top-3 rounded-full px-[11px] py-1 text-[12.5px] font-bold"
-        :class="isFirst ? 'bg-brand-gold-bright text-ink' : 'bg-ink/60 text-white'"
+        :class="isFirst ? 'bg-brand-gold-bright text-night' : 'bg-night/60 text-white'"
       >{{ medal }}</span>
       <span v-if="mainChampion" class="absolute right-3 top-3.5 text-[11.5px] font-bold text-white text-shadow-md">{{ championDisplayName(mainChampion) }}</span>
     </span>

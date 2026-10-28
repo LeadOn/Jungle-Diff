@@ -92,7 +92,7 @@ const select = (entry: TimelineEventEntry) => emit('frameSelected', nearestFrame
           {{ formatTimestamp(entry.event.timestamp) }}
         </span>
 
-        <span v-if="entry.iconUrl" class="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink">
+        <span v-if="entry.iconUrl" class="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-night">
           <UiAppImage :src="entry.iconUrl" alt="" class="size-[15px] object-contain" />
         </span>
         <span v-else class="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-loss-soft">

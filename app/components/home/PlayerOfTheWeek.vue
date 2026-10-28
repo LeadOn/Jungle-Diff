@@ -46,14 +46,14 @@ const summary = computed(() => {
 </script>
 
 <template>
-  <section aria-labelledby="player-of-the-week" class="relative overflow-hidden rounded-[26px] bg-ink p-[22px] text-white shadow-hero">
+  <section aria-labelledby="player-of-the-week" class="relative overflow-hidden rounded-[26px] bg-night p-[22px] text-white shadow-hero">
     <div aria-hidden="true" class="absolute inset-0 bg-cover bg-top bg-no-repeat" :style="backdropStyle" />
     <div aria-hidden="true" class="absolute inset-0 bg-scrim-rise" />
 
     <div class="relative text-shadow-photo">
       <div id="player-of-the-week" class="inline-flex rounded-full border border-brand-gold-bright/40 bg-brand-gold-bright/20 px-[11px] py-1 text-xs font-bold text-on-photo-gold">Joueur de la semaine</div>
       <div class="mt-[72px] flex items-center gap-3">
-        <span class="size-[54px] shrink-0 rounded-2xl border-2 border-white/85 bg-ink bg-cover bg-center" :style="iconStyle" />
+        <span class="size-[54px] shrink-0 rounded-2xl border-2 border-white/85 bg-night bg-cover bg-center" :style="iconStyle" />
         <span class="flex min-w-0 flex-col gap-[3px]">
           <span class="truncate text-[21px] font-bold tracking-[-0.02em]">{{ name }}</span>
           <span v-if="soloRank" class="flex items-center gap-[5px] text-[13px] font-semibold text-white/85">
@@ -70,7 +70,7 @@ const summary = computed(() => {
       <p class="mt-3 text-pretty text-sm font-medium leading-normal text-white/86">{{ summary }}</p>
       <NuxtLink
         :to="`/summoner/${playerId}`"
-        class="mt-[18px] flex h-11 items-center justify-center gap-2 rounded-full bg-white text-sm font-bold text-ink text-shadow-none transition-transform duration-[250ms] ease-spring hover:scale-[1.03]"
+        class="mt-[18px] flex h-11 items-center justify-center gap-2 rounded-full bg-white text-sm font-bold text-night text-shadow-none transition-transform duration-[250ms] ease-spring hover:scale-[1.03]"
       >
         Voir sa fiche →
       </NuxtLink>

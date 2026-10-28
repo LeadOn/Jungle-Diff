@@ -118,7 +118,7 @@ const gaps = [
     </div>
 
     <div class="mt-5 grid items-start gap-5 min-[73.75rem]:grid-cols-2">
-      <div class="relative isolate flex flex-col gap-3.5 overflow-hidden rounded-3xl bg-ink p-[22px] text-ink-text shadow-hero">
+      <div class="relative isolate flex flex-col gap-3.5 overflow-hidden rounded-3xl bg-night p-[22px] text-on-night shadow-hero">
         <img :src="championSplashUrl('Rammus')" alt="" class="absolute inset-0 -z-10 size-full object-cover object-[right_30%]">
         <div aria-hidden="true" class="absolute inset-0 -z-10 bg-scrim-hero" />
 
@@ -130,20 +130,20 @@ const gaps = [
         >
           <span class="flex min-w-[200px] flex-1 flex-col gap-[3px]">
             <span class="text-[14.5px] font-bold">{{ task.title }}</span>
-            <span class="text-[12.5px] font-semibold text-ink-text/75">{{ task.sub }}</span>
+            <span class="text-[12.5px] font-semibold text-on-night/75">{{ task.sub }}</span>
             <AdminRoute on-ink>{{ task.route }}</AdminRoute>
           </span>
           <button
             type="button"
             :disabled="admin.isBusy(task.key)"
-            class="inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-full bg-white px-[15px] text-[13px] font-bold text-ink transition-transform duration-[250ms] ease-spring enabled:hover:scale-[1.04] disabled:cursor-wait"
+            class="inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-full bg-white px-[15px] text-[13px] font-bold text-night transition-transform duration-[250ms] ease-spring enabled:hover:scale-[1.04] disabled:cursor-wait"
             @click="runMaintenance(task.key)"
           >
             <Icon name="lucide:rotate-cw" class="size-[13px] text-win" :class="{ 'animate-spin': admin.isBusy(task.key) }" />
             {{ admin.isBusy(task.key) ? 'En cours…' : 'Lancer' }}
           </button>
         </div>
-        <p class="m-0 pt-1 text-[12.5px] font-semibold text-ink-text/75">
+        <p class="m-0 pt-1 text-[12.5px] font-semibold text-on-night/75">
           L'API rafraîchit aussi seule les rangs du crew toutes les 20 min, et les types de file une fois par jour.
         </p>
       </div>

@@ -134,9 +134,9 @@ const splashStyle = computed(() => (props.heroPlayer?.championName
 const rankChange = computed(() => props.heroPlayer?.rankChange ?? null)
 
 const LP_CLASSES = {
-  gain: 'bg-on-photo-mint text-ink',
-  loss: 'bg-on-photo-red text-ink',
-  neutral: 'bg-white/85 text-ink',
+  gain: 'bg-on-photo-mint text-night',
+  loss: 'bg-on-photo-red text-night',
+  neutral: 'bg-white/85 text-night',
 } as const
 
 const lpClass = computed(() => (rankChange.value ? LP_CLASSES[lpDeltaTone(rankChange.value.leaguePointsChange)] : ''))
@@ -154,7 +154,7 @@ const transitionEmblem = computed(() => (rankChange.value ? tierEmblemUrl(rankAf
 </script>
 
 <template>
-  <section aria-label="Résumé de la partie" class="relative animate-rise overflow-hidden rounded-[30px] bg-ink px-5 py-[22px] text-white shadow-hero md:px-8 md:py-[30px]">
+  <section aria-label="Résumé de la partie" class="relative animate-rise overflow-hidden rounded-[30px] bg-night px-5 py-[22px] text-white shadow-hero md:px-8 md:py-[30px]">
     <div aria-hidden="true" class="absolute inset-0 bg-cover bg-no-repeat bg-[position:right_22%]" :style="splashStyle" />
     <div aria-hidden="true" class="absolute inset-0 bg-scrim-hero" />
     <div aria-hidden="true" class="absolute inset-0 bg-linear-to-b to-transparent to-60%" :class="stateClasses.tint" />
@@ -163,14 +163,14 @@ const transitionEmblem = computed(() => (rankChange.value ? tierEmblemUrl(rankAf
       <div class="flex min-w-0 flex-wrap items-center gap-[22px]">
         <span class="relative size-[84px] shrink-0 md:size-28">
           <span
-            class="absolute inset-0 rounded-[28px] border-[3px] bg-ink bg-[length:112%] bg-center shadow-[0_14px_30px_-10px_rgba(0,0,0,0.6)]"
+            class="absolute inset-0 rounded-[28px] border-[3px] bg-night bg-[length:112%] bg-center shadow-[0_14px_30px_-10px_rgba(0,0,0,0.6)]"
             :class="stateClasses.ring"
             :style="avatarStyle"
           />
           <span
             v-if="heroPlayer?.champLevel"
             title="Niveau du champion"
-            class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2.5 py-[3px] font-mono text-[11.5px] font-semibold text-ink"
+            class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2.5 py-[3px] font-mono text-[11.5px] font-semibold text-night"
           >{{ heroPlayer.champLevel }}</span>
         </span>
 
@@ -180,12 +180,12 @@ const transitionEmblem = computed(() => (rankChange.value ? tierEmblemUrl(rankAf
             <span
               v-if="showRating"
               title="Note sur 10 : KDA, KP, Dégâts, Or, Survie"
-              class="whitespace-nowrap rounded-full px-3 py-[5px] text-sm font-bold text-ink"
+              class="whitespace-nowrap rounded-full px-3 py-[5px] text-sm font-bold text-night"
               :class="ratingClass"
             >Note {{ ratingLabel }}</span>
             <span
               v-if="accoladeLabel"
-              class="whitespace-nowrap rounded-full bg-brand-gold-bright px-3 py-[5px] text-[13px] font-bold text-ink"
+              class="whitespace-nowrap rounded-full bg-brand-gold-bright px-3 py-[5px] text-[13px] font-bold text-night"
             >{{ accoladeLabel }}</span>
           </div>
           <p v-if="heroLine" class="m-0 text-base font-semibold">{{ heroLine }}</p>

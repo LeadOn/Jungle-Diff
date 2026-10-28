@@ -106,7 +106,7 @@ const hoveredEntry = computed(() => (hoveredIndex.value != null ? props.entries[
 const LP_TONE_CLASS = {
   gain: 'text-on-photo-green',
   loss: 'text-on-photo-red',
-  neutral: 'text-ink-text',
+  neutral: 'text-on-night',
 } as const
 
 const hoveredLpLabel = computed(() => {
@@ -115,7 +115,7 @@ const hoveredLpLabel = computed(() => {
 })
 const hoveredLpClass = computed(() => {
   const change = hoveredEntry.value?.rankChange
-  return change ? LP_TONE_CLASS[lpDeltaTone(change.leaguePointsChange)] : 'text-ink-muted'
+  return change ? LP_TONE_CLASS[lpDeltaTone(change.leaguePointsChange)] : 'text-on-night-2'
 })
 
 // Keeps the tooltip inside the card near the chart's left and right edges.
@@ -176,14 +176,14 @@ const tooltipStyle = computed(() => {
         <span
           v-if="hoveredEntry"
           role="tooltip"
-          class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-ink px-[11px] py-2 text-ink-text"
+          class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-night px-[11px] py-2 text-on-night"
           :style="tooltipStyle"
         >
-          <span class="block text-[11px] font-semibold text-ink-muted">{{ formatGameDate(hoveredEntry.gameStart) }}</span>
+          <span class="block text-[11px] font-semibold text-on-night-2">{{ formatGameDate(hoveredEntry.gameStart) }}</span>
           <span class="block text-[12.5px] font-bold">
             <span :class="hoveredEntry.win ? 'text-on-photo-green' : 'text-on-photo-red'">{{ hoveredEntry.win ? 'Victoire' : 'Défaite' }}</span>
             · {{ hoveredEntry.championName }}
-            <span class="font-mono font-medium text-ink-muted">{{ hoveredEntry.kills }}/{{ hoveredEntry.deaths }}/{{ hoveredEntry.assists }}</span>
+            <span class="font-mono font-medium text-on-night-2">{{ hoveredEntry.kills }}/{{ hoveredEntry.deaths }}/{{ hoveredEntry.assists }}</span>
           </span>
           <span class="mt-px block text-xs font-bold" :class="hoveredLpClass">{{ hoveredLpLabel }}</span>
         </span>

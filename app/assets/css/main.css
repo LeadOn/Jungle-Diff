@@ -73,13 +73,13 @@
   /* A picked row (the scoreboard's analysed player, a ranking's highlighted bar). */
   --color-surface-selected: var(--color-surface-picked);
 
-  /* `inverse` flips with the theme (selected pills, primary buttons); `ink` stays dark in both
+  /* `inverse` flips with the theme (selected pills, primary buttons); `night` stays dark in both
      (footer, tooltips, mobile bar, and the photo-backed hero cards). */
   --color-inverse: var(--color-inverse-bg);
   --color-inverse-text: var(--color-inverse-fg);
-  --color-ink: var(--color-ink-bg);
-  --color-ink-text: var(--color-ink-fg);
-  --color-ink-muted: var(--color-ink-fg-muted);
+  --color-night: var(--color-ink-bg);
+  --color-on-night: var(--color-ink-fg);
+  --color-on-night-2: var(--color-ink-fg-muted);
 
   /* Text and accents printed over photos (splash art under a dark scrim): fixed in both themes. */
   --color-on-photo-green: #A9E8BD;

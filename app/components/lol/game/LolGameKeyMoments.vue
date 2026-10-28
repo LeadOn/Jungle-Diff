@@ -36,7 +36,7 @@ const TONE_CLASSES: Record<KeyMomentTone, string> = {
           class="flex size-10 shrink-0 items-center justify-center rounded-[13px] font-mono text-[11px] font-semibold"
           :class="TONE_CLASSES[moment.tone]"
         >
-          <span v-if="moment.iconUrl" class="flex size-[26px] items-center justify-center rounded-full bg-ink">
+          <span v-if="moment.iconUrl" class="flex size-[26px] items-center justify-center rounded-full bg-night">
             <UiAppImage :src="moment.iconUrl" alt="" class="size-[17px] object-contain" />
           </span>
           <template v-else>{{ moment.glyph }}</template>

@@ -57,7 +57,7 @@ const toggleTheme = () => {
           <img src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-8 object-contain">
           <span class="hidden text-[21px] font-bold tracking-[-0.03em] text-text-main md:inline">JungleDiff</span>
         </NuxtLink>
-        <span class="inline-flex h-7 items-center rounded-full bg-ink px-[11px] font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-on-photo-gold">Admin</span>
+        <span class="inline-flex h-7 items-center rounded-full bg-night px-[11px] font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-on-photo-gold">Admin</span>
 
         <span class="flex-1" />
 
@@ -86,7 +86,7 @@ const toggleTheme = () => {
             title="Paramètres du compte"
             class="flex h-10 shrink-0 items-center gap-[9px] rounded-full border border-border-base bg-surface-base p-[3px] md:pr-3.5"
           >
-            <span class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-gold-bright text-[13px] font-bold text-ink">
+            <span class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-gold-bright text-[13px] font-bold text-night">
               <UiAppImage v-if="avatarUrl" :src="avatarUrl" alt="" class="size-full object-cover" />
               <span v-else>{{ avatarInitial }}</span>
             </span>
@@ -104,7 +104,7 @@ const toggleTheme = () => {
     </div>
 
     <footer class="relative z-[1] mx-auto mt-[72px] max-w-[1360px] px-4 pb-9 md:px-8">
-      <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[22px] bg-ink px-[22px] py-[18px] text-[13px] text-ink-muted">
+      <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[22px] bg-night px-[22px] py-[18px] text-[13px] text-on-night-2">
         <span class="font-mono text-[11px] font-medium uppercase tracking-[0.1em]">JungleDiff · Administration · v{{ config.public.appVersion }}</span>
         <span>Créé en France par <a href="https://www.valentinvirot.fr" target="_blank" rel="noopener noreferrer" class="font-bold text-on-photo-gold">LeadOn</a></span>
       </div>

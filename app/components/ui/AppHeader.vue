@@ -111,7 +111,7 @@ const toggleTheme = () => {
             title="Paramètres du compte"
             class="flex h-10 items-center gap-[9px] rounded-full border border-border-base bg-surface-base py-[3px] pl-[3px] pr-[3px] md:pr-3.5"
           >
-            <span class="flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-base bg-brand-gold-bright text-[13px] font-bold text-ink">
+            <span class="flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-base bg-brand-gold-bright text-[13px] font-bold text-night">
               <UiAppImage v-if="avatarUrl" :src="avatarUrl" alt="" class="size-full object-cover" />
               <span v-else>{{ avatarInitial }}</span>
             </span>

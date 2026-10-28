@@ -193,7 +193,7 @@ const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?
       <span
         v-if="hover"
         role="tooltip"
-        class="pointer-events-none absolute -top-1.5 z-[5] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[14px] bg-ink px-[11px] py-[7px] text-ink-text"
+        class="pointer-events-none absolute -top-1.5 z-[5] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[14px] bg-night px-[11px] py-[7px] text-on-night"
         :style="{ left: `${hover.percent}%` }"
       >
         <span class="block font-mono text-[11px] text-on-photo-green">{{ hover.time }}</span>

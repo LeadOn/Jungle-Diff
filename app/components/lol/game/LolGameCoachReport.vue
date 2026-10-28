@@ -290,7 +290,7 @@ const generatedOnLabel = computed(() =>
     aria-labelledby="game-coach"
     class="animate-rise overflow-hidden rounded-[26px] border border-border-subtle bg-surface-base shadow-card">
     <header
-      class="flex flex-wrap items-center gap-3.5 bg-ink px-[22px] py-[18px] text-ink-text">
+      class="flex flex-wrap items-center gap-3.5 bg-night px-[22px] py-[18px] text-on-night">
       <!-- The site's own mascot: Rammus throwing the OK sign, which is exactly the coach's register. -->
       <span
         class="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/14 bg-white/8">
@@ -500,7 +500,7 @@ const generatedOnLabel = computed(() =>
       <button
         v-if="authStore.isAuthenticated"
         type="button"
-        class="mt-1.5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-5 text-sm font-bold text-ink transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
+        class="mt-1.5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-5 text-sm font-bold text-night transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
         :disabled="isSubmitting"
         @click="requestAnalysis">
         <Icon name="lucide:refresh-cw" class="size-4" />
@@ -549,7 +549,7 @@ const generatedOnLabel = computed(() =>
       <button
         v-if="authStore.isAuthenticated"
         type="button"
-        class="mt-1.5 inline-flex h-[46px] cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-[22px] text-[15px] font-bold text-ink transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
+        class="mt-1.5 inline-flex h-[46px] cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-[22px] text-[15px] font-bold text-night transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
         :disabled="isSubmitting"
         @click="requestAnalysis">
         <Icon name="lucide:sparkles" class="size-4" />

@@ -175,8 +175,8 @@ const playerLabel = computed(() => (props.player ? playerRiotName(props.player) 
       >{{ axis.label }}</text>
 
       <g v-if="hoveredVertex" class="pointer-events-none" :transform="`translate(${hoveredVertex.x},${hoveredVertex.y})`">
-        <rect :x="-hoveredVertex.tooltipWidth / 2" y="-50" :width="hoveredVertex.tooltipWidth" height="40" rx="12" class="fill-ink" />
-        <text x="0" y="-33" text-anchor="middle" class="fill-ink-text text-[12px] font-bold">{{ hoveredVertex.label }} · {{ hoveredVertex.valueLabel }}</text>
+        <rect :x="-hoveredVertex.tooltipWidth / 2" y="-50" :width="hoveredVertex.tooltipWidth" height="40" rx="12" class="fill-night" />
+        <text x="0" y="-33" text-anchor="middle" class="fill-on-night text-[12px] font-bold">{{ hoveredVertex.label }} · {{ hoveredVertex.valueLabel }}</text>
         <text x="0" y="-18" text-anchor="middle" class="fill-on-photo-green font-mono text-[10.5px]">{{ hoveredVertex.averageLabel }}</text>
       </g>
     </svg>

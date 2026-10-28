@@ -26,9 +26,9 @@ defineEmits<{
 const durationSeconds = computed(() => durationSecondsFor(props.game))
 
 const OUTCOME_CLASSES: Record<TeamOutcome, string> = {
-  win: 'bg-win text-white dark:text-ink',
-  loss: 'bg-loss text-white dark:text-ink',
-  remake: 'bg-text-ter text-white dark:text-ink',
+  win: 'bg-win text-white dark:text-night',
+  loss: 'bg-loss text-white dark:text-night',
+  remake: 'bg-text-ter text-white dark:text-night',
 }
 
 const scoreboards = computed(() => [

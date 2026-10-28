@@ -147,7 +147,7 @@ const dotTitle = (player: LoLGameParticipantDto) =>
   [player.riotIdGameName, player.championName ? championDisplayName(player.championName) : ''].filter(Boolean).join(' · ')
 
 const structureClass = (structure: StructureDot): string => {
-  if (structure.destroyed) return 'bg-ink-muted opacity-35'
+  if (structure.destroyed) return 'bg-on-night-2 opacity-35'
   return structure.teamId === 100 ? 'bg-team-blue' : 'bg-team-red'
 }
 
@@ -160,7 +160,7 @@ const structureTooltip = (structure: StructureDot): string => {
 <template>
   <div class="p-[22px]">
     <!-- The map is a photo of the Rift: it stays dark in both themes. -->
-    <div class="relative mx-auto aspect-square w-full max-w-[440px] overflow-hidden rounded-[22px] bg-ink shadow-[0_14px_34px_-18px_rgba(22,36,27,0.5)]">
+    <div class="relative mx-auto aspect-square w-full max-w-[440px] overflow-hidden rounded-[22px] bg-night shadow-[0_14px_34px_-18px_rgba(22,36,27,0.5)]">
       <UiAppImage
         :src="mapUrl"
         alt="Mini-carte de la Faille de l'invocateur"

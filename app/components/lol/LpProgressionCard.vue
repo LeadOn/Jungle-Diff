@@ -181,8 +181,8 @@ function onMouseMove(event: MouseEvent) {
             :class="trendUp ? 'bg-win' : 'bg-loss'"
             :style="toPercent(hoveredPoint)"
           />
-          <span role="tooltip" class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-ink px-[11px] py-[7px] text-ink-text" :style="tooltipStyle">
-            <span class="block text-[11px] font-semibold text-ink-muted">{{ formatLongDate(hoveredEntry.createdOn) }}</span>
+          <span role="tooltip" class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-night px-[11px] py-[7px] text-on-night" :style="tooltipStyle">
+            <span class="block text-[11px] font-semibold text-on-night-2">{{ formatLongDate(hoveredEntry.createdOn) }}</span>
             <span class="block text-[12.5px] font-bold">{{ tierLabel(hoveredEntry) }} {{ hoveredEntry.leaguePoints }} LP</span>
           </span>
         </template>

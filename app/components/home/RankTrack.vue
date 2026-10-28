@@ -202,12 +202,12 @@ const height = computed(() => railY.value + (lanes.value.count - 1) * laneStep.v
         />
         <span
           class="absolute -bottom-1.5 -right-[7px] flex h-[19px] min-w-[19px] items-center justify-center rounded-full border border-border-accent px-1 text-[10.5px] font-bold leading-none"
-          :class="dot.entry.position === 1 ? 'bg-brand-gold-bright text-ink' : 'bg-surface-base'"
+          :class="dot.entry.position === 1 ? 'bg-brand-gold-bright text-night' : 'bg-surface-base'"
         >{{ dot.entry.position }}</span>
         <span
           v-if="dot.hovered"
           role="tooltip"
-          class="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-[6] -translate-x-1/2 animate-pop whitespace-nowrap rounded-[14px] bg-ink px-3 py-2 text-ink-text"
+          class="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-[6] -translate-x-1/2 animate-pop whitespace-nowrap rounded-[14px] bg-night px-3 py-2 text-on-night"
         >
           <span class="block text-[13px] font-bold">{{ dot.entry.name }}{{ dot.isMe ? ' · vous' : '' }}</span>
           <span class="mt-0.5 block font-mono text-[11px] text-on-photo-green">{{ dot.detail }}</span>

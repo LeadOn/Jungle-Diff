@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
 
 <template>
   <template v-if="isOpen">
-    <div class="fixed inset-0 z-[90] animate-fade bg-ink/35 backdrop-blur-[4px]" @click="close()" />
+    <div class="fixed inset-0 z-[90] animate-fade bg-night/35 backdrop-blur-[4px]" @click="close()" />
     <div class="pointer-events-none fixed inset-0 z-[91] flex items-start justify-center p-3 md:px-4 md:pb-4 md:pt-[12vh]">
       <div
         role="dialog"

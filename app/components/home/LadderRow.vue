@@ -55,7 +55,7 @@ const deltaClass = computed(() => {
   >
     <span
       class="flex size-[26px] items-center justify-center rounded-full border border-border-accent text-xs font-bold"
-      :class="ranked ? 'text-ink' : 'bg-surface-sunken'"
+      :class="ranked ? 'text-night' : 'bg-surface-sunken'"
       :style="positionStyle"
     >{{ entry.position ?? '—' }}</span>
 

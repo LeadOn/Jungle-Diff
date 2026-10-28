@@ -114,7 +114,7 @@ const heroBackdrop = { backgroundImage: `url('${championSplashUrl('Rammus')}')` 
 <template>
   <div class="grid grid-flow-row-dense grid-cols-2 gap-4 md:grid-cols-3 rail:grid-cols-[1.35fr_1fr_1fr_1fr]">
     <!-- Hero: games played -->
-    <div class="relative col-span-2 flex min-h-[212px] animate-rise flex-col overflow-hidden rounded-[26px] bg-ink px-6 py-[22px] text-white shadow-hero text-shadow-photo md:col-span-3 rail:col-span-1">
+    <div class="relative col-span-2 flex min-h-[212px] animate-rise flex-col overflow-hidden rounded-[26px] bg-night px-6 py-[22px] text-white shadow-hero text-shadow-photo md:col-span-3 rail:col-span-1">
       <div aria-hidden="true" class="absolute inset-0 bg-cover bg-[position:right_20%] bg-no-repeat" :style="heroBackdrop" />
       <div aria-hidden="true" class="absolute inset-0 bg-scrim-side" />
       <img src="~/assets/img/JungleDiff_Logo.png" alt="" aria-hidden="true" class="pointer-events-none absolute right-3.5 top-3.5 size-[100px] animate-bob object-contain drop-shadow-xl">
@@ -135,7 +135,7 @@ const heroBackdrop = { backgroundImage: `url('${championSplashUrl('Rammus')}')` 
             v-for="(player, index) in activePlayers"
             :key="player.id"
             :title="player.title"
-            class="size-[30px] rounded-full border-2 border-ink bg-surface-sunken bg-cover bg-center"
+            class="size-[30px] rounded-full border-2 border-night bg-surface-sunken bg-cover bg-center"
             :class="index > 0 ? '-ml-2' : ''"
             :style="player.iconStyle"
           />

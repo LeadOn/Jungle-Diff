@@ -42,7 +42,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[90] animate-fade bg-ink/35 backdrop-blur-[4px]" @click="emit('close')" />
+    <div class="fixed inset-0 z-[90] animate-fade bg-night/35 backdrop-blur-[4px]" @click="emit('close')" />
     <div class="pointer-events-none fixed inset-0 z-[91] flex items-start justify-center overflow-y-auto px-4 pb-4" :class="LAYOUT[props.size].frame">
       <div
         ref="dialog"

@@ -283,7 +283,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
           <span
             v-if="roleIconUrl"
             :title="roleLabel"
-            class="absolute -left-1.5 -top-1.5 flex size-[19px] items-center justify-center rounded-full border-[1.5px] border-surface-base bg-ink"
+            class="absolute -left-1.5 -top-1.5 flex size-[19px] items-center justify-center rounded-full border-[1.5px] border-surface-base bg-night"
           >
             <img :src="roleIconUrl" alt="" class="size-[11px] brightness-0 invert">
           </span>
@@ -312,7 +312,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
               >
                 <Icon name="lucide:bot" class="size-2.5" />
               </NuxtLink>
-              <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2 py-1 text-[10.5px] font-bold text-ink-text group-hover/smurf:block">
+              <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-night px-2 py-1 text-[10.5px] font-bold text-on-night group-hover/smurf:block">
                 Smurf de <span class="text-brand-gold-bright">{{ primaryPlayerName || 'Inconnu' }}</span>
               </span>
             </span>
@@ -320,7 +320,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
             <span
               v-if="isMvp"
               title="Meilleur joueur de l'équipe gagnante"
-              class="shrink-0 rounded-full bg-brand-gold-bright px-[7px] py-px text-[10.5px] font-bold text-ink"
+              class="shrink-0 rounded-full bg-brand-gold-bright px-[7px] py-px text-[10.5px] font-bold text-night"
             >MVP</span>
             <span
               v-if="isAce"
