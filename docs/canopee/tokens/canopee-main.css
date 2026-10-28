@@ -1,0 +1,315 @@
+/*
+ * Canopée · JungleDiff v8 — tokens in the project's own convention, ready for app/assets/css/main.css.
+ *
+ *   - raw values on :root (light, the default) and :root.dark (the `.dark` class set by theme.ts);
+ *   - Tailwind names in @theme, pointing at the raw values;
+ *   - a temporary "v7 bridge" that re-points every utility the current components use
+ *     (bg-surface-base, text-text-main, text-brand-gold, ...) at the Canopée palette, so the palette
+ *     can switch in one step and the components can then be restyled one page at a time.
+ *
+ * Tier colours are NOT here, by decision: they stay data colours in app/utils/lol-tier.ts
+ * (TIER_TINTS, values below in the comment) and reach CSS through an inline `--tier` custom
+ * property. `--on-tier` and `--tier-none` are tokens because they depend on the theme.
+ *
+ * Collisions with the v7 file, and how this file resolves them:
+ *   --color-ink      v7: the always-dark band (bg-ink). Canopée: body text (text-ink).
+ *                    Phase 1 renames every v7 use to `night` BEFORE this file is pasted.
+ *   --color-gold     v7 raw: the dark gold used for text. Canopée: the bright gold fill.
+ *                    v7 text goes through --color-brand-gold, re-pointed to --gold-ink below.
+ *   --color-surface  v7 raw white. Canopée: the same role. Harmless once the v7 raw block is gone.
+ *   --color-win / -win-soft / -loss / -loss-soft: the same roles in both systems.
+ *   --shadow-card-value / --shadow-float-value: the same utilities, new values.
+ *
+ * Tier tints to copy into TIER_TINTS (identical in both themes, always read with --on-tier):
+ *   IRON oklch(0.72 0.02 50)        BRONZE oklch(0.74 0.085 55)    SILVER oklch(0.82 0.025 250)
+ *   GOLD oklch(0.83 0.115 85)       PLATINUM oklch(0.8 0.085 185)  EMERALD oklch(0.78 0.13 155)
+ *   DIAMOND oklch(0.76 0.1 265)     MASTER oklch(0.74 0.13 315)    GRANDMASTER oklch(0.72 0.14 25)
+ *   CHALLENGER oklch(0.82 0.1 220)
+ */
+
+:root {
+  /* Neutrals, biased toward the shell green (hue 165) */
+  --paper: oklch(0.972 0.005 165);
+  --surface: oklch(0.995 0.002 165);
+  --sunken: oklch(0.951 0.007 165);
+  --raised: oklch(1 0 0);
+  --line: oklch(0.9 0.009 165);
+  --line-strong: oklch(0.8 0.013 165);
+  --ink: oklch(0.235 0.028 160);
+  --ink-2: oklch(0.45 0.02 160);
+  --ink-3: oklch(0.52 0.016 160); /* the lightest grey allowed for text */
+
+  /* Brand */
+  --canopy: oklch(0.46 0.085 162);
+  --canopy-soft: oklch(0.93 0.03 160);
+  --shell: oklch(0.659 0.117 139); /* the turtle's green, for the logo only */
+  --gold: oklch(0.8 0.135 82);
+  --gold-ink: oklch(0.5 0.1 72);
+  --gold-soft: oklch(0.95 0.045 88);
+
+  /* Results: semantic, never an accent */
+  --win: oklch(0.66 0.15 148);
+  --win-ink: oklch(0.47 0.12 150);
+  --win-soft: oklch(0.94 0.045 150);
+  --loss: oklch(0.63 0.17 27);
+  --loss-ink: oklch(0.51 0.16 27);
+  --loss-soft: oklch(0.95 0.03 27);
+  --neutral-soft: oklch(0.935 0.006 165);
+
+  /* Night: the band that stays dark in both themes (footer, tooltips, mobile bar, photo cards) */
+  --night: oklch(0.235 0.028 160);
+  --night-2: oklch(0.3 0.03 160);
+  --on-night: oklch(0.965 0.008 150);
+  --on-night-2: oklch(0.8 0.02 155);
+  --on-night-gold: oklch(0.85 0.12 85);
+  --on-night-win: oklch(0.83 0.14 148);
+  --on-night-loss: oklch(0.8 0.12 25);
+  --on-night-blue: oklch(0.841 0.055 261);
+  --on-night-line: oklch(1 0 0 / 0.12);
+
+  /* Tiers: the colours are data (lol-tier.ts); these two depend on the theme */
+  --on-tier: oklch(0.22 0.02 160);
+  --tier-none: oklch(0.88 0.006 165);
+
+  /* Match page: sides, damage types, ACE, picked row (v7 values, expressed in OKLCH) */
+  --side-blue: oklch(0.604 0.143 261);
+  --side-blue-ink: oklch(0.482 0.133 261);
+  --side-blue-soft: oklch(0.944 0.018 261);
+  --side-red: var(--loss);
+  --side-red-ink: var(--loss-ink);
+  --side-red-soft: var(--loss-soft);
+  --dmg-physical: oklch(0.74 0.13 75);
+  --dmg-magic: oklch(0.62 0.13 262);
+  --dmg-true: oklch(0.7 0.012 165);
+  --violet-ink: oklch(0.447 0.123 295);
+  --violet-soft: oklch(0.917 0.025 301);
+  --picked: oklch(0.958 0.013 131);
+
+  --focus: var(--canopy);
+
+  --shadow-card-value: 0 1px 2px oklch(0.235 0.028 160 / 0.05), 0 10px 26px -14px oklch(0.235 0.028 160 / 0.2);
+  --shadow-float-value: 0 0 0 1px oklch(0.235 0.028 160 / 0.08), 0 18px 44px -18px oklch(0.235 0.028 160 / 0.42);
+  --shadow-hair-value: 0 1px 2px oklch(0.235 0.028 160 / 0.08);
+  --shadow-knob-value: 0 1px 2px oklch(0 0 0 / 0.25);
+
+  /* Overlays and scrims are derived from --night, so they follow the theme */
+  --overlay-value: color-mix(in oklch, var(--night) 45%, transparent);
+  --header-bg: color-mix(in oklch, var(--surface) 94%, transparent);
+  /* Podium art: darkens the top (medal, champion pill) and the bottom edge */
+  --photo-scrim-value: linear-gradient(180deg, color-mix(in oklch, var(--night) 55%, transparent) 0%, transparent 45%, color-mix(in oklch, var(--night) 25%, transparent) 100%);
+  /* Art that ends in the night band (player of the week): text may sit from 68% down */
+  --scrim-rise-value: linear-gradient(180deg, color-mix(in oklch, var(--night) 0%, transparent) 0%, color-mix(in oklch, var(--night) 50%, transparent) 40%, color-mix(in oklch, var(--night) 92%, transparent) 68%, var(--night) 100%);
+  /* Heroes with the identity on the left (profile, match): text may sit in the first 45% */
+  --scrim-side-value: linear-gradient(90deg, var(--night) 0%, color-mix(in oklch, var(--night) 92%, transparent) 45%, color-mix(in oklch, var(--night) 40%, transparent) 100%);
+
+  /* Motion */
+  --d-1: 120ms; /* hover, press */
+  --d-2: 200ms; /* state change (switch, segment) */
+  --d-3: 360ms; /* appearance */
+  --d-glide: 620ms; /* the ladder reordering, the one orchestrated moment */
+
+  color-scheme: light;
+}
+
+:root.dark {
+  --paper: oklch(0.165 0.012 165);
+  --surface: oklch(0.198 0.013 165);
+  --sunken: oklch(0.145 0.011 165);
+  --raised: oklch(0.235 0.014 165);
+  --line: oklch(0.3 0.014 165);
+  --line-strong: oklch(0.4 0.016 165);
+  --ink: oklch(0.945 0.01 150);
+  --ink-2: oklch(0.77 0.016 155);
+  --ink-3: oklch(0.66 0.016 155);
+  --canopy: oklch(0.77 0.1 160);
+  --canopy-soft: oklch(0.29 0.04 160);
+  --gold: oklch(0.82 0.13 83);
+  --gold-ink: oklch(0.85 0.12 85);
+  --gold-soft: oklch(0.31 0.05 85);
+  --win: oklch(0.72 0.16 148);
+  --win-ink: oklch(0.8 0.15 148);
+  --win-soft: oklch(0.29 0.06 150);
+  --loss: oklch(0.68 0.17 25);
+  --loss-ink: oklch(0.78 0.13 25);
+  --loss-soft: oklch(0.3 0.06 25);
+  --neutral-soft: oklch(0.255 0.01 165);
+  --night: oklch(0.245 0.022 160);
+  --night-2: oklch(0.31 0.024 160);
+  --tier-none: oklch(0.36 0.01 165);
+  --side-blue: oklch(0.691 0.127 261);
+  --side-blue-ink: oklch(0.79 0.085 262);
+  --side-blue-soft: color-mix(in oklch, oklch(0.691 0.127 261) 16%, var(--surface));
+  --dmg-true: oklch(0.6 0.012 165);
+  --violet-ink: oklch(0.768 0.101 298);
+  --violet-soft: color-mix(in oklch, oklch(0.654 0.15 297) 18%, var(--surface));
+  --picked: color-mix(in oklch, oklch(0.659 0.117 139) 14%, var(--surface));
+  --focus: var(--gold);
+  --shadow-card-value: 0 1px 2px oklch(0 0 0 / 0.3), 0 12px 28px -14px oklch(0 0 0 / 0.6);
+  --shadow-float-value: 0 0 0 1px oklch(1 0 0 / 0.08), 0 18px 44px -14px oklch(0 0 0 / 0.7);
+  --shadow-hair-value: 0 1px 2px oklch(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: 'Archivo', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --breakpoint-rail: 68.75rem; /* 1100px, in rem so Tailwind sorts it against md: */
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-canopy: var(--canopy);
+  --color-canopy-soft: var(--canopy-soft);
+  --color-shell: var(--shell);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-soft: var(--gold-soft);
+  --color-win: var(--win);
+  --color-win-ink: var(--win-ink);
+  --color-win-soft: var(--win-soft);
+  --color-loss: var(--loss);
+  --color-loss-ink: var(--loss-ink);
+  --color-loss-soft: var(--loss-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-on-night: var(--on-night);
+  --color-on-night-2: var(--on-night-2);
+  --color-on-night-gold: var(--on-night-gold);
+  --color-on-night-win: var(--on-night-win);
+  --color-on-night-loss: var(--on-night-loss);
+  --color-on-night-blue: var(--on-night-blue);
+  --color-on-night-line: var(--on-night-line);
+  --color-on-tier: var(--on-tier);
+  --color-tier-none: var(--tier-none);
+  --color-side-blue: var(--side-blue);
+  --color-side-blue-ink: var(--side-blue-ink);
+  --color-side-blue-soft: var(--side-blue-soft);
+  --color-side-red: var(--side-red);
+  --color-side-red-ink: var(--side-red-ink);
+  --color-side-red-soft: var(--side-red-soft);
+  --color-dmg-physical: var(--dmg-physical);
+  --color-dmg-magic: var(--dmg-magic);
+  --color-dmg-true: var(--dmg-true);
+  --color-violet-ink: var(--violet-ink);
+  --color-violet-soft: var(--violet-soft);
+  --color-picked: var(--picked);
+  --color-focus: var(--focus);
+
+  /* Radii: a child is never rounder than its parent. Pills (rounded-full) are for avatars,
+     number chips (LP, gap, win rate, level, position) and the live dot; text badges stay at 1. */
+  --radius-1: 4px;  /* text badges (Vous, Smurf), items */
+  --radius-2: 6px;  /* buttons, fields, champion squares */
+  --radius-3: 10px; /* palette, tooltips, bands */
+  --radius-4: 14px; /* frames, large champion portraits */
+  --radius-5: 18px; /* cards: panels, game cards, ladder cards */
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-glide: linear(0, 0.22 7%, 0.63 17%, 0.92 28%, 1.03 38%, 1.04 46%, 1.01 60%, 1);
+
+  /* ---- v7 bridge (phase 2 → phase 7). Every name below is what a current component uses;
+     delete each one when nothing references it any more. ---- */
+  --color-bg-base: var(--paper);
+  --color-surface-base: var(--surface);
+  --color-surface-high: var(--sunken);
+  --color-surface-muted: var(--paper);
+  --color-surface-sunken: var(--sunken);
+  --color-surface-hover: color-mix(in oklch, var(--sunken) 55%, var(--surface));
+  --color-surface-highlight: var(--gold-soft);
+  --color-surface-selected: var(--picked);
+  --color-border-base: var(--line);
+  --color-border-subtle: color-mix(in oklch, var(--line) 70%, transparent);
+  --color-border-accent: var(--line-strong);
+  --color-border-dashed: var(--line-strong);
+  --color-text-main: var(--ink);
+  --color-text-sec: var(--ink-2);
+  --color-text-ter: var(--ink-3);
+  --color-brand-gold: var(--gold-ink);
+  --color-brand-gold-text: var(--on-tier);
+  --color-brand-gold-bright: var(--gold);
+  --color-brand-gold-soft: var(--gold-soft);
+  --color-brand-green: var(--win-ink);
+  --color-brand-red: var(--loss-ink);
+  --color-brand-shell: var(--shell);
+  --color-brand-link: var(--canopy);
+  --color-loss-track: color-mix(in oklch, var(--loss) 22%, var(--surface));
+  --color-inverse: var(--ink);
+  --color-inverse-text: var(--paper);
+  --color-team-blue: var(--side-blue);
+  --color-team-blue-text: var(--side-blue-ink);
+  --color-team-blue-soft: var(--side-blue-soft);
+  --color-team-red: var(--side-red);
+  --color-team-red-text: var(--side-red-ink);
+  --color-team-red-soft: var(--side-red-soft);
+  --color-violet: var(--violet-ink);
+  --color-on-photo-green: var(--on-night-win);
+  --color-on-photo-lime: var(--on-night-win);
+  --color-on-photo-red: var(--on-night-loss);
+  --color-on-photo-gold: var(--on-night-gold);
+  --color-on-photo-mint: var(--on-night-win);
+  --color-on-photo-blue: var(--on-night-blue);
+  --color-signal: var(--on-night-win);
+}
+
+/* Archivo's width axis (wdth 62–125): three voices from one family */
+@utility font-wide { font-stretch: 118%; }
+@utility font-cond { font-stretch: 72%; }
+
+/* Type roles (see DESIGN-SYSTEM.md, "Une famille, trois largeurs") */
+@utility type-d1 { font-stretch: 118%; font-weight: 780; font-size: clamp(2.75rem, 1.4rem + 5vw, 5.25rem); line-height: 0.92; letter-spacing: -0.04em; text-wrap: balance; }
+@utility type-d2 { font-stretch: 118%; font-weight: 740; font-size: 1.75rem; line-height: 1.05; letter-spacing: -0.025em; text-wrap: balance; }
+@utility type-d3 { font-stretch: 118%; font-weight: 700; font-size: 1.25rem; line-height: 1.15; letter-spacing: -0.015em; }
+@utility type-title { font-weight: 640; font-size: 1.0625rem; line-height: 1.3; letter-spacing: -0.005em; }
+@utility type-body { font-size: 0.875rem; line-height: 1.55; }
+@utility type-small { font-size: 0.8125rem; line-height: 1.45; font-weight: 500; }
+@utility type-label { font-stretch: 118%; font-weight: 650; font-size: 0.6875rem; line-height: 1.2; letter-spacing: 0.09em; text-transform: uppercase; }
+@utility type-mono { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+@utility fig { font-stretch: 72%; font-weight: 680; font-variant-numeric: tabular-nums; line-height: 0.9; letter-spacing: -0.01em; }
+
+@utility shadow-card { box-shadow: var(--shadow-card-value); }
+@utility shadow-float { box-shadow: var(--shadow-float-value); }
+@utility shadow-hair { box-shadow: var(--shadow-hair-value); }
+@utility bg-overlay { background: var(--overlay-value); }
+@utility bg-header { background: var(--header-bg); }
+@utility bg-photo-scrim { background-image: var(--photo-scrim-value); }
+@utility bg-scrim-rise { background-image: var(--scrim-rise-value); }
+@utility bg-scrim-side { background-image: var(--scrim-side-value); }
+
+/* v7 utilities kept alive by the bridge until their last user is restyled (phase 7 removes them):
+   shadow-card-hover, shadow-hero, shadow-podium(-hover), bg-scrim-hero, bg-scrim-soft, bg-page-wash.
+   text-shadow-photo goes with the halo: every text over art must pass AA without it. */
+@utility shadow-card-hover { box-shadow: var(--shadow-card-value), 0 0 0 1px var(--line-strong); }
+@utility shadow-hero { box-shadow: var(--shadow-card-value); }
+@utility shadow-podium { box-shadow: var(--shadow-card-value), 0 0 0 2px var(--gold); }
+@utility shadow-podium-hover { box-shadow: var(--shadow-card-value), 0 0 0 2px var(--gold); }
+@utility bg-scrim-hero { background-image: var(--scrim-side-value); }
+@utility bg-scrim-soft { background-image: var(--photo-scrim-value); }
+@utility bg-page-wash { background: none; }
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: color-mix(in oklch, var(--canopy) 26%, transparent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+input::placeholder { color: var(--ink-3); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

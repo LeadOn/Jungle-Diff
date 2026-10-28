@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JungleDiff Accueil v8</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="canopee-core.css">
+<link rel="stylesheet" href="home.css">
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></symbol>
+</svg>
+
+<div class="mock-band t-mono">
+  <div class="wrap">
+    <span><b>Maquette</b> · Accueil v8 · système Canopée · données du crew du <span id="captured"></span></span>
+    <button type="button" class="btn btn-secondary btn-sm" data-open-notes><svg class="i i-14" aria-hidden="true"><use href="#i-info"/></svg>Notes de conception</button>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="JungleDiff, accueil"><img src="img/logo.png" alt=""><b>JungleDiff</b></a>
+    <nav class="site-nav navtabs" aria-label="Navigation principale">
+      <a class="navtab" aria-current="page" href="#top">Accueil</a>
+      <a class="navtab" href="#top" data-mock="La page Records n'est pas dans cette maquette.">Records</a>
+    </nav>
+    <span class="spacer"></span>
+    <button type="button" class="search search-wide" data-open-palette><svg class="i" aria-hidden="true"><use href="#i-search"/></svg><span>Chercher un joueur…</span><span class="kbd">⌘K</span></button>
+    <button type="button" class="btn btn-quiet btn-icon" id="theme-btn" aria-label="Passer en thème sombre"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></button>
+    <a class="account" href="#top" data-mock="La page Paramètres n'est pas dans cette maquette." aria-label="Votre compte, LeadOn"><img id="account-img" src="img/icon-907.png" alt=""><span class="name">LeadOn</span></a>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <section class="opening" aria-labelledby="headline">
+    <div class="status-line t-mono">
+      <button type="button" class="sync-btn" id="sync-btn" title="Relire les données du crew"><svg class="i i-14" aria-hidden="true"><use href="#i-refresh"/></svg><span></span></button>
+      <span class="sep"></span><span id="window-label"></span>
+      <span class="sep"></span><span>Parties classées</span>
+      <span class="sep"></span><span id="patch-label"></span>
+    </div>
+    <div class="headline-row">
+      <div>
+        <h1 class="headline" id="headline"></h1>
+        <p class="standfirst" id="standfirst"></p>
+      </div>
+      <div class="page-controls">
+        <button type="button" class="switch" role="switch" aria-checked="false" id="smurf-switch"><span class="switch-track"></span>Inclure les smurfs</button>
+      </div>
+    </div>
+    <section class="panel ledger" aria-label="La semaine jour par jour" id="ledger"></section>
+  </section>
+
+  <div class="live-wrap">
+    <span class="tag-example">exemple · personne n'était en partie à la capture</span>
+    <div class="live" id="live" aria-label="En partie maintenant"></div>
+  </div>
+
+  <div class="cols">
+    <div class="col-main">
+      <section class="sec-tower ladder" aria-labelledby="tower-title">
+        <div class="sec-head">
+          <div>
+            <h2 class="t-d2" id="tower-title">Classement du crew</h2>
+            <p id="tower-sub"></p>
+          </div>
+          <div class="seg" role="group" aria-label="File classée">
+            <button type="button" aria-pressed="true" data-queue="solo">Solo/Duo</button>
+            <button type="button" aria-pressed="false" data-queue="flex">Flex</button>
+          </div>
+        </div>
+        <div id="ladder-body" class="ladder-body"></div>
+          <a class="ladder-foot" href="#top" data-mock="Le lien vers Riot n'est pas actif dans la maquette."><span>Vous jouez avec le crew ? Liez votre compte Riot pour apparaître au classement.</span><svg class="i" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </section>
+
+      <section class="sec-feed games" aria-labelledby="feed-title">
+        <div class="sec-head">
+          <div>
+            <h2 class="t-d2" id="feed-title">Dernières parties</h2>
+            <p>Toutes files confondues. Le chiffre de chaque joueur compte ses parties classées sur 7 jours.</p>
+          </div>
+        </div>
+        <div class="filters" role="group" aria-label="Filtrer par joueur" id="filters"></div>
+        <div id="feed"></div>
+        <button type="button" class="btn btn-secondary btn-lg btn-block more" id="more">Voir plus de parties</button>
+      </section>
+    </div>
+
+    <aside class="rail" aria-label="La semaine en bref" id="rail"></aside>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="t-mono" id="version"></span>
+    <span>Créé en France par <a href="#top">LeadOn</a></span>
+    <a class="btn btn-secondary btn-sm" href="#top" data-mock="Le lien de soutien n'est pas actif dans la maquette."><svg class="i i-14" aria-hidden="true"><use href="#i-heart"/></svg>Soutenir le projet</a>
+  </div>
+</footer>
+
+<div class="bottombar">
+  <nav aria-label="Navigation mobile">
+    <a aria-current="page" href="#top">Accueil</a>
+    <a href="#top" data-mock="La page Records n'est pas dans cette maquette.">Records</a>
+    <button type="button" aria-label="Chercher un joueur" data-open-palette><svg class="i" aria-hidden="true"><use href="#i-search"/></svg></button>
+  </nav>
+</div>
+
+<div class="overlay" id="palette-overlay" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Chercher un joueur du crew">
+    <div class="palette-input">
+      <svg class="i" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+      <label class="sr-only" for="palette-q">Pseudo ou Riot ID</label>
+      <input id="palette-q" type="text" placeholder="Pseudo ou Riot ID" autocomplete="off" role="combobox" aria-controls="palette-list" aria-expanded="true">
+      <span class="kbd">Échap</span>
+    </div>
+    <ul id="palette-list" role="listbox" aria-label="Joueurs trouvés"></ul>
+    <div class="palette-foot t-mono"><span>↑↓ naviguer</span><span>↵ ouvrir</span><span>Échap fermer</span></div>
+  </div>
+</div>
+
+<div class="overlay notes-overlay" id="notes-overlay" hidden>
+  <div class="notes" role="dialog" aria-modal="true" aria-labelledby="notes-title">
+    <div class="notes-head">
+      <h2 class="t-d3" id="notes-title">Notes de conception</h2>
+      <button type="button" class="btn btn-quiet btn-icon btn-sm" aria-label="Fermer les notes" data-close-notes><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <dl>
+      <div><dt>La question de la page</dt><dd>Qui monte, qui coule, et qui a joué hier soir ? La page y répond dans cet ordre : le titre et la semaine, le classement, puis le fil des parties.</dd></div>
+      <div><dt>Un titre écrit avec les chiffres</dt><dd>Le titre et le chapô sont composés à partir de <span class="t-mono">weeklyActivity.netLpChange</span>, des parties, du taux de victoire et de <span class="t-mono">topPlayer</span>. Le chiffre perdu ou gagné prend la couleur du résultat, rien d'autre. Archivo étendue pour la phrase, condensée pour le nombre.</dd></div>
+      <div><dt>La semaine en feuille de temps</dt><dd>Les quatre tuiles de la v7 deviennent un seul tableau : une colonne par jour de Paris, une ligne par mesure (parties, bilan, LP nets, temps), le total de la semaine à droite avec son écart. Sous 760 px de large, le tableau pivote : une ligne par jour. Source : <span class="t-mono">days[]</span> de <span class="t-mono">GET /lol/Home?window=Last7Days</span>. Un <span class="t-mono">netLpChange</span> nul n'a pas de barre.</dd></div>
+      <div><dt>Inclure les smurfs, au niveau de la page</dt><dd>L'interrupteur est sous le titre parce qu'il déplace tout le tableau de bord : <span class="t-mono">/lol/Home</span> et <span class="t-mono">/lol/Match/last</span> sont relus, le classement filtre côté navigateur. Dans la maquette, seul le classement réagit : la capture ne contient pas la semaine avec les smurfs.</dd></div>
+      <div><dt>Le classement</dt><dd>Trois blocs, comme en v7 : le podium des trois premiers sur le splash de leur champion principal, « L'échelle des rangs » (un avatar par joueur sur son palier, avec la trace des 7 jours), puis la liste des autres comptes avec l'écart en LP, la forme et le taux. Cartes, avatars et lignes glissent vers leur nouvelle place quand la file ou les smurfs changent.</dd></div>
+      <div><dt>« Vous »</dt><dd>La maquette se voit connectée en LeadOn. L'or marque sa ligne, son avatar sur l'échelle et son badge. Comme aujourd'hui, tout ce qui dépend du lecteur se rend après le montage, la page étant servie depuis le cache SWR.</dd></div>
+      <div><dt>Les splash arts</dt><dd>Sur les trois cartes du podium et le joueur de la semaine, avec un dégradé ou une pastille sombre sous le texte, jamais de halo. Records et champions sont des listes dans un panneau. À partir de 1100 px, la colonne de droite reste visible pendant le défilement.</dd></div>
+      <div><dt>Ce qui n'a pas disparu</dt><dd>Recharger, fenêtre de 7 jours, patch, direct, smurfs, Solo/Flex, lien Riot, filtres joueur, pagination, records, champions, recherche ⌘K, thème, soutien, barre mobile.</dd></div>
+      <div><dt>Exemple signalé</dt><dd>Le bandeau « En partie » est un exemple : personne ne jouait au moment de la capture. Tout le reste vient de l'API de production du 21 oct. 2026.</dd></div>
+    </dl>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden><span class="tip" role="status"><b id="toast-title">Maquette</b><span id="toast-text"></span></span></div>
+
+<script src="data.js" charset="utf-8"></script>
+<script src="home.js" charset="utf-8"></script>
+
+</body>
+</html>

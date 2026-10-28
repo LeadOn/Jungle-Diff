@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JungleDiff Canopée</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="canopee.css">
+<link rel="stylesheet" href="v7.css">
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4m0 4h.01"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5m2.9-11.4C23 8.8 23 15.1 19.1 19"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22m7-7.34V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+  <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6m-3 3 4 4m-1 1 2-2M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4m-2-1-3 3m-1-1 2 2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87m-3-12a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3m-3 10v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/></symbol>
+  <symbol id="i-tablet" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+</svg>
+
+<header class="ds-top">
+  <div class="ds-wrap">
+    <div class="ds-bar">
+      <a class="ds-brand" href="#direction" data-go="direction"><img src="img/logo.png" alt=""><b>Canopée</b><span class="t-mono">JungleDiff v8</span></a>
+      <span class="ds-spacer"></span>
+      <div class="seg" role="group" aria-label="Thème de la page">
+        <button type="button" data-theme-set="system" aria-pressed="true"><span class="sr-only">Thème du </span>Système</button>
+        <button type="button" data-theme-set="light" aria-pressed="false">Jour</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">Nuit</button>
+      </div>
+    </div>
+    <nav class="ds-tabs" aria-label="Sections du design system">
+      <a class="ds-tab" href="#direction" data-view="direction" aria-current="page">Direction</a>
+      <a class="ds-tab" href="#v7" data-view="v7">Accueil actuel</a>
+      <a class="ds-tab" href="#fondations" data-view="fondations">Fondations</a>
+      <a class="ds-tab" href="#composants" data-view="composants">Composants</a>
+      <a class="ds-tab" href="#v8" data-view="v8">Accueil v8</a>
+      <a class="ds-tab" href="#tokens" data-view="tokens">Tokens</a>
+    </nav>
+  </div>
+</header>
+
+<main class="ds-main">
+  <div class="ds-wrap">
+
+    <!-- ============================== Direction ============================== -->
+    <section class="ds-view" id="view-direction" aria-labelledby="h-direction">
+      <header class="ds-head">
+        <span class="t-label faint">JungleDiff · système de design v8</span>
+        <h1 class="t-d1" id="h-direction">Canopée</h1>
+        <p class="ds-lede">Le système visuel de JungleDiff à partir de la v8. Il part de l'accueil v7 et garde ce qui fonctionne : le vert du crew, la Geist Mono, des données réelles partout. Il resserre le reste. Moins de cartes, moins d'arrondis, et des chiffres qui se lisent comme une feuille de temps.</p>
+        <div class="ds-meta t-mono"><span>Capture du 21 oct. 2026, 10 h 49</span><span>EUW · Patch 16.19</span><span>16 joueurs, 22 comptes</span></div>
+      </header>
+
+      <section class="ds-section" aria-labelledby="h-brief">
+        <div class="ds-section-head"><span class="t-label faint">Brief</span><h2 class="t-d2" id="h-brief">Pour qui, pour quoi</h2></div>
+        <dl class="brief">
+          <div><dt class="t-label">Qui</dt><dd>Un crew fermé de 16 joueurs EUW, de Bronze à Master. On ouvre le site le soir après une session sur ordinateur, et le lendemain sur téléphone pour voir qui a perdu combien. Personne ne s'inscrit : on y est parce qu'on joue ensemble.</dd></div>
+          <div><dt class="t-label">La question de l'accueil</dt><dd><span class="t-d3">Qui monte, qui coule, et qui a joué hier soir ?</span></dd></div>
+          <div><dt class="t-label">Trois mots</dt><dd><div class="words">
+            <div><b>Précis</b>Chaque chiffre est aligné, comparable d'une ligne à l'autre, à l'unité près : LP, %, minutes.</div>
+            <div><b>Complice</b>Le ton du crew. « Énorme Inter », le badge « Vous », l'écart avec le joueur juste au-dessus.</div>
+            <div><b>Vif</b>Une partie finie il y a dix minutes se voit. Le direct et l'heure de synchro sont toujours à l'écran.</div>
+          </div></dd></div>
+          <div><dt class="t-label">Références</dt><dd><ul class="refs">
+            <li><b>Cartes de classement e-sport</b> · podium sur l'art du champion, couleur de palier</li>
+            <li><b>Strava</b> · classements entre amis</li>
+            <li><b>Linear</b> · surfaces sobres, finition</li>
+            <li><b>Sofascore</b> · scores denses qui restent lisibles</li>
+          </ul></dd></div>
+          <div><dt class="t-label">Ce qu'il ne doit pas être</dt><dd>Un tableau de bord SaaS de plus, avec ses tuiles géantes et ses cartes arrondies partout. Un clone d'OP.GG, dense et bleu-rouge. Un site « gamer » néon.</dd></div>
+          <div><dt class="t-label">Contraintes</dt><dd>Nuxt 4 et Tailwind v4, tokens dans <span class="t-mono">main.css</span>. Deux thèmes, clair par défaut. Interface en français, rangs en anglais. WCAG AA. Les images Riot (splash, icônes, emblèmes, objets) sont du contenu.</dd></div>
+        </dl>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-signature">
+        <div class="ds-section-head">
+          <span class="t-label faint">Geste signature</span>
+          <h2 class="t-d2" id="h-signature">Le classement</h2>
+          <p>Le classement garde la lecture que le crew aime : un podium de trois cartes posées sur le splash du champion principal, « L'échelle des rangs » où chaque joueur est un avatar sur son palier avec la trace des 7 derniers jours, puis la liste des autres comptes. Canopée lui donne ses chiffres condensés, la couleur de palier et l'or réservé au 1er et à « Vous ». C'est le seul endroit de l'accueil où l'image prend la parole, avec le joueur de la semaine.</p>
+        </div>
+        <div id="signature-ladder" class="ladder"></div>
+        <p class="t-small faint">Données réelles, Solo/Duo. Le trait sur l'échelle va de la position d'il y a 7 jours à la position actuelle, recalculée depuis <span class="t-mono">lpChange7DaysSolo</span>. La maquette n'embarque que quatre splash arts ; l'application les lit tous sur Data Dragon, et un champion sans image prend son portrait flouté.</p>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-diff">
+        <div class="ds-section-head"><span class="t-label faint">v7 → v8</span><h2 class="t-d2" id="h-diff">Ce qui change</h2></div>
+        <div class="scroll-x">
+          <table class="cmp">
+            <thead><tr><th class="t-label">Axe</th><th class="t-label">Accueil v7</th><th class="t-label">Canopée</th></tr></thead>
+            <tbody>
+              <tr><th>Surfaces</th><td>Chaque bloc est une carte blanche, arrondie à 20–26 px, avec une ombre portée.</td><td>Des cartes douces : rayon 18 px, filet léger et une ombre à deux couches, <span class="t-mono">--shadow-card</span>. Les rangées du classement et les parties sont des cartes teintées par leur palier ou leur résultat. L'ombre flottante reste pour la palette de recherche, les info-bulles et la barre mobile.</td></tr>
+              <tr><th>Rayons</th><td>20–26 px, tous les contrôles en pilule.</td><td>Échelle 4 · 6 · 10 · 14 · 18. La pilule est réservée aux avatars, aux pastilles de chiffres (LP, écart, taux, niveau, position) et au point « en direct ». Les badges de texte restent à 4 px.</td></tr>
+              <tr><th>Typographie</th><td>Archivo gras partout, à la même largeur.</td><td>Archivo en trois largeurs : étendue pour les titres, normale pour le texte, condensée pour les chiffres.</td></tr>
+              <tr><th>Chiffres</th><td>De gros chiffres isolés dans des tuiles.</td><td>Des chiffres condensés et tabulaires, alignés en colonnes, toujours avec leur écart.</td></tr>
+              <tr><th>Couleur</th><td>Vert, or, rouge, et sept styles de pastilles.</td><td>Neutres teintés de vert. L'or marque le 1er et « Vous ». Les paliers servent de couleur d'écurie.</td></tr>
+              <tr><th>Mouvement</th><td>Ressort au survol de chaque carte, mascotte qui flotte en boucle.</td><td>Transitions d'état de 120 à 200 ms. Un seul moment animé : le classement qui se réordonne.</td></tr>
+              <tr><th>Images</th><td>Splash arts dans le héros, les trois cartes du podium et le joueur de la semaine.</td><td>Le splash art reste sur le podium et sur le joueur de la semaine, et chaque page garde au plus un splash art de héros (profil, partie). Le texte posé sur une image passe par un dégradé vers la bande sombre ou par une pastille sombre, jamais par un halo.</td></tr>
+              <tr><th>Classement</th><td>Podium, échelle des rangs et tableau : trois lectures du même ordre.</td><td>On garde les trois, retouchés : cartes à 18 px, couleur de palier, écart en LP en pastille, chiffres condensés. L'or ne marque plus que le 1er et « Vous ».</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="stage-row">
+          <a class="btn btn-secondary" href="#v7" data-go="v7">Voir l'accueil actuel</a>
+          <a class="btn btn-primary" href="#v8" data-go="v8">Voir l'accueil v8</a>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============================== v7 ============================== -->
+    <section class="ds-view" id="view-v7" aria-labelledby="h-v7" hidden>
+      <header class="ds-head">
+        <span class="t-label faint">Point de départ</span>
+        <h1 class="t-d2" id="h-v7">Accueil actuel (v7)</h1>
+        <p class="ds-lede">La page <span class="t-mono">/</span> reproduite depuis le code (<span class="t-mono">pages/index.vue</span> et ses composants) avec les données servies le 21 oct. 2026. Couleurs, rayons et ombres sont ceux de <span class="t-mono">main.css</span>, y compris le thème sombre.</p>
+      </header>
+
+      <div class="two-col">
+        <section aria-labelledby="h-findings">
+          <h2 class="t-d3" id="h-findings" style="margin-bottom:12px">Ce qui la fait passer pour générée</h2>
+          <ul class="findings">
+            <li><b>Tout est une carte</b><span>Bento, podium, échelle, lignes, parties, records : même fond blanc, même arrondi, même ombre. Plus rien ne hiérarchise la page.</span></li>
+            <li><b>Des pilules partout</b><span>Sept styles de pastilles (synchro, période, patch, LP, WR, smurf, compteur) se disputent l'œil. La pastille « −33 vs les 7 jours précédents » reste verte alors que le chiffre baisse.</span></li>
+            <li><b>Une seule voix typographique</b><span>Archivo 700 du titre au compteur. Les chiffres ne se distinguent pas des libellés.</span></li>
+            <li><b>L'ouverture en tuiles</b><span>Quatre gros chiffres en tête de page, le motif le plus répandu des tableaux de bord générés.</span></li>
+            <li><b>Un mouvement décoratif</b><span>Ressort au survol, cartes qui montent de 4 px, mascotte qui flotte sans fin.</span></li>
+            <li><b>Trois lectures sans hiérarchie</b><span>Podium, échelle des rangs et tableau ont tous le même poids visuel. Canopée les garde, mais les distingue : art pour le podium, bandes pour l'échelle, liste pour la suite.</span></li>
+          </ul>
+        </section>
+        <section aria-labelledby="h-keep">
+          <h2 class="t-d3" id="h-keep" style="margin-bottom:12px">Ce qu'on garde</h2>
+          <ul class="keep">
+            <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>Les données réelles partout, et le ton juste des libellés.</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>L'échelle des rangs avec la trace des 7 jours, l'idée la plus originale de la page.</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>L'écart en LP avec le joueur du dessus.</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>Le vert du crew, l'or, la tortue.</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>Geist Mono pour les heures, durées et identifiants.</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span>Les deux thèmes, et le clair par défaut.</span></li>
+          </ul>
+        </section>
+      </div>
+
+      <div>
+        <div class="frame-bar">
+          <span class="frame-url t-mono">localhost:3000/ · v7</span>
+          <div class="seg" role="group" aria-label="Largeur de la maquette v7">
+            <button type="button" data-frame="v7-frame" data-frame-width="desktop" aria-pressed="true">Bureau</button>
+            <button type="button" data-frame="v7-frame" data-frame-width="tablet" aria-pressed="false">Tablette</button>
+            <button type="button" data-frame="v7-frame" data-frame-width="mobile" aria-pressed="false">Mobile</button>
+          </div>
+        </div>
+        <div class="frame-shell"><div class="frame" id="v7-frame" data-width="desktop"></div></div>
+      </div>
+    </section>
+
+    <!-- ============================== Fondations ============================== -->
+    <section class="ds-view" id="view-fondations" aria-labelledby="h-found" hidden>
+      <header class="ds-head">
+        <span class="t-label faint">Fondations</span>
+        <h1 class="t-d2" id="h-found">Couleur, type, espace, mouvement</h1>
+        <p class="ds-lede">Toutes les valeurs sont des tokens. Un composant n'écrit jamais une couleur, un rayon ou une durée en dur. Les couleurs sont en OKLCH, les neutres sont teintés vers le vert de la carapace (teinte 165).</p>
+      </header>
+
+      <section class="ds-section" aria-labelledby="h-color">
+        <div class="ds-section-head"><span class="t-label faint">Couleur</span><h2 class="t-d2" id="h-color">Deux thèmes, dessinés chacun</h2><p>Chaque pastille montre la valeur Jour à gauche et Nuit à droite. Le thème Nuit n'est pas une inversion : les surfaces montent en clarté avec l'élévation, les accents sont un peu désaturés.</p></div>
+        <div class="sw-group"><h3 class="t-label faint">Neutres</h3><div class="sw-grid" data-swatches="neutrals"></div></div>
+        <div class="sw-group"><h3 class="t-label faint">Marque</h3><div class="sw-grid" data-swatches="brand"></div></div>
+        <div class="sw-group"><h3 class="t-label faint">Résultat</h3><div class="sw-grid" data-swatches="results"></div></div>
+        <div class="sw-group"><h3 class="t-label faint">Paliers · données, identiques dans les deux thèmes</h3><div class="sw-grid" data-swatches="tiers"></div></div>
+        <div class="sw-group"><h3 class="t-label faint">Page de partie</h3><div class="sw-grid" data-swatches="match"></div></div>
+        <ul class="rules">
+          <li>L'or ne sert qu'à quatre choses : le 1er du classement, « Vous », le bouton de recherche mobile, et l'anneau de focus en thème Nuit.</li>
+          <li>Le vert de victoire n'est jamais un accent décoratif. La couleur de résultat ne s'applique qu'à ce qui se gagne ou se perd : LP, victoires, séries.</li>
+          <li>Un côté n'est pas un résultat. Le côté rouge peut gagner, il garde sa propre teinte.</li>
+          <li>Les paliers sont des couleurs d'écurie : un bloc de position, une bande d'échelle. Jamais du texte, toujours lus avec <span class="t-mono">--on-tier</span>.</li>
+          <li><span class="t-mono">--ink-3</span> est le gris le plus clair autorisé pour du texte (AA sur blanc).</li>
+        </ul>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-type">
+        <div class="ds-section-head"><span class="t-label faint">Typographie</span><h2 class="t-d2" id="h-type">Une famille, trois largeurs</h2><p>Archivo est une police variable dont l'axe de largeur va de 62 à 125 %. Canopée s'en sert comme de trois voix : étendue pour nommer, normale pour lire, condensée pour compter. Geist Mono garde les heures, durées, patchs et identifiants.</p></div>
+        <div class="type-hero">
+          <figure><span class="t-d2" style="font-size:2.5rem">Classement du crew</span><figcaption class="t-mono">Archivo 118 % · 740 · titres</figcaption></figure>
+          <figure><p style="font-size:1rem;max-width:34ch">42 parties à 57 % de victoires, dont 6 succès d'affilée. RememberV reprend 246 LP en une semaine.</p><figcaption class="t-mono">Archivo 100 % · 400 / 640 · texte</figcaption></figure>
+          <figure><span class="fig down" style="font-size:5rem">−295</span><figcaption class="t-mono">Archivo 72 % · 680 · chiffres</figcaption></figure>
+        </div>
+        <div class="scroll-x">
+          <table class="scale">
+            <tbody>
+              <tr><td class="t-mono faint">d1</td><td><span class="t-d1" style="font-size:3rem">Canopée</span></td><td class="t-mono">118 % · 780 · 44–84 px · −0,04 em</td></tr>
+              <tr><td class="t-mono faint">d2</td><td><span class="t-d2">Dernières parties</span></td><td class="t-mono">118 % · 740 · 28 px · −0,025 em</td></tr>
+              <tr><td class="t-mono faint">d3</td><td><span class="t-d3">Records du mois</span></td><td class="t-mono">118 % · 700 · 20 px</td></tr>
+              <tr><td class="t-mono faint">title</td><td><span class="t-title">Champions du crew</span></td><td class="t-mono">100 % · 640 · 17 px</td></tr>
+              <tr><td class="t-mono faint">body</td><td><span class="t-body">Tout le crew, toutes files confondues</span></td><td class="t-mono">100 % · 400 · 14 px · 1,55</td></tr>
+              <tr><td class="t-mono faint">label</td><td><span class="t-label">Parties classées</span></td><td class="t-mono">118 % · 650 · 11 px · +0,09 em · capitales</td></tr>
+              <tr><td class="t-mono faint">fig-xl</td><td><span class="fig fig-xl">203</span></td><td class="t-mono">72 % · 680 · 64 px · tabulaire</td></tr>
+              <tr><td class="t-mono faint">fig-m</td><td><span class="fig fig-m">15 / 8 / 9</span></td><td class="t-mono">72 % · 680 · 22 px · tabulaire</td></tr>
+              <tr><td class="t-mono faint">mono</td><td><span class="t-mono">EUW · Patch 16.19 · 36:28 · #EUWFR</span></td><td class="t-mono">Geist Mono · 500 · 12 px</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-space">
+        <div class="ds-section-head"><span class="t-label faint">Espace et grille</span><h2 class="t-d2" id="h-space">Grille de 4 px</h2><p>Les groupes frères s'espacent par <span class="t-mono">gap</span>, jamais par des marges. La page fait 1280 px au plus, avec 16, 24 puis 32 px de gouttière. Les composants s'adaptent à leur conteneur, pas à l'écran.</p></div>
+        <div class="two-col" style="gap:32px">
+          <div style="display:grid;gap:8px">
+            <div class="space-row"><span class="t-mono faint">s-1 · 4</span><span class="space-bar" style="width:4px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-2 · 8</span><span class="space-bar" style="width:8px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-3 · 12</span><span class="space-bar" style="width:12px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-4 · 16</span><span class="space-bar" style="width:16px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-5 · 20</span><span class="space-bar" style="width:20px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-6 · 24</span><span class="space-bar" style="width:24px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-8 · 32</span><span class="space-bar" style="width:32px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-10 · 40</span><span class="space-bar" style="width:40px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-14 · 56</span><span class="space-bar" style="width:56px"></span></div>
+            <div class="space-row"><span class="t-mono faint">s-20 · 80</span><span class="space-bar" style="width:80px"></span></div>
+          </div>
+          <div style="display:grid;gap:12px;align-content:start">
+            <div class="grid-demo" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <ul class="rules">
+              <li><span class="t-mono">rail</span> · 1100 px de cadre : la colonne de droite (336 px) apparaît.</li>
+              <li><span class="t-mono">md</span> · 768 px : navigation dans l'en-tête, barre mobile masquée.</li>
+              <li>Le podium passe en trois colonnes à 640 px de conteneur, les lignes du classement gagnent le rang et l'écart à 560 px, la forme et le taux à 760 px, la carte de partie le KDA à 600 px et les objets à 700 px.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-radius">
+        <div class="ds-section-head"><span class="t-label faint">Rayons et élévation</span><h2 class="t-d2" id="h-radius">Des cartes douces</h2><p>Un enfant n'est jamais plus arrondi que son parent. Les cartes (panneaux, parties, rangées du classement) sont posées par une ombre légère ; l'ombre flottante reste réservée à ce qui passe au-dessus de la page.</p></div>
+        <div class="radius-grid">
+          <div style="display:grid;gap:8px"><div class="radius-box" style="border-radius:4px"><span class="t-mono">4</span></div><span class="t-small muted">Badges de texte (Vous, Smurf), objets</span></div>
+          <div style="display:grid;gap:8px"><div class="radius-box" style="border-radius:6px"><span class="t-mono">6</span></div><span class="t-small muted">Boutons, champs, champions</span></div>
+          <div style="display:grid;gap:8px"><div class="radius-box" style="border-radius:10px"><span class="t-mono">10</span></div><span class="t-small muted">Palette, tooltips, zones</span></div>
+          <div style="display:grid;gap:8px"><div class="radius-box" style="border-radius:14px"><span class="t-mono">14</span></div><span class="t-small muted">Cadres, portraits de champion</span></div>
+          <div style="display:grid;gap:8px"><div class="radius-box" style="border-radius:18px"><span class="t-mono">18</span></div><span class="t-small muted">Cartes : panneaux, parties, classement</span></div>
+          <div style="display:grid;gap:8px"><div class="radius-box" style="border-radius:999px;aspect-ratio:1;max-width:96px"><span class="t-mono">rond</span></div><span class="t-small muted">Avatars, pastilles de chiffres, direct</span></div>
+        </div>
+        <div class="elev-grid">
+          <div class="elev-box" style="background:var(--surface);border:1px solid color-mix(in oklch, var(--line) 70%, transparent);box-shadow:var(--shadow-card);border-radius:var(--r-5)"><span><b>Carte</b><br><span class="t-small muted">Panneau, partie, rangée</span></span></div>
+          <div class="elev-box" style="background:var(--sunken);border:1px solid var(--line)"><span><b>Survol</b><br><span class="t-small muted">Le fond change, rien ne bouge</span></span></div>
+          <div class="elev-box" style="background:var(--raised);box-shadow:var(--shadow-float)"><span><b>Flottant</b><br><span class="t-small muted">Palette, info-bulle, barre mobile</span></span></div>
+        </div>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-motion">
+        <div class="ds-section-head"><span class="t-label faint">Mouvement</span><h2 class="t-d2" id="h-motion">Fonctionnel, sauf une fois</h2><p>Les transitions confirment un changement d'état. La seule animation qui se remarque est le classement : cartes, avatars de l'échelle et lignes glissent vers leur nouvel ordre. Sous <span class="t-mono">prefers-reduced-motion</span>, tout est instantané.</p></div>
+        <div class="stage">
+          <div style="display:grid;gap:10px">
+            <div class="space-row" style="grid-template-columns:150px minmax(0,1fr)"><span class="t-mono faint">d-1 · 120 ms</span><div class="motion-track"><span class="motion-dot" data-ms="120"></span></div></div>
+            <div class="space-row" style="grid-template-columns:150px minmax(0,1fr)"><span class="t-mono faint">d-2 · 200 ms</span><div class="motion-track"><span class="motion-dot" data-ms="200"></span></div></div>
+            <div class="space-row" style="grid-template-columns:150px minmax(0,1fr)"><span class="t-mono faint">d-3 · 360 ms</span><div class="motion-track"><span class="motion-dot" data-ms="360"></span></div></div>
+            <div class="space-row" style="grid-template-columns:150px minmax(0,1fr)"><span class="t-mono faint">classement · 620 ms</span><div class="motion-track"><span class="motion-dot" data-ms="620" data-ease="tower" style="background:var(--gold)"></span></div></div>
+          </div>
+          <div class="stage-row"><button type="button" class="btn btn-secondary btn-sm" id="motion-play">Jouer</button><span class="t-mono faint">ease-out · cubic-bezier(0.2, 0.8, 0.2, 1) · tower · linear() ressort amorti</span></div>
+        </div>
+        <ul class="rules">
+          <li>120 ms : survol, pression. 200 ms : changement d'état (interrupteur, segment). 360 ms : apparition.</li>
+          <li>Aucune boucle infinie, sauf le point « en direct » qui signifie « en cours ».</li>
+          <li>Pas de mise à l'échelle au survol, pas de carte qui décolle.</li>
+          <li>Les chiffres comptent seulement quand la valeur change, à partir de celle déjà affichée.</li>
+        </ul>
+      </section>
+
+      <section class="ds-section" aria-labelledby="h-icons">
+        <div class="ds-section-head"><span class="t-label faint">Iconographie</span><h2 class="t-d2" id="h-icons">Lucide, 1,75 px</h2><p>Un seul jeu, en 16 et 20 px, trait de 1,75. Les images de Riot (champions, objets, emblèmes, rôles) sont du contenu et ne servent jamais d'icône d'interface.</p></div>
+        <div class="icon-grid">
+          <div class="icon-cell"><svg class="i"><use href="#i-search"/></svg>search</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-refresh"/></svg>refresh-cw</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-radio"/></svg>radio</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-clock"/></svg>clock</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-trophy"/></svg>trophy</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-swords"/></svg>swords</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-users"/></svg>users</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-chart"/></svg>chart-line</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-arrow-right"/></svg>arrow-right</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-external"/></svg>external-link</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-moon"/></svg>moon</div>
+          <div class="icon-cell"><svg class="i"><use href="#i-alert"/></svg>triangle-alert</div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============================== Composants ============================== -->
+    <section class="ds-view" id="view-composants" aria-labelledby="h-comp" hidden>
+      <header class="ds-head">
+        <span class="t-label faint">Composants</span>
+        <h1 class="t-d2" id="h-comp">Le vocabulaire</h1>
+        <p class="ds-lede">Chaque composant est montré avec les données du crew et ses états. Les contrôles répondent au clic. Une maquette marquée « exemple » ne contient pas de données réelles.</p>
+      </header>
+
+      <div>
+        <div class="spec" id="spec-buttons">
+          <div class="spec-text"><h2 class="t-d3">Boutons</h2><p>Quatre rôles. Un seul primaire par zone.</p>
+            <ul class="rules"><li>Hauteurs 28, 36 et 44 px. Au doigt, 44 minimum.</li><li>Le survol change le fond, le bouton ne grossit pas.</li><li>Le libellé dit ce qui va se passer : « Synchroniser », pas « OK ».</li></ul></div>
+          <div class="stage demo">
+            <div class="stage-row">
+              <button type="button" class="btn btn-primary">Réessayer</button>
+              <button type="button" class="btn btn-secondary">Voir plus de parties</button>
+              <button type="button" class="btn btn-quiet">Annuler</button>
+              <button type="button" class="btn btn-secondary btn-icon" aria-label="Recharger"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg></button>
+              <button type="button" class="btn btn-gold btn-icon" aria-label="Chercher un joueur"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg></button>
+            </div>
+            <div class="stage-row">
+              <button type="button" class="btn btn-primary btn-sm">Se connecter</button>
+              <button type="button" class="btn btn-primary">Se connecter</button>
+              <button type="button" class="btn btn-primary btn-lg">Se connecter</button>
+            </div>
+            <div class="stage-row">
+              <button type="button" class="btn btn-secondary" data-demo-busy><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg> Synchroniser</button>
+              <button type="button" class="btn btn-secondary" aria-disabled="true">Comparer · Bientôt</button>
+              <a class="btn btn-secondary btn-sm" href="#composants"><svg class="i i-14" aria-hidden="true" style="color:var(--gold-ink)"><use href="#i-heart"/></svg>Soutenir le projet</a>
+            </div>
+            <span class="stage-cap t-mono">primaire · secondaire · discret · icône · or · 28 / 36 / 44 · occupé · indisponible</span>
+          </div>
+        </div>
+
+        <div class="spec" id="spec-controls">
+          <div class="spec-text"><h2 class="t-d3">Filtres et navigation</h2><p>Le segmenté choisit une vue exclusive. L'interrupteur active un filtre qui touche toute la page. Les filtres joueur portent l'avatar et un compte.</p>
+            <ul class="rules"><li>Le segment actif se détache par la surface, pas par l'encre pleine.</li><li>Le filtre joueur actif est le seul élément en encre pleine de sa rangée.</li><li>Navigation : soulignement de 2 px sous l'onglet courant.</li></ul></div>
+          <div class="stage demo">
+            <div class="stage-row">
+              <div class="seg" role="group" aria-label="File classée (exemple)"><button type="button" aria-pressed="true">Solo/Duo</button><button type="button" aria-pressed="false">Flex</button></div>
+              <div class="seg" role="group" aria-label="Période (exemple)"><button type="button" aria-pressed="false">7 j</button><button type="button" aria-pressed="true">30 j</button><button type="button" aria-pressed="false">Saison</button></div>
+              <button type="button" class="switch" role="switch" aria-checked="false"><span class="switch-track"></span>Smurfs</button>
+              <button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-track"></span>Classées seulement</button>
+            </div>
+            <div class="stage-row">
+              <button type="button" class="chip no-img" aria-pressed="true">Tout le crew <span class="n">203</span></button>
+              <button type="button" class="chip" aria-pressed="false"><img src="img/icon-3368.png" alt="">Oceiros <span class="n">52</span></button>
+              <button type="button" class="chip" aria-pressed="false"><img src="img/icon-3017.png" alt="">RememberV <span class="n">45</span></button>
+              <button type="button" class="chip" aria-pressed="false"><img src="img/icon-6927.png" alt="">Zéloufis <span class="n">33</span></button>
+            </div>
+            <div class="stage-row" style="border-bottom:1px solid var(--line);padding-bottom:9px">
+              <nav class="navtabs" aria-label="Exemple de navigation"><a class="navtab" aria-current="page" href="#composants">Accueil</a><a class="navtab" href="#composants">Records</a></nav>
+            </div>
+          </div>
+        </div>
+
+        <div class="spec" id="spec-search">
+          <div class="spec-text"><h2 class="t-d3">Recherche du crew</h2><p>Un champ dans l'en-tête, une palette qui s'ouvre au-dessus de la page. Essayez de taper un pseudo.</p>
+            <ul class="rules"><li>Ouverte par ⌘K, Ctrl K ou « / ».</li><li>Résout localement dans la liste du crew, sans appel réseau par frappe.</li><li>Le seul composant de la page avec une ombre portée.</li></ul></div>
+          <div class="stage">
+            <button type="button" class="search"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg><span>Chercher un joueur…</span><span class="kbd">⌘K</span></button>
+            <div class="palette" role="dialog" aria-label="Chercher un joueur du crew">
+              <div class="palette-input"><svg class="i" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg><label class="sr-only" for="palette-q">Pseudo</label><input id="palette-q" type="text" placeholder="Pseudo ou Riot ID" autocomplete="off" value="re"><span class="kbd">Échap</span></div>
+              <ul id="palette-list" role="listbox" aria-label="Joueurs trouvés"></ul>
+              <div class="palette-foot t-mono"><span>↑↓ naviguer</span><span>↵ ouvrir</span><span>Échap fermer</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spec" id="spec-markers">
+          <div class="spec-text"><h2 class="t-d3">Indicateurs</h2><p>Les petites marques qui portent l'état d'une ligne : LP, résultat, forme, statut.</p>
+            <ul class="rules"><li>« Sans LP » ne s'affiche que si c'est vrai : normale ou remake. Un <span class="t-mono">rankChange</span> nul n'affiche rien.</li><li>0 LP est un vrai résultat, en gris.</li><li>La forme se lit de gauche (ancienne) à droite (dernière).</li></ul></div>
+          <div class="stage">
+            <div class="stage-row"><span class="lp up">+29 LP</span><span class="lp down">−20 LP</span><span class="lp zero">0 LP</span><span class="lp none">Sans LP</span><span class="promo" style="--tier:var(--t-emerald)"><img src="img/emerald.png" alt="">Promu Emerald II</span></div>
+            <div class="stage-row"><span class="res w">V</span><span class="res l">D</span><span class="res r">R</span><span class="form" aria-label="Forme : V V D D V"><i class="w"></i><i class="w"></i><i></i><i></i><i class="w"></i></span><span style="width:160px"><span class="split" role="img" aria-label="94 victoires, 109 défaites"><i style="width:46%"></i></span></span></div>
+            <div class="stage-row"><span class="status me">Vous</span><span class="status smurf">Smurf</span><span class="status archived">Archivé</span><span class="status live">En partie</span><span class="status plus">+2</span></div>
+          </div>
+        </div>
+
+        <div class="spec" id="spec-identity">
+          <div class="spec-text"><h2 class="t-d3">Identité</h2><p>Joueur, champion, rang.</p>
+            <ul class="rules"><li>Joueur : rond, comme l'icône d'invocateur du client.</li><li>Champion : carré arrondi à 6 px, niveau en coin.</li><li>Les rangs restent en anglais (« Emerald II »), comme dans le client et le reste du site.</li></ul></div>
+          <div class="stage">
+            <div class="stage-row" style="gap:20px">
+              <span class="avatar"><img src="img/icon-4022.png" alt=""><span class="lvl">848</span></span>
+              <span class="champ"><img src="img/champ-Lissandra.png" alt=""><span class="lvl">18</span></span>
+              <span class="champ"><img src="img/champ-Viego.png" alt=""><img class="by" src="img/icon-3017.png" alt=""></span>
+              <span class="rank"><img src="img/master.png" alt=""><b>Master</b><span>657 LP</span></span>
+              <span class="rank"><img src="img/emerald.png" alt=""><b>Emerald II</b><span>75 LP</span></span>
+              <span class="rank unranked"><img src="img/unranked.png" alt=""><b>Non classé</b></span>
+            </div>
+            <div class="panel" style="display:flex;align-items:center;gap:12px;padding:12px 14px;max-width:420px">
+              <span class="avatar"><img src="img/icon-4022.png" alt=""></span>
+              <span class="who" style="flex:1"><span class="who-name"><b>SuperMao</b><span class="t-mono faint">#EUWFR</span></span><span class="t-small muted">Lissandra surtout · niveau 848</span></span>
+              <span class="rank"><img src="img/master.png" alt=""><b>Master</b><span>657 LP</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="spec" id="spec-figures">
+          <div class="spec-text"><h2 class="t-d3">Tableau des scores</h2><p>Les chiffres de la semaine dans un seul panneau découpé par des filets, à la place de quatre tuiles.</p>
+            <ul class="rules"><li>Une valeur, son unité plus petite, son écart en mono.</li><li>Les parties jouées n'ont pas de couleur : jouer plus n'est ni bien ni mal.</li><li>Un jour sans paire de rangs comparable (<span class="t-mono">netLpChange: null</span>) n'a pas de barre.</li></ul></div>
+          <div class="stage" id="demo-score"></div>
+        </div>
+
+        <div class="spec" id="spec-ladder">
+          <div class="spec-text"><h2 class="t-d3">Classement</h2><p>Podium, échelle des rangs et liste. Ici avec LeadOn vu par lui-même (« Vous »), puis un compte non classé.</p>
+            <ul class="rules"><li>Le podium met le champion principal en art : medal de position, nom du champion, emblème du palier et avatar cerclé du palier qui débordent de l'image. Le 1er est plus haut et cerclé d'or.</li><li>Sans splash art, la carte prend le portrait du champion, flouté.</li><li>L'échelle répartit les paliers en bandes égales ; les avatars se placent sur des couloirs pour ne pas se chevaucher.</li><li>Écart : les LP qu'il faut pour dépasser le joueur du dessus, en pastille.</li><li>Quand la file ou le filtre change, tout glisse vers sa nouvelle place en 620 ms.</li></ul></div>
+          <div class="stage ladder" id="demo-ladder"></div>
+        </div>
+
+        <div class="spec" id="spec-game">
+          <div class="spec-text"><h2 class="t-d3">Ligne de partie</h2><p>Une partie par ligne, regroupées par jour de Paris avec le bilan et les LP du jour.</p>
+            <ul class="rules"><li>La carte de l'accueil v7, redessinée avec les tokens Canopée : liseré et dégradé de fond selon le résultat, « Victoire » ou « Défaite » en capitales au-dessus du pseudo, portrait du champion avec son niveau, objets sous la ligne de méta.</li><li>Le KDA détaillé et l'heure apparaissent à 600 px de conteneur, les objets à 700 px.</li><li>Les autres membres du crew dans la partie deviennent un « +N ».</li></ul></div>
+          <div class="stage games" id="demo-games"></div>
+        </div>
+
+        <div class="spec" id="spec-live">
+          <div class="spec-text"><h2 class="t-d3">En direct</h2><p>Le bandeau des parties en cours, sous le tableau des scores, seulement quand quelqu'un joue.</p>
+            <ul class="rules"><li>Le point pulse : c'est la seule boucle autorisée, parce qu'elle veut dire « en cours ».</li><li>L'horloge part de <span class="t-mono">gameLengthSeconds</span> et avance chaque seconde.</li><li>Relu toutes les 60 s, côté client seulement.</li></ul></div>
+          <div class="stage">
+            <span class="tag-example">exemple · aucune partie en cours lors de la capture</span>
+            <div class="live">
+              <span class="live-label"><span class="live-dot"></span>En partie</span>
+              <span class="live-item"><img src="img/champ-Samira.png" alt=""><span><b>Oceiros</b><br><span>Samira · Flex</span></span><span class="live-clock" data-clock="754">12:34</span></span>
+              <span class="live-item"><img src="img/champ-Velkoz.png" alt=""><span><b>SkyBlood</b><br><span>Vel'Koz · Solo/Duo</span></span><span class="live-clock" data-clock="1302">21:42</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="spec" id="spec-rail">
+          <div class="spec-text"><h2 class="t-d3">Colonne de droite</h2><p>Joueur de la semaine, records du mois, champions du crew.</p>
+            <ul class="rules"><li>Le splash art n'apparaît que sur le podium du classement et sur le joueur de la semaine.</li><li>Le texte posé sur l'image passe par un dégradé vers la bande sombre, sans halo de texte.</li><li>Records et champions sont des listes dans un panneau, pas des cartes empilées.</li></ul></div>
+          <div class="stage" id="demo-rail" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:start"></div>
+        </div>
+
+        <div class="spec" id="spec-tooltip">
+          <div class="spec-text"><h2 class="t-d3">Info-bulle</h2><p>Toujours sur la bande sombre, dans les deux thèmes.</p>
+            <ul class="rules"><li>Un nom en gras, un détail en mono. Pas de phrase.</li><li>Jamais la seule façon d'obtenir une information.</li></ul></div>
+          <div class="stage"><div class="stage-row">
+            <span class="tip" role="tooltip"><b>Wullver · 2e</b><span>Master · 133 LP · −72 LP sur 7 j</span></span>
+            <span class="tip" role="tooltip"><b>524 LP</b><span>pour dépasser SuperMao</span></span>
+            <span class="tip" role="tooltip"><b>sam. 17 oct.</b><span>41 parties · −256 LP</span></span>
+          </div></div>
+        </div>
+
+        <div class="spec" id="spec-states">
+          <div class="spec-text"><h2 class="t-d3">États</h2><p>Chargement, vide, erreur.</p>
+            <ul class="rules"><li>Chargement : des squelettes à la forme réelle, jamais un spinner plein écran. L'API peut mettre plus d'une minute sur ses agrégats.</li><li>Vide : ce qui manque et comment ça se remplit.</li><li>Erreur : ce qui s'est passé, puis l'action.</li></ul></div>
+          <div class="stage">
+            <div class="panel" aria-hidden="true">
+              <div style="display:grid;grid-template-columns:44px 34px minmax(0,1fr) 60px;gap:12px;align-items:center;padding:10px 14px 10px 0;border-bottom:1px solid var(--line)"><span class="skel" style="height:34px;border-radius:0"></span><span class="skel" style="height:34px;border-radius:50%"></span><span class="skel" style="height:12px;width:60%"></span><span class="skel" style="height:12px"></span></div>
+              <div style="display:grid;grid-template-columns:44px 34px minmax(0,1fr) 60px;gap:12px;align-items:center;padding:10px 14px 10px 0"><span class="skel" style="height:34px;border-radius:0"></span><span class="skel" style="height:34px;border-radius:50%"></span><span class="skel" style="height:12px;width:45%"></span><span class="skel" style="height:12px"></span></div>
+            </div>
+            <div class="panel empty"><p class="t-title">Personne n'est classé en Flex pour le moment</p><p>Un joueur apparaît ici dès que Riot lui attribue un rang dans cette file.</p></div>
+            <div class="error" role="alert">
+              <img src="img/logo.png" alt="">
+              <div><p class="t-title" style="color:var(--ink)">L'API GameOn ne répond pas</p><p>Les statistiques du crew n'ont pas pu être chargées. Ses gros calculs prennent parfois plus d'une minute : réessayez dans un instant.</p><button type="button" class="btn btn-primary btn-sm">Réessayer</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== v8 ============================== -->
+    <section class="ds-view" id="view-v8" aria-labelledby="h-v8" hidden>
+      <header class="ds-head">
+        <span class="t-label faint">Application</span>
+        <h1 class="t-d2" id="h-v8">Accueil v8</h1>
+        <p class="ds-lede">La même page, les mêmes données, les mêmes fonctions, recomposées avec Canopée. Le switch Smurfs, la file Solo/Flex et les filtres joueur fonctionnent sur les données de la capture.</p>
+      </header>
+      <ul class="findings">
+        <li><b>Ouverture</b><span>Un titre et une ligne d'état (synchro, fenêtre, patch) remplacent les trois pastilles. Le tableau des scores remplace les quatre tuiles.</span></li>
+        <li><b>Classement</b><span>Podium, échelle et lignes sont conservés, en cartes de 18 px, avec la couleur de palier et l'écart en pastille. L'or marque le 1er et « Vous ».</span></li>
+        <li><b>Parties</b><span>La carte de partie v7 redessinée : liseré et dégradé selon le résultat, « Victoire » ou « Défaite » en capitales, objets sous la ligne de méta, regroupées par jour de Paris.</span></li>
+        <li><b>Colonne de droite</b><span>Le joueur de la semaine garde son splash art, comme les cartes du podium. Records et champions deviennent des listes.</span></li>
+        <li><b>Rien n'a disparu</b><span>Recharger, période, patch, direct, smurfs, Solo/Flex, lien Riot, filtres joueur, pagination, records, champions, soutien.</span></li>
+      </ul>
+      <div>
+        <div class="frame-bar">
+          <span class="frame-url t-mono">localhost:3000/ · v8 Canopée</span>
+          <div class="seg" role="group" aria-label="Largeur de la maquette v8">
+            <button type="button" data-frame="v8-frame" data-frame-width="desktop" aria-pressed="true">Bureau</button>
+            <button type="button" data-frame="v8-frame" data-frame-width="tablet" aria-pressed="false">Tablette</button>
+            <button type="button" data-frame="v8-frame" data-frame-width="mobile" aria-pressed="false">Mobile</button>
+          </div>
+        </div>
+        <div class="frame-shell"><div class="frame" id="v8-frame" data-width="desktop"></div></div>
+      </div>
+    </section>
+
+    <!-- ============================== Tokens ============================== -->
+    <section class="ds-view" id="view-tokens" aria-labelledby="h-tokens" hidden>
+      <header class="ds-head">
+        <span class="t-label faint">Mise en œuvre</span>
+        <h1 class="t-d2" id="h-tokens">Tokens et migration</h1>
+        <p class="ds-lede">Le bloc à coller dans <span class="t-mono">app/assets/css/main.css</span>, dans la convention du projet : valeurs brutes sur <span class="t-mono">:root</span>, thème sombre sous <span class="t-mono">.dark</span>, noms Tailwind dans <span class="t-mono">@theme</span>.</p>
+      </header>
+
+      <div class="code">
+        <button type="button" class="btn btn-secondary btn-sm" data-copy="tokens-code"><svg class="i i-14" aria-hidden="true"><use href="#i-copy"/></svg> Copier</button>
+<pre id="tokens-code"><span class="c">/* Canopée · JungleDiff v8 */</span>
+:root {
+  --paper: oklch(0.972 0.005 165);
+  --surface: oklch(0.995 0.002 165);
+  --sunken: oklch(0.951 0.007 165);
+  --raised: oklch(1 0 0);
+  --line: oklch(0.9 0.009 165);
+  --line-strong: oklch(0.8 0.013 165);
+  --ink: oklch(0.235 0.028 160);
+  --ink-2: oklch(0.45 0.02 160);
+  --ink-3: oklch(0.52 0.016 160);
+  --canopy: oklch(0.46 0.085 162);
+  --gold: oklch(0.8 0.135 82);
+  --gold-ink: oklch(0.5 0.1 72);
+  --gold-soft: oklch(0.95 0.045 88);
+  --win: oklch(0.66 0.15 148);
+  --win-ink: oklch(0.47 0.12 150);
+  --win-soft: oklch(0.94 0.045 150);
+  --loss: oklch(0.63 0.17 27);
+  --loss-ink: oklch(0.51 0.16 27);
+  --loss-soft: oklch(0.95 0.03 27);
+  --neutral-soft: oklch(0.935 0.006 165);
+  --night: oklch(0.235 0.028 160);
+  --night-2: oklch(0.3 0.03 160);
+  --on-night: oklch(0.965 0.008 150);
+  --on-night-2: oklch(0.8 0.02 155);
+  --on-tier: oklch(0.22 0.02 160);
+  --focus: var(--canopy);
+  --shadow-float-value: 0 0 0 1px oklch(0.235 0.028 160 / 0.08), 0 18px 44px -18px oklch(0.235 0.028 160 / 0.42);
+  --shadow-card-value: 0 1px 2px oklch(0.235 0.028 160 / 0.05), 0 10px 26px -14px oklch(0.235 0.028 160 / 0.2);
+  --on-night-line: oklch(1 0 0 / 0.12);
+  --overlay-value: color-mix(in oklch, var(--night) 45%, transparent);
+  --photo-scrim-value: linear-gradient(180deg, color-mix(in oklch, var(--night) 55%, transparent) 0%, transparent 45%, color-mix(in oklch, var(--night) 25%, transparent) 100%);
+  color-scheme: light;
+}
+
+:root.dark {
+  --paper: oklch(0.165 0.012 165);
+  --surface: oklch(0.198 0.013 165);
+  --sunken: oklch(0.145 0.011 165);
+  --raised: oklch(0.235 0.014 165);
+  --line: oklch(0.3 0.014 165);
+  --line-strong: oklch(0.4 0.016 165);
+  --ink: oklch(0.945 0.01 150);
+  --ink-2: oklch(0.77 0.016 155);
+  --ink-3: oklch(0.66 0.016 155);
+  --canopy: oklch(0.77 0.1 160);
+  --gold: oklch(0.82 0.13 83);
+  --gold-ink: oklch(0.85 0.12 85);
+  --gold-soft: oklch(0.31 0.05 85);
+  --win: oklch(0.72 0.16 148);
+  --win-ink: oklch(0.8 0.15 148);
+  --win-soft: oklch(0.29 0.06 150);
+  --loss: oklch(0.68 0.17 25);
+  --loss-ink: oklch(0.78 0.13 25);
+  --loss-soft: oklch(0.3 0.06 25);
+  --neutral-soft: oklch(0.255 0.01 165);
+  --night: oklch(0.245 0.022 160);
+  --night-2: oklch(0.31 0.024 160);
+  --focus: var(--gold);
+  --shadow-float-value: 0 0 0 1px oklch(1 0 0 / 0.08), 0 18px 44px -14px oklch(0 0 0 / 0.7);
+  --shadow-card-value: 0 1px 2px oklch(0 0 0 / 0.3), 0 12px 28px -14px oklch(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --breakpoint-rail: 68.75rem;
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-canopy: var(--canopy);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-soft: var(--gold-soft);
+  --color-win: var(--win);
+  --color-win-ink: var(--win-ink);
+  --color-win-soft: var(--win-soft);
+  --color-loss: var(--loss);
+  --color-loss-ink: var(--loss-ink);
+  --color-loss-soft: var(--loss-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-on-night: var(--on-night);
+  --color-on-night-2: var(--on-night-2);
+  --color-on-night-line: var(--on-night-line);
+  --color-on-tier: var(--on-tier);
+
+  <span class="c">/* Tier colours: data, the same in both themes */</span>
+  --color-tier-iron: oklch(0.72 0.02 50);
+  --color-tier-bronze: oklch(0.74 0.085 55);
+  --color-tier-silver: oklch(0.82 0.025 250);
+  --color-tier-gold: oklch(0.83 0.115 85);
+  --color-tier-platinum: oklch(0.8 0.085 185);
+  --color-tier-emerald: oklch(0.78 0.13 155);
+  --color-tier-diamond: oklch(0.76 0.1 265);
+  --color-tier-master: oklch(0.74 0.13 315);
+  --color-tier-grandmaster: oklch(0.72 0.14 25);
+  --color-tier-challenger: oklch(0.82 0.1 220);
+
+  --radius-1: 4px;
+  --radius-2: 6px;
+  --radius-3: 10px;
+  --radius-4: 14px;
+  --radius-5: 18px;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-tower: linear(0, 0.22 7%, 0.63 17%, 0.92 28%, 1.03 38%, 1.04 46%, 1.01 60%, 1);
+}
+
+<span class="c">/* Archivo carries a width axis (wdth 62–125): three voices from one family */</span>
+@utility font-wide { font-stretch: 118%; }
+@utility font-cond { font-stretch: 72%; }
+@utility fig { font-stretch: 72%; font-weight: 680; font-variant-numeric: tabular-nums; line-height: 0.9; }
+@utility label { font-stretch: 118%; font-weight: 650; font-size: 0.6875rem; letter-spacing: 0.09em; text-transform: uppercase; }
+@utility shadow-float { box-shadow: var(--shadow-float-value); }
+@utility shadow-card { box-shadow: var(--shadow-card-value); }
+@utility bg-overlay { background: var(--overlay-value); }
+@utility bg-photo-scrim { background: var(--photo-scrim-value); }</pre>
+      </div>
+
+      <section class="ds-section" aria-labelledby="h-migrate">
+        <div class="ds-section-head"><span class="t-label faint">Migration</span><h2 class="t-d2" id="h-migrate">Dans quel ordre</h2><p>Une étape à la fois, chacune vérifiée sur le serveur de dev avant la suivante.</p></div>
+        <ol class="steps">
+          <li><div><b>Libérer le nom <span class="t-mono">ink</span></b><p>La v7 appelle <span class="t-mono">ink</span> la bande sombre. Canopée l'appelle <span class="t-mono">night</span> et réserve <span class="t-mono">ink</span> au texte. Renommer <span class="t-mono">bg-ink</span>, <span class="t-mono">text-ink-text</span> et <span class="t-mono">text-ink-muted</span> d'abord, puis poser les tokens ci-dessus à côté des anciens.</p></div></li>
+          <li><div><b>Charger l'axe de largeur d'Archivo</b><p>Vérifier que <span class="t-mono">@nuxt/fonts</span> sert la plage <span class="t-mono">wdth 62..125</span>. Sinon, déclarer le <span class="t-mono">@font-face</span> variable à la main sur le fichier auto-hébergé.</p></div></li>
+          <li><div><b>Créer les primitives</b><p>Dans <span class="t-mono">components/ui</span> : bouton, segmenté, interrupteur, filtre, panneau, badge LP, forme.</p></div></li>
+          <li><div><b>Recomposer l'accueil</b><p><span class="t-mono">WeekBento</span> devient le tableau des scores. <span class="t-mono">LadderPodiumCard</span>, <span class="t-mono">RankTrack</span> et <span class="t-mono">LadderRow</span> restent trois blocs, redessinés avec les tokens Canopée. <span class="t-mono">LolGameCard</span> devient la ligne de partie, partagée avec le profil.</p></div></li>
+          <li><div><b>Étendre aux autres pages</b><p>Profil, partie, records, paramètres, admin. Une page par passe, sans perdre une fonction en route.</p></div></li>
+          <li><div><b>Nettoyer</b><p>Supprimer les anciens tokens, le variant <span class="t-mono">light:</span>, les animations <span class="t-mono">bob</span> et <span class="t-mono">float</span>, et les ombres de carte quand plus rien ne s'en sert.</p></div></li>
+        </ol>
+      </section>
+    </section>
+
+  </div>
+</main>
+
+<script src="data.js" charset="utf-8"></script>
+<script src="app.js" charset="utf-8"></script>
+
+</body>
+</html>
