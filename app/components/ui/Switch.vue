@@ -34,7 +34,7 @@ function toggle() {
       :class="modelValue ? 'bg-canopy' : 'bg-line-strong'"
     >
       <span
-        class="pointer-events-none absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-raised shadow-[0_1px_2px_oklch(0_0_0/0.25)] transition-transform duration-200 ease-out"
+        class="pointer-events-none absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-raised shadow-[var(--shadow-knob-value)] transition-transform duration-200 ease-out"
         :class="modelValue ? 'translate-x-[14px]' : 'translate-x-0'"
       />
     </span>

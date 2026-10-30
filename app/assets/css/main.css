@@ -1,31 +1,18 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
-@custom-variant light (&:is(:root:not(.dark) *));
 
 /*
- * Canopée · JungleDiff v8 — tokens in the project's own convention, ready for app/assets/css/main.css.
+ * Canopée · JungleDiff v8 — the design tokens.
  *
  *   - raw values on :root (light, the default) and :root.dark (the `.dark` class set by theme.ts);
- *   - Tailwind names in @theme, pointing at the raw values;
- *   - a temporary "v7 bridge" that re-points every utility the current components use
- *     (bg-surface-base, text-text-main, text-brand-gold, ...) at the Canopée palette, so the palette
- *     can switch in one step and the components can then be restyled one page at a time.
+ *   - Tailwind names in @theme, pointing at the raw values.
  *
  * Tier colours are NOT here, by decision: they stay data colours in app/utils/lol-tier.ts
- * (TIER_TINTS, values below in the comment) and reach CSS through an inline `--tier` custom
+ * (TIER_TINTS, values below) and reach CSS through an inline `--tier` custom
  * property. `--on-tier` and `--tier-none` are tokens because they depend on the theme.
  *
- * Collisions with the v7 file, and how this file resolves them:
- *   --color-ink      v7: the always-dark band (bg-ink). Canopée: body text (text-ink).
- *                    Phase 1 renames every v7 use to `night` BEFORE this file is pasted.
- *   --color-gold     v7 raw: the dark gold used for text. Canopée: the bright gold fill.
- *                    v7 text goes through --color-brand-gold, re-pointed to --gold-ink below.
- *   --color-surface  v7 raw white. Canopée: the same role. Harmless once the v7 raw block is gone.
- *   --color-win / -win-soft / -loss / -loss-soft: the same roles in both systems.
- *   --shadow-card-value / --shadow-float-value: the same utilities, new values.
- *
- * Tier tints to copy into TIER_TINTS (identical in both themes, always read with --on-tier):
+ * Tier tints, as set in TIER_TINTS (identical in both themes, always read with --on-tier):
  *   IRON oklch(0.72 0.02 50)        BRONZE oklch(0.74 0.085 55)    SILVER oklch(0.82 0.025 250)
  *   GOLD oklch(0.83 0.115 85)       PLATINUM oklch(0.8 0.085 185)  EMERALD oklch(0.78 0.13 155)
  *   DIAMOND oklch(0.76 0.1 265)     MASTER oklch(0.74 0.13 315)    GRANDMASTER oklch(0.72 0.14 25)
@@ -218,89 +205,9 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-glide: linear(0, 0.22 7%, 0.63 17%, 0.92 28%, 1.03 38%, 1.04 46%, 1.01 60%, 1);
 
-  /* ---- v7 bridge (phase 2 → phase 7). Every name below is what a current component uses;
-     delete each one when nothing references it any more. ---- */
-  --color-bg-base: var(--paper);
-  --color-surface-base: var(--surface);
-  --color-surface-high: var(--sunken);
-  --color-surface-muted: var(--paper);
-  --color-surface-sunken: var(--sunken);
-  --color-surface-hover: color-mix(in oklch, var(--sunken) 55%, var(--surface));
-  --color-surface-highlight: var(--gold-soft);
-  --color-surface-selected: var(--picked);
-  --color-border-base: var(--line);
-  --color-border-subtle: color-mix(in oklch, var(--line) 70%, transparent);
-  --color-border-accent: var(--line-strong);
-  --color-border-dashed: var(--line-strong);
-  --color-text-main: var(--ink);
-  --color-text-sec: var(--ink-2);
-  --color-text-ter: var(--ink-3);
-  --color-brand-gold: var(--gold-ink);
-  --color-brand-gold-text: var(--on-tier);
-  --color-brand-gold-bright: var(--gold);
-  --color-brand-gold-soft: var(--gold-soft);
-  --color-brand-green: var(--win-ink);
-  --color-brand-red: var(--loss-ink);
-  --color-brand-shell: var(--shell);
-  --color-brand-link: var(--canopy);
-  --color-loss-track: color-mix(in oklch, var(--loss) 22%, var(--surface));
-  --color-inverse: var(--ink);
-  --color-inverse-text: var(--paper);
-  --color-team-blue: var(--side-blue);
-  --color-team-blue-text: var(--side-blue-ink);
-  --color-team-blue-soft: var(--side-blue-soft);
-  --color-team-red: var(--side-red);
-  --color-team-red-text: var(--side-red-ink);
-  --color-team-red-soft: var(--side-red-soft);
-  --color-violet: var(--violet-ink);
-  --color-on-photo-green: var(--on-night-win);
-  --color-on-photo-lime: var(--on-night-win);
-  --color-on-photo-red: var(--on-night-loss);
-  --color-on-photo-gold: var(--on-night-gold);
-  --color-on-photo-mint: var(--on-night-win);
-  --color-on-photo-blue: var(--on-night-blue);
-  --color-signal: var(--on-night-win);
-  --color-win-fill: var(--win);
-  --color-loss-fill: var(--loss);
-  --color-loss-rail: color-mix(in oklch, var(--loss) 22%, var(--surface));
-  --color-item-bg: var(--sunken);
-  --color-glow: color-mix(in oklch, var(--canopy) 12%, transparent);
+  /* The LP sparkline's line drawing (LpProgressionCard) */
+  --animate-draw: jd-draw 1.3s var(--ease-out) both;
 
-  /* v7 easings & animations kept until phase 7 */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-rise: jd-rise 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
-  --animate-fade: jd-fade 0.18s ease both;
-  --animate-pop: jd-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  --animate-bob: jd-bob 4s ease-in-out infinite;
-  --animate-ping-slow: jd-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
-  --animate-draw: jd-draw 1.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-throb: jd-throb 1.6s ease-in-out infinite;
-
-  @keyframes jd-rise {
-    from { opacity: 0; transform: translateY(18px) scale(0.97); }
-    to { opacity: 1; transform: none; }
-  }
-  @keyframes jd-fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes jd-pop {
-    from { opacity: 0; transform: translateY(-10px) scale(0.96); }
-    to { opacity: 1; transform: none; }
-  }
-  @keyframes jd-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-  @keyframes jd-ping {
-    75%, 100% { transform: scale(2.4); opacity: 0; }
-  }
-  @keyframes jd-throb {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.12); opacity: 0.6; }
-  }
   @keyframes jd-draw {
     from { stroke-dashoffset: 1400; }
     to { stroke-dashoffset: 0; }
@@ -337,22 +244,6 @@
   to { background-position: -200% 0; }
 }
 
-@keyframes live {
-  0% { opacity: 0.7; transform: scale(0.6); }
-  70%, 100% { opacity: 0; transform: scale(1.5); }
-}
-
-/* v7 utilities kept alive by the bridge until their last user is restyled (phase 7 removes them):
-   shadow-card-hover, shadow-hero, shadow-podium(-hover), bg-scrim-hero, bg-scrim-soft, bg-page-wash.
-   text-shadow-photo goes with the halo: every text over art must pass AA without it. */
-@utility shadow-card-hover { box-shadow: var(--shadow-card-value), 0 0 0 1px var(--line-strong); }
-@utility shadow-hero { box-shadow: var(--shadow-card-value); }
-@utility shadow-podium { box-shadow: var(--shadow-card-value), 0 0 0 2px var(--gold); }
-@utility shadow-podium-hover { box-shadow: var(--shadow-card-value), 0 0 0 2px var(--gold); }
-@utility bg-scrim-hero { background-image: var(--scrim-side-value); }
-@utility bg-scrim-soft { background-image: var(--photo-scrim-value); }
-@utility bg-page-wash { background: none; }
-
 body {
   background-color: var(--paper);
   color: var(--ink);
@@ -373,39 +264,4 @@ input::placeholder { color: var(--ink-3); opacity: 1; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Animations kept for pages not yet migrated (phase 7 removes them) */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-}
-
-@keyframes floatMascot {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
-.animate-float {
-  animation: floatMascot 7s ease-in-out infinite;
-}
-
-@keyframes blinkLive {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-.animate-blink-live {
-  animation: blinkLive 1.5s ease-in-out infinite;
 }

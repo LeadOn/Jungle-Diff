@@ -316,7 +316,7 @@ const championIconUrl = computed(() => getChampionIconUrl(participant.value.cham
   border-radius: var(--radius-1);
   font-size: 11.5px;
   font-weight: 650;
-  background: color-mix(in oklch, var(--tier, oklch(0.78 0.13 155)) 32%, var(--surface));
+  background: color-mix(in oklch, var(--tier, var(--tier-none)) 32%, var(--surface));
   color: var(--ink);
   white-space: nowrap;
 }
