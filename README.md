@@ -20,7 +20,9 @@ OIDC authentication.
 - `app/pages/` — page components and data orchestration via `useAsyncData`.
 - `app/components/` — reusable components, split into `ui/`, `home/`, `lol/` and `admin/` domains.
   The default layout mounts `ui/AppHeader`, `ui/AppBottomNav` (phones) and `lol/LolPlayerPalette`
-  (crew search) once; `app/layouts/admin.vue` is the admin space's own chrome.
+  (crew search) once; `app/layouts/admin.vue` is the admin space's own chrome. The header carries a
+  button with PeekDiff's logo to the crew's Valorant twin, from `sm:` up; on phones a "PeekDiff ↗"
+  link in the footer replaces it. The admin header has neither.
 - `app/composables/` — reusable logic, including API client injection.
 - `app/stores/` — Pinia stores. `usePatchStore` is a read-only view over `useLolStore.versions`, so
   there is exactly one Data Dragon version list per request. `useAdminStore` holds the admin space's
@@ -220,6 +222,7 @@ Copy `.env.example` to `.env`:
 | `NUXT_PUBLIC_KEYCLOAK_REALM`     | yes      | Realm name                                                                |
 | `NUXT_GAME_ON_API_URL`           | no       | Overrides the proxy target server-side; defaults to the public URL        |
 | `NUXT_KEYCLOAK_CLIENT_SECRET`    | no       | Only for a confidential Keycloak client; empty means public client + PKCE |
+| `NUXT_PUBLIC_PEEK_DIFF_URL`      | no       | Target of the PeekDiff button (default `https://val.junglediff.fr`)       |
 
 The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 

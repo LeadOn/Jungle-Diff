@@ -81,6 +81,8 @@ export default defineNuxtConfig({
       // Only used to build image URLs (<img src>), which are anonymous.
       // Data calls go through the `/api/gameon` proxy.
       gameOnApiUrl: '',
+      // Target of the header's PeekDiff button, the crew's Valorant twin.
+      peekDiffUrl: 'https://val.junglediff.fr',
       keycloak: {
         authority: '',
         clientId: '',
