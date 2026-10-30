@@ -55,10 +55,14 @@ export function accountStatus(account: Pick<LoLAdminAccountDto, 'archived' | 'in
   return account.inCrew ? 'crew' : 'out'
 }
 
+/**
+ * Tones of the status text badges. Membership is not a result, so no win/loss colour: the crew in
+ * the brand's soft green, outsiders with a dashed outline, archived accounts greyed like `UiStatus`.
+ */
 export const ACCOUNT_STATUS_CHIPS: Record<AccountStatus, { label: string, tone: string }> = {
-  crew: { label: 'Crew', tone: 'bg-win-soft text-brand-green' },
-  out: { label: 'Hors crew', tone: 'bg-brand-gold-soft text-brand-gold' },
-  archived: { label: 'Archivé', tone: 'bg-surface-high text-text-sec' },
+  crew: { label: 'Crew', tone: 'bg-canopy-soft text-canopy' },
+  out: { label: 'Hors crew', tone: 'border border-dashed border-line-strong text-ink-2' },
+  archived: { label: 'Archivé', tone: 'bg-neutral-soft text-ink-2' },
 }
 
 /** An account with a Keycloak user: its owner has signed in at least once. Smurfs never have one. */

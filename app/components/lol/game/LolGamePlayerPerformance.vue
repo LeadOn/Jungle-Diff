@@ -161,40 +161,40 @@ const tiles = computed<StatTile[]>(() => {
 
 <template>
   <div v-if="player != null" class="flex flex-col gap-4">
-    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-7 gap-y-[18px] rounded-[26px] border border-border-subtle bg-surface-base px-[22px] py-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-x-7 gap-y-4 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface px-5 py-5 shadow-card">
       <div class="flex min-w-0 items-center gap-4">
-        <span class="size-16 shrink-0 rounded-[20px] bg-surface-sunken bg-[length:112%] bg-center" :style="championStyle" />
+        <span class="size-16 shrink-0 rounded-4 bg-sunken bg-[length:112%] bg-center" :style="championStyle" />
         <div class="min-w-0">
           <div class="flex min-w-0 items-center gap-2">
-            <span class="truncate text-2xl font-bold tracking-[-0.03em]">{{ name }}</span>
-            <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-2 py-0.5 text-[11px] font-bold text-brand-gold-text">Vous</span>
+            <span class="truncate type-d3 text-ink">{{ name }}</span>
+            <UiStatus v-if="isMe" variant="me" class="shrink-0" />
           </div>
-          <div class="mt-0.5 text-[13px] font-semibold text-text-sec">{{ subtitle }}</div>
+          <div class="mt-1 type-small text-ink-2">{{ subtitle }}</div>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-6">
         <div
-          class="rounded-[20px] px-[22px] py-2.5 text-center"
+          class="rounded-3 px-5 py-2.5 text-center"
           :class="ratingClass"
           title="Note sur 10 : KDA (25%, plafond 6), participation aux kills (20%, plafond 65%), part des dégâts de l'équipe (25%, plafond 30%), or/min (15%, plafond 500), survie (15%, de 0 à 12 morts), + 0,4 bonus en cas de victoire. Fournie par l'API une fois la partie synchronisée, sinon estimée côté client avec la même formule."
         >
-          <div class="text-[34px] font-bold leading-none tracking-[-0.04em]">{{ ratingLabel }}</div>
-          <div class="mt-1 text-[11.5px] font-bold">Note · {{ ratingRankLabel }}</div>
+          <div class="fig text-[2.25rem]">{{ ratingLabel }}</div>
+          <div class="mt-1 text-[0.75rem] font-semibold">Note · {{ ratingRankLabel }}</div>
         </div>
 
         <div>
-          <div class="text-xs font-bold text-text-sec">Équipement final</div>
+          <div class="type-label text-ink-2">Équipement final</div>
           <div class="mt-2 flex gap-1">
             <span
               v-for="(item, index) in itemSlots"
               :key="index"
-              class="size-8 shrink-0 rounded-[9px] bg-surface-high bg-cover bg-center"
+              class="size-8 shrink-0 rounded-1 bg-sunken bg-cover bg-center"
               :class="{ 'ml-1.5': index === itemSlots.length - 1 }"
               :style="itemStyle(item)"
             />
           </div>
-          <div v-if="consumablesLabel" class="mt-2 text-[11.5px] font-semibold text-text-sec">{{ consumablesLabel }}</div>
+          <div v-if="consumablesLabel" class="mt-2 text-[0.75rem] text-ink-2">{{ consumablesLabel }}</div>
         </div>
       </div>
     </div>
@@ -203,11 +203,11 @@ const tiles = computed<StatTile[]>(() => {
       <div
         v-for="tile in tiles"
         :key="tile.label"
-        class="rounded-[20px] border border-border-subtle bg-surface-base px-[18px] py-4 shadow-card"
+        class="rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface px-4 py-3.5 shadow-card"
       >
-        <div class="text-[13px] font-bold">{{ tile.label }}</div>
-        <div class="mt-1.5 text-[32px] font-bold leading-none tracking-[-0.04em]">{{ tile.value }}</div>
-        <div class="mt-1.5 text-[11.5px] font-semibold text-text-sec">{{ tile.detail }}</div>
+        <div class="type-label text-ink-2">{{ tile.label }}</div>
+        <div class="mt-2 fig text-[2rem] text-ink">{{ tile.value }}</div>
+        <div class="mt-1.5 text-[0.75rem] text-ink-2">{{ tile.detail }}</div>
       </div>
     </div>
   </div>

@@ -4,7 +4,6 @@ import { useAdminStore } from '~/stores/admin'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { useNow } from '~/composables/useNow'
 import { isAbortError } from '~/lib/types/error'
-import { championSplashUrl } from '~/utils/lol-champion'
 import { timeAgo } from '~/utils/date'
 import { parseApiDate } from '~/utils/lol-match'
 import {
@@ -20,6 +19,7 @@ import type { AdminAccountFilter } from '~/utils/lol-admin'
 import AdminSectionHeader from '~/components/admin/AdminSectionHeader.vue'
 import AdminAccountIcon from '~/components/admin/AdminAccountIcon.vue'
 import AdminRoute from '~/components/admin/AdminRoute.vue'
+import AdminButton from '~/components/admin/AdminButton.vue'
 
 useSeoMeta({ title: 'Administration' })
 
@@ -98,107 +98,103 @@ const gaps = [
 </script>
 
 <template>
-  <section aria-labelledby="admin-overview-title" class="animate-rise">
+  <section aria-labelledby="admin-overview-title">
     <AdminSectionHeader heading-id="admin-overview-title" title="Vue d'ensemble" description="Les comptes suivis et les tâches de maintenance exposées par l'API." />
 
-    <div class="grid grid-cols-2 gap-3.5 min-[73.75rem]:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 min-[73.75rem]:grid-cols-4">
       <NuxtLink
         v-for="stat in stats"
         :key="stat.filter"
         :to="{ path: '/admin/players', query: { filter: stat.filter } }"
-        class="flex flex-col gap-1.5 rounded-[22px] border border-border-subtle bg-surface-base p-[18px] shadow-card transition-transform duration-[350ms] ease-spring hover:-translate-y-[3px]"
+        class="flex flex-col gap-2 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-4 text-ink no-underline shadow-card transition-colors duration-120 ease-out hover:border-line-strong md:p-[18px]"
       >
-        <span class="text-sm font-bold">{{ stat.label }}</span>
-        <span class="text-[44px] font-bold leading-none tracking-[-0.05em]">
+        <span class="text-sm font-semibold">{{ stat.label }}</span>
+        <span class="block fig text-[44px]">
           <template v-if="isLoaded">{{ admin.counts[stat.filter] }}</template>
-          <span v-else class="inline-block h-11 w-14 animate-pulse rounded-xl bg-surface-sunken align-bottom" />
+          <UiSkeleton v-else class="h-10 w-14" />
         </span>
-        <span class="text-[12.5px] font-semibold text-text-sec">{{ stat.sub }}</span>
+        <span class="text-[13px] text-ink-2">{{ stat.sub }}</span>
       </NuxtLink>
     </div>
 
     <div class="mt-5 grid items-start gap-5 min-[73.75rem]:grid-cols-2">
-      <div class="relative isolate flex flex-col gap-3.5 overflow-hidden rounded-3xl bg-night p-[22px] text-on-night shadow-hero">
-        <img :src="championSplashUrl('Rammus')" alt="" class="absolute inset-0 -z-10 size-full object-cover object-[right_30%]">
-        <div aria-hidden="true" class="absolute inset-0 -z-10 bg-scrim-hero" />
-
-        <h2 class="m-0 text-[17px] font-bold">Maintenance</h2>
+      <UiPanel as="div" class="flex flex-col p-5">
+        <h2 class="m-0 type-title text-ink">Maintenance</h2>
         <div
           v-for="task in maintenance"
           :key="task.key"
-          class="flex flex-wrap items-center gap-3 rounded-[18px] border border-white/12 bg-white/7 p-3.5"
+          class="mt-3 flex flex-wrap items-center gap-3 border-t border-dashed border-line-strong pt-3"
         >
-          <span class="flex min-w-[200px] flex-1 flex-col gap-[3px]">
-            <span class="text-[14.5px] font-bold">{{ task.title }}</span>
-            <span class="text-[12.5px] font-semibold text-on-night/75">{{ task.sub }}</span>
-            <AdminRoute on-ink>{{ task.route }}</AdminRoute>
+          <span class="flex min-w-[200px] flex-1 flex-col gap-1">
+            <span class="text-sm font-semibold text-ink">{{ task.title }}</span>
+            <span class="text-[13px] text-ink-2">{{ task.sub }}</span>
+            <AdminRoute>{{ task.route }}</AdminRoute>
           </span>
-          <button
-            type="button"
-            :disabled="admin.isBusy(task.key)"
-            class="inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-full bg-white px-[15px] text-[13px] font-bold text-night transition-transform duration-[250ms] ease-spring enabled:hover:scale-[1.04] disabled:cursor-wait"
+          <AdminButton
+            variant="secondary"
+            icon="lucide:rotate-cw"
+            :busy="admin.isBusy(task.key)"
             @click="runMaintenance(task.key)"
           >
-            <Icon name="lucide:rotate-cw" class="size-[13px] text-win" :class="{ 'animate-spin': admin.isBusy(task.key) }" />
             {{ admin.isBusy(task.key) ? 'En cours…' : 'Lancer' }}
-          </button>
+          </AdminButton>
         </div>
-        <p class="m-0 pt-1 text-[12.5px] font-semibold text-on-night/75">
+        <p class="m-0 mt-3 border-t border-dashed border-line-strong pt-3 text-[13px] text-ink-2">
           L'API rafraîchit aussi seule les rangs du crew toutes les 20 min, et les types de file une fois par jour.
         </p>
-      </div>
+      </UiPanel>
 
-      <div class="rounded-3xl border border-border-subtle bg-surface-base p-5 shadow-card">
-        <h2 class="m-0 text-xl font-bold tracking-[-0.025em]">Synchros les plus anciennes</h2>
-        <p class="mb-2 mt-[3px] text-[12.5px] font-semibold text-text-sec">D'après lolRefreshedOn. Les comptes hors crew ne sont rafraîchis qu'à la demande.</p>
+      <UiPanel as="div" class="p-5">
+        <h2 class="m-0 type-title text-ink">Synchros les plus anciennes</h2>
+        <p class="mb-2 mt-1 text-[13px] text-ink-2">D'après lolRefreshedOn. Les comptes hors crew ne sont rafraîchis qu'à la demande.</p>
 
         <template v-if="stale.length">
           <div
             v-for="row in stale"
             :key="row.account.id"
-            class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-t border-dashed border-border-dashed py-2.5"
+            class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-t border-dashed border-line-strong py-2.5"
           >
-            <AdminAccountIcon :icon-id="row.account.lolIconId" :archived="row.account.archived" class="size-9 rounded-[11px]" />
-            <span class="flex min-w-0 flex-col gap-px">
+            <AdminAccountIcon :icon-id="row.account.lolIconId" :archived="row.account.archived" class="size-9" />
+            <span class="flex min-w-0 flex-col gap-0.5">
               <span class="flex min-w-0 items-center gap-1.5">
-                <span class="truncate text-sm font-bold">{{ row.name }}</span>
-                <span class="shrink-0 rounded-full px-[7px] text-[10.5px] font-bold" :class="row.chip.tone">{{ row.chip.label }}</span>
+                <span class="truncate text-sm font-semibold text-ink">{{ row.name }}</span>
+                <span class="inline-flex h-5 shrink-0 items-center rounded-1 px-1.5 text-[11px] font-[650]" :class="row.chip.tone">{{ row.chip.label }}</span>
               </span>
-              <span class="text-xs font-semibold" :class="row.isOld ? 'text-brand-gold' : 'text-text-sec'">{{ row.ago }}</span>
+              <span class="type-mono" :class="row.isOld ? 'text-loss-ink' : 'text-ink-2'">{{ row.ago }}</span>
             </span>
             <button
               type="button"
               :aria-label="`Rafraîchir ${row.name}`"
               title="Rafraîchir depuis Riot"
               :disabled="row.busy"
-              class="flex size-[34px] cursor-pointer items-center justify-center rounded-full border border-border-accent transition-colors duration-200 enabled:hover:border-text-main/35 disabled:cursor-wait"
+              class="inline-flex size-9 cursor-pointer items-center justify-center rounded-2 border border-line-strong bg-surface text-ink-2 transition-colors duration-120 ease-out enabled:hover:border-ink-3 enabled:hover:text-ink disabled:cursor-progress"
               @click="admin.refreshAccount(row.account.id)"
             >
-              <Icon name="lucide:rotate-cw" class="size-3.5 text-win" :class="{ 'animate-spin': row.busy }" />
+              <Icon name="lucide:rotate-cw" class="size-4" :class="{ 'animate-spin': row.busy }" />
             </button>
           </div>
         </template>
         <template v-else-if="admin.loadStatus === 'pending' || !now">
-          <div v-for="index in 4" :key="index" class="flex items-center gap-3 border-t border-dashed border-border-dashed py-2.5">
-            <span class="size-9 animate-pulse rounded-[11px] bg-surface-sunken" />
-            <span class="h-4 w-32 animate-pulse rounded bg-surface-sunken" />
+          <div v-for="index in 4" :key="index" class="flex items-center gap-3 border-t border-dashed border-line-strong py-2.5">
+            <UiSkeleton circle class="size-9 shrink-0" />
+            <UiSkeleton class="h-4 w-32" />
           </div>
         </template>
-        <p v-else class="m-0 border-t border-dashed border-border-dashed pb-1 pt-3.5 text-[13.5px] font-semibold text-text-sec">Aucun compte à afficher.</p>
-      </div>
+        <p v-else class="m-0 border-t border-dashed border-line-strong pb-1 pt-3.5 text-sm text-ink-2">Aucun compte à afficher.</p>
+      </UiPanel>
     </div>
 
-    <div class="mt-5 rounded-3xl border-[1.5px] border-dashed border-border-dashed p-5">
-      <h2 class="m-0 text-xl font-bold tracking-[-0.025em]">Pas encore possible</h2>
-      <p class="mb-3 mt-[3px] text-[12.5px] font-semibold text-text-sec">Ce que l'admin pourrait offrir, mais qu'aucune route ne permet aujourd'hui.</p>
+    <div class="mt-5 rounded-5 border border-dashed border-line-strong p-5">
+      <h2 class="m-0 type-title text-ink">Pas encore possible</h2>
+      <p class="mb-3 mt-1 text-[13px] text-ink-2">Ce que l'admin pourrait offrir, mais qu'aucune route ne permet aujourd'hui.</p>
       <div class="grid gap-2.5 md:grid-cols-2 min-[73.75rem]:grid-cols-5">
-        <div v-for="gap in gaps" :key="gap.title" class="flex flex-col gap-1.5 rounded-2xl border border-border-subtle bg-surface-base p-3.5">
+        <div v-for="gap in gaps" :key="gap.title" class="flex flex-col gap-1.5 rounded-3 border border-line bg-surface p-3.5">
           <span
-            class="self-start rounded-full px-2 py-0.5 font-mono text-[10.5px] font-semibold"
-            :class="gap.where === 'API' ? 'bg-loss-soft text-brand-red' : 'bg-brand-gold-soft text-brand-gold'"
+            class="inline-flex h-5 items-center self-start rounded-1 px-1.5 font-mono text-[11px] font-medium"
+            :class="gap.where === 'API' ? 'border border-line-strong text-ink-2' : 'bg-neutral-soft text-ink-2'"
           >{{ gap.where }}</span>
-          <span class="text-sm font-bold">{{ gap.title }}</span>
-          <span class="text-[12.5px] font-semibold text-pretty text-text-sec">{{ gap.need }}</span>
+          <span class="text-sm font-semibold text-ink">{{ gap.title }}</span>
+          <span class="text-[13px] text-pretty text-ink-2">{{ gap.need }}</span>
         </div>
       </div>
     </div>

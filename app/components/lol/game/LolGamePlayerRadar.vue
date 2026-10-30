@@ -122,9 +122,9 @@ const playerLabel = computed(() => (props.player ? playerRiotName(props.player) 
 </script>
 
 <template>
-  <section class="rounded-[26px] border border-border-subtle bg-surface-base p-[22px] shadow-card">
-    <h3 class="m-0 text-xl font-bold tracking-[-0.025em]">Profil de jeu</h3>
-    <p class="m-0 mt-[3px] text-[12.5px] font-semibold text-text-sec">6 axes normalisés sur les {{ players.length }} joueurs de la partie</p>
+  <section class="rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-5 shadow-card">
+    <h3 class="m-0 type-title text-ink">Profil de jeu</h3>
+    <p class="m-0 mt-0.5 type-small text-ink-2">6 axes normalisés sur les {{ players.length }} joueurs de la partie</p>
 
     <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" class="mx-auto mt-3 block h-[260px] w-full max-w-[340px] overflow-visible">
       <polygon
@@ -132,7 +132,7 @@ const playerLabel = computed(() => (props.player ? playerRiotName(props.player) 
         :key="'ring-' + index"
         :points="ring"
         fill="none"
-        class="stroke-border-accent"
+        class="stroke-line-strong"
         stroke-width="1"
       />
       <line
@@ -142,16 +142,16 @@ const playerLabel = computed(() => (props.player ? playerRiotName(props.player) 
         :y1="CENTER"
         :x2="spoke.x"
         :y2="spoke.y"
-        class="stroke-border-accent"
+        class="stroke-line-strong"
         stroke-width="1"
       />
 
-      <polygon v-if="radar.averagePolygon" :points="radar.averagePolygon" fill="none" class="stroke-text-sec" stroke-width="1.5" stroke-dasharray="4 4" />
+      <polygon v-if="radar.averagePolygon" :points="radar.averagePolygon" fill="none" class="stroke-ink-2" stroke-width="1.5" stroke-dasharray="4 4" />
 
       <template v-if="radar.playerPolygon">
-        <polygon :points="radar.playerPolygon" class="fill-brand-gold-bright/28 stroke-brand-gold-bright" stroke-width="2" stroke-linejoin="round" />
+        <polygon :points="radar.playerPolygon" class="fill-canopy/20 stroke-canopy" stroke-width="2" stroke-linejoin="round" />
         <template v-for="(vertex, index) in radar.vertices" :key="'vertex-' + index">
-          <circle :cx="vertex.x" :cy="vertex.y" :r="hoverIndex === index ? 5 : 3.5" class="fill-surface-base stroke-brand-gold-bright" stroke-width="2" />
+          <circle :cx="vertex.x" :cy="vertex.y" :r="hoverIndex === index ? 5 : 3.5" class="fill-surface stroke-canopy" stroke-width="2" />
           <!-- Invisible, generously sized hit area for the dot above. -->
           <circle
             :cx="vertex.x"
@@ -171,19 +171,19 @@ const playerLabel = computed(() => (props.player ? playerRiotName(props.player) 
         :x="axis.x"
         :y="axis.y"
         :text-anchor="axis.anchor"
-        class="fill-text-main text-[11px] font-bold"
+        class="fill-ink text-[11px] font-semibold"
       >{{ axis.label }}</text>
 
       <g v-if="hoveredVertex" class="pointer-events-none" :transform="`translate(${hoveredVertex.x},${hoveredVertex.y})`">
-        <rect :x="-hoveredVertex.tooltipWidth / 2" y="-50" :width="hoveredVertex.tooltipWidth" height="40" rx="12" class="fill-night" />
-        <text x="0" y="-33" text-anchor="middle" class="fill-on-night text-[12px] font-bold">{{ hoveredVertex.label }} · {{ hoveredVertex.valueLabel }}</text>
-        <text x="0" y="-18" text-anchor="middle" class="fill-on-photo-green font-mono text-[10.5px]">{{ hoveredVertex.averageLabel }}</text>
+        <rect :x="-hoveredVertex.tooltipWidth / 2" y="-50" :width="hoveredVertex.tooltipWidth" height="40" rx="6" class="fill-night" />
+        <text x="0" y="-33" text-anchor="middle" class="fill-on-night text-[12px] font-semibold">{{ hoveredVertex.label }} · {{ hoveredVertex.valueLabel }}</text>
+        <text x="0" y="-18" text-anchor="middle" class="fill-on-night-2 font-mono text-[10.5px]">{{ hoveredVertex.averageLabel }}</text>
       </g>
     </svg>
 
-    <div class="mt-2.5 flex flex-wrap justify-center gap-x-[18px] gap-y-1.5 text-xs font-bold">
-      <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-brand-gold-bright" />{{ playerLabel }}</span>
-      <span class="flex items-center gap-1.5 text-text-sec"><span class="w-4 border-t-2 border-dashed border-text-sec" />Moyenne de la partie</span>
+    <div class="mt-2.5 flex flex-wrap justify-center gap-x-[18px] gap-y-1.5 text-[0.75rem] font-semibold text-ink">
+      <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-1 bg-canopy" />{{ playerLabel }}</span>
+      <span class="flex items-center gap-1.5 text-ink-2"><span class="w-4 border-t-2 border-dashed border-ink-2" />Moyenne de la partie</span>
     </div>
   </section>
 </template>

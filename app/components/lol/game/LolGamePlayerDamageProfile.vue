@@ -51,16 +51,16 @@ const teamDamageTakenShare = computed(() => percent(
 </script>
 
 <template>
-  <section class="rounded-[26px] border border-border-subtle bg-surface-base p-[22px] shadow-card">
-    <h3 class="m-0 text-xl font-bold tracking-[-0.025em]">Profil de dégâts</h3>
-    <p class="m-0 mb-[18px] mt-[3px] text-[12.5px] font-semibold text-text-sec">Répartition physique / magique / brut de {{ playerLabel }}</p>
+  <section class="rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-5 shadow-card">
+    <h3 class="m-0 type-title text-ink">Profil de dégâts</h3>
+    <p class="m-0 mb-4 mt-0.5 type-small text-ink-2">Répartition physique / magique / brut de {{ playerLabel }}</p>
 
     <template v-if="rows.length > 0">
-      <div class="flex h-5 overflow-hidden rounded-full bg-surface-high">
+      <div class="flex h-5 overflow-hidden rounded-full bg-neutral-soft">
         <span
           v-for="row in rows"
           :key="row.label"
-          class="h-full transition-[width] duration-600 ease-spring-soft"
+          class="h-full transition-[width] duration-[600ms] ease-out"
           :class="row.colorClass"
           :style="{ width: `${entered ? row.percent : 0}%` }"
         />
@@ -69,29 +69,29 @@ const teamDamageTakenShare = computed(() => percent(
         <div
           v-for="row in rows"
           :key="row.label"
-          class="flex items-center justify-between gap-2.5 rounded-[14px] bg-surface-muted px-3.5 py-2.5"
+          class="flex items-center justify-between gap-2.5 rounded-3 bg-sunken px-3.5 py-2.5"
         >
-          <span class="flex items-center gap-2 text-[13.5px] font-bold">
-            <span class="size-2.5 rounded-[3px]" :class="row.colorClass" />
+          <span class="flex items-center gap-2 text-[0.8125rem] font-semibold text-ink">
+            <span class="size-2.5 rounded-1" :class="row.colorClass" />
             {{ row.label }}
-            <span class="font-semibold text-text-sec">{{ row.percent }} %</span>
+            <span class="fig text-[0.9375rem] text-ink-2">{{ row.percent }} %</span>
           </span>
-          <span class="font-mono text-[13px] font-semibold">{{ formatFull(row.value) }}</span>
+          <span class="fig text-[1.0625rem] text-ink">{{ formatFull(row.value) }}</span>
         </div>
       </div>
     </template>
-    <p v-else class="m-0 rounded-[14px] border-[1.5px] border-dashed border-border-dashed px-4 py-6 text-center text-[13px] font-semibold text-text-sec">
+    <p v-else class="m-0 rounded-3 border border-dashed border-line-strong px-4 py-6 text-center type-small text-ink-2">
       Répartition physique / magique / brut indisponible pour cette partie (timeline non synchronisée).
     </p>
 
-    <div class="mt-3.5 flex flex-col gap-2 border-t-[1.5px] border-dashed border-border-dashed pt-3.5 text-[13.5px] font-bold">
+    <div class="mt-3.5 flex flex-col gap-2 border-t border-dashed border-line-strong pt-3.5 text-[0.8125rem] font-semibold">
       <div class="flex justify-between gap-3">
-        <span class="text-text-sec">Part des dégâts de l'équipe</span>
-        <span class="font-mono font-semibold">{{ teamDamageShare }} %</span>
+        <span class="text-ink-2">Part des dégâts de l'équipe</span>
+        <span class="text-ink"><span class="fig text-[0.9375rem]">{{ teamDamageShare }}</span> %</span>
       </div>
       <div class="flex justify-between gap-3">
-        <span class="text-text-sec">Dégâts subis</span>
-        <span class="font-mono font-semibold">{{ formatFull(damageTaken) }} · {{ teamDamageTakenShare }} % de l'équipe</span>
+        <span class="text-ink-2">Dégâts subis</span>
+        <span class="text-right text-ink"><span class="fig text-[0.9375rem]">{{ formatFull(damageTaken) }}</span> · <span class="fig text-[0.9375rem]">{{ teamDamageTakenShare }}</span> % de l'équipe</span>
       </div>
     </div>
   </section>

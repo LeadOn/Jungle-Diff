@@ -45,7 +45,7 @@ const rows = computed(() => props.champions.slice(0, 4).map((champion) => {
   <UiPanel
     v-if="rows.length > 0"
     title="Champions du crew"
-    title-tag="h3"
+    heading-tag="h3"
     meta="30 jours"
   >
     <div v-for="row in rows" :key="row.key" class="list-row champ-row">

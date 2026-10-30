@@ -96,152 +96,118 @@ const getPlayerAvatarUrl = (p: PlayerDto) => {
 
 <template>
   <div class="w-full">
-    <!-- Hero Section -->
-    <div class="flex flex-col md:flex-row items-center justify-between gap-12 mb-12 animate-fade-in-up">
-      <div class="w-full flex flex-col items-start text-left">
-        <h1 class="text-[44px] md:text-6xl font-extrabold text-text-main leading-none mb-6 tracking-[-0.03em]">
-          Statistiques Globales
-        </h1>
-        <p class="text-lg text-text-sec max-w-2xl leading-relaxed font-medium">
-          Les records les plus glorieux (et les plus honteux) du groupe, tous joueurs et toutes parties confondues.
-        </p>
-      </div>
-    </div>
+    <!-- Hero -->
+    <header class="mb-8 grid gap-3">
+      <h1 class="type-d2 text-[clamp(1.75rem,1.2rem+2vw,2.75rem)] text-ink">
+        Statistiques Globales
+      </h1>
+      <p class="max-w-[58ch] text-pretty text-base leading-[1.55] text-ink-2">
+        Les records les plus glorieux (et les plus honteux) du groupe, tous joueurs et toutes parties confondues.
+      </p>
+    </header>
 
-    <!-- Filters Section -->
-    <div class="mb-8 flex flex-wrap items-center gap-4 bg-surface-base p-4 rounded-2xl border border-border-base shadow-sm">
-      <!-- Queue Filter -->
-      <div class="inline-flex items-center gap-1 rounded-full border border-border-base bg-surface-high p-1">
-        <button
-          v-for="opt in queueOptions"
-          :key="opt.value"
-          class="rounded-full px-4 py-1.5 text-sm font-bold transition-colors"
-          :class="queue === opt.value ? 'bg-gold text-brand-gold-text shadow-sm' : 'text-text-ter hover:text-text-main'"
-          @click="setQueue(opt.value)"
-        >
-          {{ opt.label }}
-        </button>
-      </div>
+    <!-- Filters -->
+    <div class="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <UiSegmented
+        :model-value="queue"
+        :options="queueOptions"
+        aria-label="File"
+        @update:model-value="setQueue"
+      />
 
-      <!-- Period Filter -->
-      <select
-        v-model="period"
-        class="bg-surface-high border-border-base text-text-main rounded-xl border py-2 pl-4 pr-10 text-sm font-bold outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold"
-      >
-        <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">
-          {{ opt.label }}
-        </option>
-      </select>
+      <!-- Five periods do not fit a phone's width: the control scrolls inside its own box rather
+           than pushing the page sideways. The padding keeps the focus ring clear of the clip. -->
+      <div class="-m-1 max-w-[calc(100%+0.5rem)] overflow-x-auto p-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap">
+        <UiSegmented v-model="period" :options="periodOptions" aria-label="Période" />
+      </div>
 
       <!-- Toggles. A single `ml-auto` on the group rather than one per toggle: two competing
            `ml-auto` push each other apart and strand the first one mid-row. -->
-      <div class="ml-auto flex flex-wrap items-center gap-6">
-        <!-- Ranked Only Toggle -->
-        <label
-          class="flex items-center gap-3"
-          :class="rankedOnlyLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
-        >
-          <span class="text-sm font-bold text-text-main">Classées uniquement</span>
-          <div class="relative">
-            <input
-              v-model="rankedOnly"
-              type="checkbox"
-              class="peer sr-only"
-              :disabled="rankedOnlyLocked"
-            >
-            <div
-              class="peer-checked:bg-brand-green h-6 w-11 rounded-full bg-surface-high border border-border-base transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-            />
-          </div>
-        </label>
-
-        <!-- Include Smurfs Toggle -->
-        <label class="flex cursor-pointer items-center gap-3">
-          <span class="text-sm font-bold text-text-main">Inclure les smurfs</span>
-          <div class="relative">
-            <input
-              v-model="includeSmurfs"
-              type="checkbox"
-              class="peer sr-only"
-            >
-            <div
-              class="peer-checked:bg-brand-green h-6 w-11 rounded-full bg-surface-high border border-border-base transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-            />
-          </div>
-        </label>
+      <div class="ml-auto flex flex-wrap items-center gap-x-6 gap-y-3">
+        <UiSwitch v-model="rankedOnly" label="Classées uniquement" :disabled="rankedOnlyLocked" />
+        <UiSwitch v-model="includeSmurfs" label="Inclure les smurfs" />
       </div>
     </div>
 
     <!-- Stats Count / Meta -->
-    <div v-if="status !== 'pending' && summary" class="flex flex-wrap items-center gap-3 mb-6 animate-fade-in-up">
-      <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-surface-high border border-border-base text-xs font-bold text-text-main">
-        <Icon name="lucide:swords" class="mr-2 text-brand-gold" size="14" />
-        {{ summary.totalGamesAnalyzed }} parties analysées
+    <p
+      v-if="status !== 'pending' && summary"
+      class="mb-5 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 type-small text-ink-2"
+    >
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="lucide:swords" class="size-3.5 text-ink-3" aria-hidden="true" />
+        <span class="fig text-[1.0625rem] text-ink">{{ summary.totalGamesAnalyzed }}</span> parties analysées
       </span>
-      <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-surface-high border border-border-base text-xs font-bold text-text-main">
-        <Icon name="lucide:users" class="mr-2 text-brand-green" size="14" />
-        {{ summary.totalPlayersTracked }} joueurs
+      <span class="size-[3px] rounded-full bg-line-strong" aria-hidden="true" />
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="lucide:users" class="size-3.5 text-ink-3" aria-hidden="true" />
+        <span class="fig text-[1.0625rem] text-ink">{{ summary.totalPlayersTracked }}</span> joueurs
       </span>
-    </div>
+    </p>
 
     <!-- Error State -->
-    <div v-if="error" class="bg-brand-red/10 border border-brand-red/20 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 text-center">
-      <Icon name="lucide:triangle-alert" class="text-brand-red" size="32" />
-      <div>
-        <p class="text-text-main font-bold mb-1">Impossible de charger les statistiques globales</p>
-        <p class="text-text-sec text-sm">Une erreur est survenue lors de la récupération des données.</p>
-      </div>
-      <button class="px-4 py-2 bg-brand-red hover:bg-brand-red/90 text-white rounded-xl font-bold text-sm transition-colors" @click="() => refresh()">
-        Réessayer
-      </button>
-    </div>
+    <UiErrorState
+      v-if="error"
+      title="Impossible de charger les statistiques globales"
+      description="Une erreur est survenue lors de la récupération des données."
+      retry-label="Réessayer"
+      @retry="() => refresh()"
+    />
 
-    <!-- Loading State -->
-    <div v-else-if="status === 'pending'" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <div v-for="i in 6" :key="i" class="bg-surface-base rounded-2xl border border-border-base p-5 animate-pulse h-40">
-        <div class="flex items-center gap-4">
-          <div class="h-12 w-12 rounded-xl bg-surface-high"/>
-          <div class="space-y-3 flex-1">
-            <div class="h-4 bg-surface-high rounded w-2/3"/>
-            <div class="h-3 bg-surface-high rounded w-4/5"/>
+    <!-- Loading State: skeletons shaped like the award cards -->
+    <div v-else-if="status === 'pending'" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+      <div
+        v-for="i in 6"
+        :key="i"
+        class="flex h-[13.5rem] flex-col rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-[18px] shadow-card"
+      >
+        <div class="flex items-start gap-3.5">
+          <UiSkeleton class="h-11 w-11 shrink-0" />
+          <div class="grid flex-1 gap-2 pt-1">
+            <UiSkeleton class="h-4 w-2/3" />
+            <UiSkeleton class="h-3 w-4/5" />
           </div>
         </div>
-        <div class="mt-6 h-6 bg-surface-high rounded w-1/3"/>
+        <UiSkeleton class="mt-5 h-8 w-1/3" />
+        <div class="mt-auto flex items-center justify-between border-t border-dashed border-line pt-3.5">
+          <UiSkeleton circle class="h-6 w-6" />
+          <UiSkeleton class="h-3 w-12" />
+        </div>
       </div>
     </div>
 
     <!-- No Games State -->
-    <div v-else-if="hasNoGames" class="bg-surface-base rounded-2xl border border-border-base border-dashed p-12 text-center">
-      <Icon name="lucide:ghost" class="mx-auto text-text-ter mb-4" size="48" />
-      <p class="text-text-main font-bold text-lg mb-2">Aucune partie trouvée</p>
-      <p class="text-text-sec text-sm">Aucune partie n'a été analysée pour cette période et ce mode de jeu.</p>
-    </div>
+    <UiEmptyState
+      v-else-if="hasNoGames"
+      title="Aucune partie trouvée"
+      description="Aucune partie n'a été analysée pour cette période et ce mode de jeu."
+    />
 
     <!-- Grid -->
-    <div v-else-if="summary" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in-up">
+    <div v-else-if="summary" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <article
         v-for="award in awardsList"
         :key="award.key"
-        class="group bg-surface-base hover:bg-surface-high transition-colors rounded-2xl border border-border-base p-5 flex flex-col shadow-sm relative overflow-hidden"
+        class="group relative flex min-w-0 flex-col rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-[18px] shadow-card transition-colors duration-[120ms] ease-out hover:bg-[color-mix(in_oklch,var(--sunken)_70%,var(--surface))]"
       >
         <template v-for="stat in [summary[award.key]]" :key="stat ? 'has-stat' : 'no-stat'">
           <NuxtLink
             v-if="stat?.matchId && stat?.player?.id"
             :to="`/game/${stat.matchId}/${stat.player.id}`"
-            class="absolute inset-0 z-10"
+            class="absolute inset-0 z-10 rounded-5"
             title="Voir la partie"
           />
 
           <!-- Header: Icon + Title/Desc -->
-          <div class="flex items-start gap-4 mb-5">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl bg-surface-high border border-border-subtle group-hover:border-border-accent transition-colors">
+          <div class="mb-4 flex items-start gap-3.5">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-3 border border-line bg-sunken text-[1.375rem]">
               {{ award.icon }}
             </div>
-            <div class="min-w-0 flex-1 pt-1">
-              <h3 class="text-text-main truncate font-extrabold text-[15px] mb-1 leading-tight">
+            <div class="min-w-0 flex-1 pt-0.5">
+              <h3 class="type-title mb-0.5 truncate text-ink">
                 {{ award.title }}
               </h3>
-              <p class="text-xs text-text-ter leading-snug line-clamp-2" :title="award.description">
+              <p class="type-small line-clamp-2 text-ink-3" :title="award.description">
                 {{ award.description }}
               </p>
             </div>
@@ -249,47 +215,47 @@ const getPlayerAvatarUrl = (p: PlayerDto) => {
 
           <template v-if="stat">
             <!-- Main Stat Value -->
-            <div class="flex items-baseline gap-2 mb-1 relative z-20">
-              <span class="text-3xl font-black tabular-nums tracking-tight" :class="award.color">
+            <div class="relative z-20 mb-1 flex items-baseline gap-1">
+              <span class="fig text-[2.25rem]" :class="award.color">
                 {{ stat.value }}
               </span>
-              <span class="text-sm font-bold text-text-ter uppercase tracking-wider">
+              <span class="text-[0.8125rem] font-semibold text-ink-3">
                 {{ award.unit }}
               </span>
             </div>
 
             <!-- Extra Detail (e.g., specific item/champ) -->
-            <p v-if="stat.detail" class="text-[13px] font-medium text-text-sec mb-4">
+            <p v-if="stat.detail" class="type-small mb-4 text-ink-2">
               {{ stat.detail }}
             </p>
             <div v-else class="mb-4"/> <!-- Spacer -->
 
             <!-- Footer: Player Info & Date -->
-            <div class="mt-auto pt-4 border-t border-border-subtle flex items-center justify-between relative z-20">
+            <div class="relative z-20 mt-auto flex items-center justify-between gap-3 border-t border-dashed border-line pt-3.5">
               <NuxtLink
                 v-if="stat.player"
                 :to="`/summoner/${stat.player.id}`"
-                class="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity"
+                class="flex min-w-0 items-center gap-2.5 rounded-2 hover:underline hover:underline-offset-[3px]"
               >
-                <div class="h-6 w-6 shrink-0 overflow-hidden rounded-full border border-border-accent bg-surface-high">
-                  <img :src="getPlayerAvatarUrl(stat.player)" class="h-full w-full object-cover" >
+                <div class="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-sunken">
+                  <img :src="getPlayerAvatarUrl(stat.player)" alt="" class="h-full w-full object-cover" >
                 </div>
-                <span class="truncate text-[13px] font-bold text-text-main group-hover:text-brand-gold transition-colors">
+                <span class="truncate text-[0.8125rem] font-semibold text-ink">
                   {{ getPlayerName(stat.player) }}
                 </span>
               </NuxtLink>
-              <span v-else class="text-[13px] font-bold text-text-ter">
+              <span v-else class="text-[0.8125rem] font-semibold text-ink-3">
                 Groupe
               </span>
 
-              <span class="shrink-0 text-xs font-mono font-bold uppercase tracking-wider text-text-ter">
+              <span class="type-mono shrink-0 uppercase text-ink-3">
                 {{ award.getSubtitle(stat).split('·').pop()?.trim() }}
               </span>
             </div>
           </template>
           <template v-else>
-            <div class="mt-auto pt-4 flex items-center justify-center">
-              <span class="text-xs font-medium text-text-ter text-center">Pas assez de données</span>
+            <div class="mt-auto flex items-center justify-center pt-4">
+              <span class="type-small text-center text-ink-3">Pas assez de données</span>
             </div>
           </template>
         </template>

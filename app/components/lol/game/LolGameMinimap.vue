@@ -148,7 +148,7 @@ const dotTitle = (player: LoLGameParticipantDto) =>
 
 const structureClass = (structure: StructureDot): string => {
   if (structure.destroyed) return 'bg-on-night-2 opacity-35'
-  return structure.teamId === 100 ? 'bg-team-blue' : 'bg-team-red'
+  return structure.teamId === 100 ? 'bg-side-blue' : 'bg-side-red'
 }
 
 const structureTooltip = (structure: StructureDot): string => {
@@ -160,7 +160,7 @@ const structureTooltip = (structure: StructureDot): string => {
 <template>
   <div class="p-[22px]">
     <!-- The map is a photo of the Rift: it stays dark in both themes. -->
-    <div class="relative mx-auto aspect-square w-full max-w-[440px] overflow-hidden rounded-[22px] bg-night shadow-[0_14px_34px_-18px_rgba(22,36,27,0.5)]">
+    <div class="relative mx-auto aspect-square w-full max-w-[440px] overflow-hidden rounded-4 bg-night shadow-card">
       <UiAppImage
         :src="mapUrl"
         alt="Mini-carte de la Faille de l'invocateur"
@@ -171,7 +171,7 @@ const structureTooltip = (structure: StructureDot): string => {
         v-for="(structure, index) in structures"
         :key="'struct-' + index"
         :title="structureTooltip(structure)"
-        class="absolute flex size-4 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full ring-[1.5px] ring-white/80 transition-[opacity,background-color] duration-300"
+        class="absolute flex size-4 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full ring-[1.5px] ring-on-night/80 transition-[opacity,background-color] duration-200 ease-out"
         :class="structureClass(structure)"
         :style="{ left: `${structure.leftPercent}%`, bottom: `${structure.bottomPercent}%` }"
       >
@@ -184,7 +184,7 @@ const structureTooltip = (structure: StructureDot): string => {
         :src="marker.iconUrl"
         :alt="marker.label"
         :title="marker.label"
-        class="absolute size-[18px] -translate-x-1/2 translate-y-1/2 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+        class="absolute size-[18px] -translate-x-1/2 translate-y-1/2 object-contain drop-shadow-[0_1px_2px_var(--night)]"
         :style="{ left: `${marker.leftPercent}%`, bottom: `${marker.bottomPercent}%` }"
       />
 
@@ -194,23 +194,23 @@ const structureTooltip = (structure: StructureDot): string => {
         :src="championIconUrl(dot.player)"
         :alt="dot.player.riotIdGameName"
         :title="dotTitle(dot.player)"
-        class="absolute size-[26px] -translate-x-1/2 translate-y-1/2 rounded-full border-[2.5px] object-cover shadow-[0_2px_8px_rgba(0,0,0,0.6)] transition-[left,bottom] duration-400"
-        :class="dot.player.teamId === 100 ? 'border-team-blue' : 'border-team-red'"
+        class="absolute size-[26px] -translate-x-1/2 translate-y-1/2 rounded-full border-[2.5px] object-cover shadow-[0_2px_8px_color-mix(in_oklch,var(--night)_70%,transparent)] transition-[left,bottom] duration-400 ease-out"
+        :class="dot.player.teamId === 100 ? 'border-side-blue' : 'border-side-red'"
         :style="{ left: `${dot.leftPercent}%`, bottom: `${dot.bottomPercent}%` }"
       />
     </div>
 
     <div class="mt-3.5 flex flex-wrap justify-center gap-2">
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-team-blue-soft px-[11px] py-1 text-xs font-bold text-team-blue-text">
+      <span class="inline-flex items-center gap-1.5 rounded-1 bg-side-blue-soft px-2 py-1 text-[0.75rem] font-semibold text-side-blue-ink">
         <UiAppImage :src="WARD_ICON_URL" alt="" class="size-3.5 object-contain" />
-        {{ wardCounts.blue }} wards posées
+        <span><span class="fig text-[0.875rem]">{{ wardCounts.blue }}</span> wards posées</span>
       </span>
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-team-red-soft px-[11px] py-1 text-xs font-bold text-team-red-text">
+      <span class="inline-flex items-center gap-1.5 rounded-1 bg-side-red-soft px-2 py-1 text-[0.75rem] font-semibold text-side-red-ink">
         <UiAppImage :src="WARD_ICON_URL" alt="" class="size-3.5 object-contain" />
-        {{ wardCounts.red }} wards posées
+        <span><span class="fig text-[0.875rem]">{{ wardCounts.red }}</span> wards posées</span>
       </span>
     </div>
-    <p class="mx-auto mb-0 mt-2 max-w-[420px] text-center text-[11.5px] font-medium text-text-sec">
+    <p class="mx-auto mb-0 mt-2 max-w-[420px] text-center text-[0.75rem] text-ink-2">
       Cumul depuis le début de la partie — l'API ne fournit pas la position des wards.
     </p>
   </div>

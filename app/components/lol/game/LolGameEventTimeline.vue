@@ -29,9 +29,9 @@ const VISIBLE_CATEGORIES: KillFeedCategory[] = ['kills', 'objectives']
 
 const CATEGORY_DOT_CLASS: Record<KillFeedCategory, string> = {
   kills: 'bg-loss',
-  objectives: 'bg-brand-gold-bright',
-  wards: 'bg-team-blue',
-  other: 'bg-text-ter',
+  objectives: 'bg-gold',
+  wards: 'bg-side-blue',
+  other: 'bg-ink-3',
 }
 
 const MS_PER_FRAME = 800
@@ -175,14 +175,16 @@ onUnmounted(() => {
 <template>
   <div class="px-[22px] pb-5 pt-[18px]">
     <div class="flex items-center gap-3.5">
-      <button
-        type="button"
+      <UiButton
+        variant="primary"
+        size="lg"
+        icon
         :aria-label="isPlaying ? 'Pause' : 'Lire le film'"
-        class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-inverse text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-[1.08]"
+        class="shrink-0"
         @click="togglePlay"
       >
         <Icon :name="isPlaying ? 'lucide:pause' : 'lucide:play'" class="size-4" />
-      </button>
+      </UiButton>
 
       <div
         role="slider"
@@ -192,13 +194,13 @@ onUnmounted(() => {
         :aria-valuemax="Math.max(0, frames.length - 1)"
         :aria-valuenow="currentFrameIndex"
         :aria-valuetext="currentLabel"
-        class="relative h-11 flex-1 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-text-main"
+        class="relative h-11 flex-1 cursor-pointer rounded-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
         @click="onTrackClick"
         @keydown="onTrackKeydown"
       >
-        <span class="absolute inset-x-0 top-1/2 -mt-1 h-2 rounded-full bg-surface-high" />
+        <span class="absolute inset-x-0 top-1/2 -mt-1 h-2 rounded-full bg-neutral-soft" />
         <span
-          class="absolute left-0 top-1/2 -mt-1 h-2 rounded-full bg-brand-shell/35 transition-[width] duration-400"
+          class="absolute left-0 top-1/2 -mt-1 h-2 rounded-full bg-canopy/30 transition-[width] duration-400 ease-out"
           :style="{ width: `${playheadPercent}%` }"
         />
         <button
@@ -208,22 +210,22 @@ onUnmounted(() => {
           tabindex="-1"
           :title="marker.title"
           :aria-label="marker.title"
-          class="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full ring-[2.5px] ring-surface-base transition-transform duration-200 ease-spring hover:scale-140"
+          class="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full ring-2 ring-surface transition-shadow duration-[120ms] ease-out hover:ring-ink"
           :class="CATEGORY_DOT_CLASS[marker.entry.category]"
           :style="{ left: `${marker.leftPercent}%` }"
           @click.stop="selectMarker(marker)"
         />
         <span
           v-if="frames.length > 1"
-          class="pointer-events-none absolute inset-y-1 -ml-[1.5px] w-[3px] rounded-[3px] bg-text-main transition-[left] duration-400"
+          class="pointer-events-none absolute inset-y-1 -ml-[1.5px] w-[3px] rounded-full bg-ink transition-[left] duration-400 ease-out"
           :style="{ left: `${playheadPercent}%` }"
         />
       </div>
     </div>
 
-    <div class="ml-[58px] mt-1.5 flex items-center justify-between font-mono text-xs font-semibold text-text-sec">
+    <div class="ml-[58px] mt-1.5 flex items-center justify-between type-mono text-ink-2">
       <span>00:00</span>
-      <span class="rounded-full bg-inverse px-[9px] py-0.5 text-inverse-text">{{ currentLabel }}</span>
+      <span class="rounded-1 bg-ink px-1.5 py-0.5 text-paper">{{ currentLabel }}</span>
       <span>{{ endLabel }}</span>
     </div>
   </div>

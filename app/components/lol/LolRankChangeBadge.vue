@@ -1,17 +1,12 @@
 <template>
   <span class="inline-flex items-center gap-1.5 whitespace-nowrap" :title="summary">
-    <span
-      class="inline-flex h-[22px] items-center rounded-full px-[9px] font-mono text-[11.5px] font-semibold leading-none tabular-nums"
-      :class="deltaClass"
-    >
-      {{ deltaLabel }}
-    </span>
+    <LolLpBadge :value="change.leaguePointsChange" />
 
     <!-- The tier tint and emblem are those of the rank reached, so a promotion reads as the new tier. -->
     <span
       v-if="transition"
-      class="inline-flex h-[22px] items-center gap-1 rounded-1 pr-2 pl-0.5 text-[11.5px] font-[650] leading-none text-ink"
-      :style="{ backgroundColor: afterPromoBackground }"
+      class="inline-flex h-[22px] items-center gap-1 rounded-1 bg-[color-mix(in_oklch,var(--tier,var(--tier-none))_32%,var(--surface))] pr-2 pl-0.5 text-[11.5px] font-[650] leading-none text-ink"
+      :style="{ '--tier': afterTint }"
       :title="`${transitionPrefix} ${afterLabel} · ${summary}`"
     >
       <Icon :name="transitionIcon" class="h-3 w-3 shrink-0" :class="transitionIconClass" />
@@ -26,13 +21,12 @@
 import { computed } from 'vue'
 import type { LoLGameParticipantRankChange } from '~/lib/types'
 import {
-  formatLpDelta,
-  lpDeltaTone,
   rankAfter,
   rankChangeSummary,
   rankTransition,
 } from '~/utils/lol-rank-change'
 import { tierEmblemUrl, tierLabel, tierTint } from '~/utils/lol-tier'
+import LolLpBadge from '~/components/lol/LolLpBadge.vue'
 
 /**
  * LP won or lost on one game. Callers render it only for a non-null `rankChange`: a null one is
@@ -42,24 +36,14 @@ const props = defineProps<{
   change: LoLGameParticipantRankChange
 }>()
 
-const deltaLabel = computed(() => formatLpDelta(props.change.leaguePointsChange))
 const summary = computed(() => rankChangeSummary(props.change))
-
-const DELTA_CLASSES = {
-  gain: 'bg-win-soft text-win-ink',
-  loss: 'bg-loss-soft text-loss-ink',
-  neutral: 'bg-neutral-soft text-ink-2 light:bg-neutral-soft',
-} as const
-const deltaClass = computed(() => DELTA_CLASSES[lpDeltaTone(props.change.leaguePointsChange)])
 
 const transition = computed(() => rankTransition(props.change))
 const after = computed(() => rankAfter(props.change))
 const afterLabel = computed(() => tierLabel(after.value))
 const afterEmblemUrl = computed(() => tierEmblemUrl(after.value))
-const afterPromoBackground = computed(() => {
-  const tint = tierTint(after.value.tier) ?? 'var(--color-tier-emerald)'
-  return `color-mix(in oklch, ${tint} 32%, var(--surface))`
-})
+// Read by the chip's background through `--tier`; an unknown tier falls back to `--tier-none`.
+const afterTint = computed(() => tierTint(after.value.tier) ?? undefined)
 
 const transitionIcon = computed(() =>
   transition.value === 'promotion' ? 'lucide:chevrons-up' : 'lucide:chevrons-down',

@@ -37,42 +37,44 @@ const hiddenCount = computed(() => champs.value.length - COLLAPSED_COUNT)
 </script>
 
 <template>
-  <section aria-labelledby="profile-champions" class="rounded-3xl border border-border-subtle bg-surface-base p-[18px] shadow-card">
-    <div class="flex items-baseline justify-between gap-2">
-      <h3 id="profile-champions" class="m-0 text-xl font-bold tracking-[-0.025em]">Champions</h3>
-      <span class="text-[12.5px] font-semibold text-text-sec">{{ badge }}</span>
-    </div>
-    <p v-if="champs.length === 0" class="mb-1 mt-2.5 text-[13px] font-bold text-text-sec">Aucun champion joué sur cette période.</p>
-    <div v-else class="mt-1.5">
-      <div v-for="c in visibleChamps" :key="c.key" class="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
-        <span class="size-11 rounded-[14px] bg-surface-sunken bg-[length:112%] bg-center" :style="c.iconStyle" />
-        <span class="min-w-0">
-          <span class="flex items-baseline justify-between gap-2">
-            <span class="truncate text-[14.5px] font-bold">{{ c.name }}</span>
-            <span class="whitespace-nowrap text-[11.5px] font-semibold text-text-sec">{{ c.kda }}</span>
+  <UiPanel title="Champions" title-id="profile-champions" :meta="badge">
+    <p v-if="champs.length === 0" class="type-small m-0 px-4 pb-4 text-ink-2">Aucun champion joué sur cette période.</p>
+    <div v-else>
+      <div
+        v-for="c in visibleChamps"
+        :key="c.key"
+        class="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 border-t border-line px-4 py-2.5"
+      >
+        <span class="size-10 rounded-2 bg-sunken bg-[length:112%] bg-center" :style="c.iconStyle" />
+        <span class="grid min-w-0 gap-px">
+          <b class="truncate text-[0.875rem] font-[640] text-ink">{{ c.name }}</b>
+          <span class="truncate text-[0.75rem] text-ink-3">
+            <span class="font-mono tabular-nums">{{ c.kda }}</span> · {{ c.games }}
           </span>
-          <span class="mt-[7px] block h-1.5 overflow-hidden rounded-full bg-surface-high">
+          <span class="mt-1.5 block h-1.5 overflow-hidden rounded-[2px] bg-neutral-soft">
             <span
-              class="block h-full rounded-full transition-[width] duration-[1100ms] ease-spring-soft"
+              class="block h-full rounded-[2px] transition-[width] duration-[600ms] ease-out"
               :class="c.winRate >= 50 ? 'bg-win' : 'bg-loss'"
               :style="{ width: `${entered ? c.winRate : 0}%` }"
             />
           </span>
         </span>
-        <span class="flex flex-col items-end gap-px">
-          <span class="text-base font-bold" :class="c.winRate >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ c.winRate }}%</span>
-          <span class="whitespace-nowrap text-[11px] font-semibold text-text-sec">{{ c.games }}</span>
-        </span>
+        <span
+          class="w-12 text-right font-mono text-[13px] font-semibold tabular-nums"
+          :class="c.winRate >= 50 ? 'text-win-ink' : 'text-loss-ink'"
+        >{{ c.winRate }}%</span>
       </div>
-      <button
-        v-if="hiddenCount > 0"
-        type="button"
-        :aria-expanded="expanded"
-        class="mt-1 w-full cursor-pointer rounded-full border border-border-base py-2 text-[12.5px] font-bold transition-colors duration-200 hover:bg-surface-muted"
-        @click="expanded = !expanded"
-      >
-        {{ expanded ? 'Réduire' : hiddenCount > 1 ? `Voir les ${hiddenCount} autres` : 'Voir le dernier' }}
-      </button>
+      <div v-if="hiddenCount > 0" class="border-t border-line p-2">
+        <UiButton
+          variant="quiet"
+          size="sm"
+          block
+          :aria-expanded="expanded"
+          @click="expanded = !expanded"
+        >
+          {{ expanded ? 'Réduire' : hiddenCount > 1 ? `Voir les ${hiddenCount} autres` : 'Voir le dernier' }}
+        </UiButton>
+      </div>
     </div>
-  </section>
+  </UiPanel>
 </template>

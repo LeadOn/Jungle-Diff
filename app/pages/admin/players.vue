@@ -10,6 +10,7 @@ import { tierEmblemUrl, tierLabel } from '~/utils/lol-tier'
 import { timeAgo } from '~/utils/date'
 import { parseApiDate } from '~/utils/lol-match'
 import {
+  ACCOUNT_STATUS_CHIPS,
   ADMIN_ACCOUNT_FILTERS,
   STALE_SYNC_MINUTES,
   accountRiotName,
@@ -57,10 +58,11 @@ const describe = (account: LoLAdminAccountDto) => {
   const main = isSmurf(account) ? admin.accountById(account.primaryPlayerId) : undefined
   const isMe = playerStore.currentPlayer?.id === account.id
   const chips: Chip[] = []
-  if (isMe) chips.push({ label: 'Vous', tone: 'bg-gold text-brand-gold-text' })
-  if (isSmurf(account)) chips.push({ label: `Smurf de ${main ? accountRiotName(main) : '?'}`, tone: 'border border-border-accent bg-surface-base text-text-main' })
-  if (!account.inCrew && !account.archived) chips.push({ label: 'Hors crew', tone: 'bg-brand-gold-soft text-brand-gold' })
-  if (account.archived) chips.push({ label: 'Archivé', tone: 'bg-surface-high text-text-sec' })
+  // Text badges, toned like `UiStatus` and the overview's ACCOUNT_STATUS_CHIPS.
+  if (isMe) chips.push({ label: 'Vous', tone: 'bg-gold text-on-tier' })
+  if (isSmurf(account)) chips.push({ label: `Smurf de ${main ? accountRiotName(main) : '?'}`, tone: 'border border-line-strong text-ink-2' })
+  if (!account.inCrew && !account.archived) chips.push({ label: 'Hors crew', tone: ACCOUNT_STATUS_CHIPS.out.tone })
+  if (account.archived) chips.push({ label: 'Archivé', tone: ACCOUNT_STATUS_CHIPS.archived.tone })
 
   const rank = account.leagueOfLegendsSoloRank
   const busy = admin.isBusy(`refresh:${account.id}`)
@@ -75,7 +77,7 @@ const describe = (account: LoLAdminAccountDto) => {
     account,
     name: accountRiotName(account),
     chips,
-    rowTone: account.archived ? 'bg-surface-hover' : isMe ? 'bg-surface-highlight' : 'bg-surface-base',
+    rowTone: account.archived ? 'bg-sunken' : isMe ? 'bg-gold-soft' : 'bg-surface',
     rank: tierLabel(rank),
     lp: rank ? `${rank.leaguePoints} LP` : '—',
     emblem: tierEmblemUrl(rank),
@@ -93,49 +95,50 @@ const rows = computed(() => sortAccounts(filterAccounts(admin.accounts, filter.v
 </script>
 
 <template>
-  <section aria-labelledby="admin-players-title" class="animate-rise">
+  <section aria-labelledby="admin-players-title">
     <AdminSectionHeader
       heading-id="admin-players-title"
       title="Joueurs"
       description="Un compte principal apparaît à la première connexion de son propriétaire. Les autres s'ajoutent comme smurfs."
     >
-      <AdminButton size="lg" :disabled="!isLoaded" @click="isLinkOpen = true">
-        <Icon name="lucide:plus" class="size-[15px]" />
+      <AdminButton size="lg" icon="lucide:plus" :disabled="!isLoaded" @click="isLinkOpen = true">
         Lier un smurf
       </AdminButton>
     </AdminSectionHeader>
 
     <div class="mb-3.5 flex flex-wrap items-center gap-2.5">
-      <label class="flex h-10 min-w-[220px] max-w-[340px] flex-1 items-center gap-2.5 rounded-full border border-border-base bg-surface-base px-3.5">
-        <Icon name="lucide:search" class="size-[15px] shrink-0 text-text-sec" />
+      <label class="flex h-9 min-w-[220px] max-w-[340px] flex-1 cursor-text items-center gap-2 rounded-2 border border-line-strong bg-surface px-2.5 transition-colors duration-120 ease-out hover:border-ink-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
+        <Icon name="lucide:search" class="size-4 shrink-0 text-ink-3" />
         <input
           v-model="query"
           type="search"
           placeholder="Riot ID, pseudo ou nom…"
           aria-label="Filtrer les joueurs"
-          class="h-full min-w-0 flex-1 bg-transparent text-[13.5px] font-semibold text-text-main outline-none"
+          class="h-full min-w-0 flex-1 bg-transparent text-sm font-medium text-ink outline-none"
         >
       </label>
-      <div role="group" aria-label="Filtrer par statut" class="flex flex-wrap rounded-full border border-border-base bg-surface-base p-[3px]">
+      <div role="group" aria-label="Filtrer par statut" class="inline-flex flex-wrap gap-0.5 rounded-2 border border-line bg-neutral-soft p-0.5">
         <button
           v-for="option in ADMIN_ACCOUNT_FILTERS"
           :key="option.value"
           type="button"
           :aria-pressed="filter === option.value"
-          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-[13px] py-1.5 text-[13px] font-bold transition-colors duration-200"
-          :class="filter === option.value ? 'bg-inverse text-inverse-text' : 'text-text-main'"
+          class="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-1 border-0 px-3 text-[13px] font-semibold transition-[background-color,color,box-shadow] duration-120 ease-out"
+          :class="filter === option.value
+            ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--line-strong),var(--shadow-hair-value)]'
+            : 'bg-transparent text-ink-2 hover:text-ink'"
           @click="filter = option.value"
         >
           {{ option.label }}
-          <span v-if="isLoaded" class="font-mono text-[11px] opacity-65">{{ admin.counts[option.value] }}</span>
+          <span v-if="isLoaded" class="font-mono text-[11px] font-medium tabular-nums text-ink-3">{{ admin.counts[option.value] }}</span>
         </button>
       </div>
     </div>
 
-    <div class="@container overflow-hidden rounded-3xl border border-border-base bg-surface-base shadow-card">
+    <div class="@container overflow-hidden rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface shadow-card">
       <div
         aria-hidden="true"
-        class="hidden grid-cols-[40px_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_108px] items-center gap-3.5 bg-surface-hover px-4 py-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-sec @2xl:grid"
+        class="hidden grid-cols-[40px_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_116px] items-center gap-3.5 bg-sunken px-4 py-3 type-label text-ink-2 @2xl:grid"
       >
         <span /><span>Compte Riot</span><span>Rang Solo/Duo</span><span>Compte JungleDiff</span><span>Dernière synchro</span><span class="text-right">Actions</span>
       </div>
@@ -145,41 +148,41 @@ const rows = computed(() => sortAccounts(filterAccounts(admin.accounts, filter.v
           <li
             v-for="row in rows"
             :key="row.account.id"
-            class="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-border-subtle px-4 py-3 @2xl:grid-cols-[40px_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_108px]"
+            class="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line px-4 py-3 @2xl:grid-cols-[40px_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_116px]"
             :class="row.rowTone"
           >
-            <AdminAccountIcon :icon-id="row.account.lolIconId" :archived="row.account.archived" class="size-10 rounded-xl border border-border-base" />
+            <AdminAccountIcon :icon-id="row.account.lolIconId" :archived="row.account.archived" class="size-10" />
 
-            <span class="flex min-w-0 flex-col gap-[3px]">
+            <span class="flex min-w-0 flex-col gap-1">
               <span class="flex min-w-0 flex-wrap items-center gap-1.5">
-                <span class="text-[15px] font-bold [overflow-wrap:anywhere]" :class="row.account.archived ? 'text-text-sec' : 'text-text-main'">
-                  {{ row.name }}<span v-if="row.account.riotGamesTagLine" class="font-medium text-text-sec">#{{ row.account.riotGamesTagLine }}</span>
+                <span class="text-[15px] font-semibold [overflow-wrap:anywhere]" :class="row.account.archived ? 'text-ink-2' : 'text-ink'">
+                  {{ row.name }}<span v-if="row.account.riotGamesTagLine" class="font-mono text-xs font-medium text-ink-2">#{{ row.account.riotGamesTagLine }}</span>
                 </span>
                 <span
                   v-for="chip in row.chips"
                   :key="chip.label"
-                  class="whitespace-nowrap rounded-full px-[7px] py-px text-[10.5px] font-bold"
+                  class="inline-flex h-5 items-center whitespace-nowrap rounded-1 px-1.5 text-[11px] font-[650]"
                   :class="chip.tone"
                 >{{ chip.label }}</span>
               </span>
-              <span class="text-xs font-semibold text-text-sec @2xl:hidden">{{ row.rank }}<template v-if="row.syncText"> · {{ row.syncText }}</template></span>
+              <span class="text-xs text-ink-2 @2xl:hidden">{{ row.rank }}<template v-if="row.syncText"> · {{ row.syncText }}</template></span>
             </span>
 
             <span class="hidden min-w-0 items-center gap-2 @2xl:flex">
               <img :src="row.emblem" alt="" class="size-[30px] shrink-0 object-contain" :class="{ 'opacity-40': !row.isRanked }">
-              <span class="flex min-w-0 flex-col">
-                <span class="whitespace-nowrap text-[13.5px] font-bold" :class="row.isRanked ? 'text-text-main' : 'text-text-sec'">{{ row.rank }}</span>
-                <span class="font-mono text-[11px] text-text-sec">{{ row.lp }}</span>
+              <span class="flex min-w-0 flex-col gap-0.5">
+                <span class="whitespace-nowrap text-[13px] font-semibold" :class="row.isRanked ? 'text-ink' : 'text-ink-2'">{{ row.rank }}</span>
+                <span class="font-mono text-[11px] font-medium tabular-nums text-ink-2">{{ row.lp }}</span>
               </span>
             </span>
 
-            <span class="hidden min-w-0 flex-col gap-px @2xl:flex">
-              <span class="truncate text-[13.5px] font-bold" :class="row.hasUser ? 'text-text-main' : 'text-text-sec'">{{ row.user }}</span>
-              <span class="truncate text-[11.5px] font-semibold text-text-sec">{{ row.userSub }}</span>
+            <span class="hidden min-w-0 flex-col gap-0.5 @2xl:flex">
+              <span class="truncate text-[13px] font-semibold" :class="row.hasUser ? 'text-ink' : 'text-ink-2'">{{ row.user }}</span>
+              <span class="truncate text-xs text-ink-2">{{ row.userSub }}</span>
             </span>
 
-            <span class="hidden items-center gap-[7px] whitespace-nowrap text-[13px] font-bold @2xl:flex">
-              <span aria-hidden="true" class="size-[7px] shrink-0 rounded-full" :class="row.syncWarn ? 'bg-brand-gold-bright' : 'bg-win'" />
+            <span class="hidden items-center gap-[7px] whitespace-nowrap type-mono text-ink @2xl:flex">
+              <span aria-hidden="true" class="size-[7px] shrink-0 rounded-full" :class="row.syncWarn ? 'bg-loss' : 'bg-canopy'" />
               {{ row.syncText }}
             </span>
 
@@ -189,15 +192,15 @@ const rows = computed(() => sortAccounts(filterAccounts(admin.accounts, filter.v
                 title="Rafraîchir depuis Riot"
                 :aria-label="`Rafraîchir ${row.name}`"
                 :disabled="row.busy"
-                class="flex size-[34px] cursor-pointer items-center justify-center rounded-full border border-border-accent bg-surface-base transition-colors duration-200 enabled:hover:border-text-main/35 disabled:cursor-wait"
+                class="inline-flex size-9 cursor-pointer items-center justify-center rounded-2 border border-line-strong bg-surface text-ink-2 transition-colors duration-120 ease-out enabled:hover:border-ink-3 enabled:hover:text-ink disabled:cursor-progress"
                 @click="admin.refreshAccount(row.account.id)"
               >
-                <Icon name="lucide:rotate-cw" class="size-3.5 text-win" :class="{ 'animate-spin': row.busy }" />
+                <Icon name="lucide:rotate-cw" class="size-4" :class="{ 'animate-spin': row.busy }" />
               </button>
               <button
                 type="button"
                 :aria-label="`Gérer ${row.name}`"
-                class="inline-flex h-[34px] cursor-pointer items-center rounded-full border border-border-accent bg-surface-base px-3.5 text-[12.5px] font-bold transition-colors duration-200 hover:border-text-main/35"
+                class="inline-flex h-9 cursor-pointer items-center rounded-2 border border-line-strong bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-120 ease-out hover:border-ink-3 hover:bg-raised"
                 @click="managedId = row.account.id"
               >
                 Gérer
@@ -205,19 +208,20 @@ const rows = computed(() => sortAccounts(filterAccounts(admin.accounts, filter.v
             </span>
           </li>
         </ul>
-        <p v-if="rows.length === 0" class="m-0 border-t border-border-subtle px-[18px] py-7 text-sm font-semibold text-text-sec">
+        <p v-if="rows.length === 0" class="m-0 border-t border-line px-[18px] py-7 text-sm text-ink-2">
           Aucun compte ne correspond à ce filtre.
         </p>
       </template>
 
-      <div v-else-if="admin.loadStatus === 'error'" class="border-t border-border-subtle px-[18px] py-7 text-sm font-semibold text-text-sec">
-        {{ admin.loadError }}
+      <div v-else-if="admin.loadStatus === 'error'" class="flex items-start gap-2 border-t border-line px-[18px] py-7 text-sm font-semibold text-loss-ink">
+        <Icon name="lucide:triangle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span>{{ admin.loadError }}</span>
       </div>
 
       <div v-else>
-        <div v-for="index in 6" :key="index" class="flex items-center gap-3.5 border-t border-border-subtle px-4 py-3">
-          <span class="size-10 animate-pulse rounded-xl bg-surface-sunken" />
-          <span class="h-4 w-40 animate-pulse rounded bg-surface-sunken" />
+        <div v-for="index in 6" :key="index" class="flex items-center gap-3.5 border-t border-line px-4 py-3">
+          <UiSkeleton circle class="size-10 shrink-0" />
+          <UiSkeleton class="h-4 w-40" />
         </div>
       </div>
     </div>

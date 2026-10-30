@@ -243,11 +243,13 @@ const launch = async (force: boolean) => {
 
 type Tone = 'report' | 'none' | 'queued' | 'error'
 
+// A ready report and a failure keep the success / error tones of `AdminResult`; waiting is brand
+// green, not gold (gold is reserved for the #1 and "Vous").
 const TONES: Record<Tone, { card: string, code: string }> = {
-  report: { card: 'bg-win-soft', code: 'text-brand-green' },
-  none: { card: 'bg-surface-muted', code: 'text-text-sec' },
-  queued: { card: 'bg-surface-highlight', code: 'text-brand-gold' },
-  error: { card: 'bg-loss-soft', code: 'text-brand-red' },
+  report: { card: 'bg-win-soft', code: 'text-win-ink' },
+  none: { card: 'bg-sunken', code: 'text-ink-2' },
+  queued: { card: 'bg-canopy-soft', code: 'text-canopy' },
+  error: { card: 'bg-loss-soft', code: 'text-loss-ink' },
 }
 
 interface StatusCard {
@@ -345,10 +347,10 @@ const status = computed<StatusCard | null>(() => {
 })
 
 const REQUEST_CHIPS: Record<AdminCoachRequest['state'], { label: string, tone: string }> = {
-  queued: { label: 'En file', tone: 'bg-brand-gold-soft text-brand-gold' },
-  done: { label: 'Rapport prêt', tone: 'bg-win-soft text-brand-green' },
-  abandoned: { label: 'Abandonnée', tone: 'bg-loss-soft text-brand-red' },
-  stalled: { label: 'Sans nouvelles', tone: 'bg-surface-high text-text-sec' },
+  queued: { label: 'En file', tone: 'bg-canopy-soft text-canopy' },
+  done: { label: 'Rapport prêt', tone: 'bg-win-soft text-win-ink' },
+  abandoned: { label: 'Abandonnée', tone: 'bg-loss-soft text-loss-ink' },
+  stalled: { label: 'Sans nouvelles', tone: 'bg-neutral-soft text-ink-2' },
 }
 
 /** A request of the list puts its pair back in the form. */
@@ -363,7 +365,7 @@ const onFormChange = () => {
 </script>
 
 <template>
-  <section aria-labelledby="admin-coach-title" class="animate-rise">
+  <section aria-labelledby="admin-coach-title">
     <AdminSectionHeader
       heading-id="admin-coach-title"
       title="rAImmus"
@@ -371,27 +373,27 @@ const onFormChange = () => {
     />
 
     <div class="grid items-start gap-5 min-[73.75rem]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-      <div class="flex flex-col gap-3.5 rounded-3xl border border-border-subtle bg-surface-base p-[22px] shadow-card">
+      <UiPanel as="div" class="flex flex-col gap-3.5 p-5">
         <div class="grid gap-2.5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <label class="flex flex-col gap-1.5">
-            <span class="text-[12.5px] font-bold">Identifiant de partie</span>
+            <span class="text-[13px] font-semibold text-ink">Identifiant de partie</span>
             <input
               v-model="matchId"
               placeholder="EUW1_7234519822"
               spellcheck="false"
               autocomplete="off"
-              class="h-11 rounded-[14px] border bg-surface-hover px-3.5 font-mono text-sm text-text-main outline-none transition-colors focus:border-text-main/45"
-              :class="showFormatHint ? 'border-brand-red/50' : 'border-border-accent'"
+              class="h-11 min-w-0 rounded-2 border bg-surface px-3.5 font-mono text-sm text-ink transition-colors duration-120 ease-out"
+              :class="showFormatHint ? 'border-loss' : 'border-line-strong hover:border-ink-3'"
               @input="onFormChange"
               @keydown.enter.prevent="checkState"
             >
-            <span v-if="showFormatHint" class="text-xs font-semibold text-brand-red">Format attendu : EUW1_ suivi de l'identifiant numérique.</span>
+            <span v-if="showFormatHint" class="text-[13px] font-semibold text-loss-ink">Format attendu : EUW1_ suivi de l'identifiant numérique.</span>
           </label>
           <label class="flex flex-col gap-1.5">
-            <span class="text-[12.5px] font-bold">Joueur</span>
+            <span class="text-[13px] font-semibold text-ink">Joueur</span>
             <select
               v-model="playerId"
-              class="h-11 rounded-[14px] border border-border-accent bg-surface-hover px-3 text-sm font-semibold text-text-main outline-none focus:border-text-main/45"
+              class="h-11 min-w-0 cursor-pointer rounded-2 border border-line-strong bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-120 ease-out hover:border-ink-3"
               @change="onFormChange"
             >
               <option v-for="option in playerOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
@@ -406,12 +408,12 @@ const onFormChange = () => {
           <AdminRoute>GET /lol/Coach/{matchId}/player/{playerId}</AdminRoute>
         </div>
 
-        <div v-if="status" class="flex flex-col gap-3 rounded-[18px] p-4" :class="TONES[status.tone].card">
+        <div v-if="status" class="flex flex-col gap-3 rounded-3 p-4" :class="TONES[status.tone].card">
           <span class="flex flex-wrap items-center gap-2">
-            <span class="rounded-full bg-surface-base px-2.5 py-[3px] font-mono text-[11.5px] font-semibold" :class="TONES[status.tone].code">{{ status.code }}</span>
-            <span class="text-[15px] font-bold">{{ status.title }}</span>
+            <span class="inline-flex h-5 items-center rounded-1 bg-surface px-1.5 font-mono text-[11px] font-semibold tabular-nums" :class="TONES[status.tone].code">{{ status.code }}</span>
+            <span class="type-title text-ink">{{ status.title }}</span>
           </span>
-          <span class="text-[13px] font-semibold text-pretty text-text-main/80">{{ status.text }}</span>
+          <span class="text-[13px] text-pretty text-ink-2">{{ status.text }}</span>
           <span
             v-if="status.progress !== null"
             role="progressbar"
@@ -419,9 +421,9 @@ const onFormChange = () => {
             :aria-valuenow="Math.round(status.progress * 100)"
             aria-valuemin="0"
             aria-valuemax="100"
-            class="block h-1.5 overflow-hidden rounded-full bg-text-main/10"
+            class="block h-1.5 overflow-hidden rounded-full bg-[color-mix(in_oklch,var(--ink)_10%,transparent)]"
           >
-            <span class="block h-full rounded-full bg-win transition-[width] duration-1000 ease-linear" :style="{ width: `${Math.round(status.progress * 100)}%` }" />
+            <span class="block h-full rounded-full bg-canopy transition-[width] duration-1000 ease-linear" :style="{ width: `${Math.round(status.progress * 100)}%` }" />
           </span>
           <div v-if="status.action || status.report" class="flex flex-wrap items-center gap-2.5">
             <AdminButton v-if="status.action" :busy="launchBusy" @click="launch(status.action.force)">
@@ -430,37 +432,37 @@ const onFormChange = () => {
             <NuxtLink
               v-if="status.report && status.report.playerId !== null"
               :to="`/game/${encodeURIComponent(status.report.matchId)}/${status.report.playerId}`"
-              class="text-[13px] font-bold text-brand-link underline-offset-2 hover:underline"
+              class="text-[13px] font-semibold text-canopy no-underline hover:underline hover:underline-offset-[3px]"
             >
               Lire le rapport
             </NuxtLink>
             <AdminRoute v-if="status.action">{{ status.action.route }}</AdminRoute>
           </div>
         </div>
-      </div>
+      </UiPanel>
 
-      <div class="rounded-3xl border border-border-subtle bg-surface-base p-5 shadow-card">
-        <h2 class="m-0 text-xl font-bold tracking-[-0.025em]">Demandes de cette session</h2>
-        <p class="mb-2 mt-[3px] text-[12.5px] font-semibold text-pretty text-text-sec">L'API ne liste pas la file : seules les demandes faites depuis cette page sont suivies ici.</p>
+      <UiPanel as="div" class="p-5">
+        <h2 class="m-0 type-title text-ink">Demandes de cette session</h2>
+        <p class="mb-2 mt-1 text-[13px] text-pretty text-ink-2">L'API ne liste pas la file : seules les demandes faites depuis cette page sont suivies ici.</p>
         <button
           v-for="request in admin.coachRequests"
           :key="request.key"
           type="button"
-          class="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 border-t border-dashed border-border-dashed py-2.5 text-left"
+          class="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 border-t border-dashed border-line-strong bg-transparent py-2.5 text-left text-ink transition-colors duration-120 ease-out hover:text-canopy"
           @click="select(request)"
         >
-          <span class="flex min-w-0 flex-col gap-px">
-            <span class="text-[13.5px] font-bold">{{ request.playerLabel }}</span>
-            <span class="truncate font-mono text-[11px] text-text-sec">{{ request.matchId }}</span>
+          <span class="flex min-w-0 flex-col gap-0.5">
+            <span class="text-sm font-semibold">{{ request.playerLabel }}</span>
+            <span class="truncate font-mono text-[11px] text-ink-2">{{ request.matchId }}</span>
           </span>
-          <span class="whitespace-nowrap rounded-full px-[9px] py-[3px] text-[11.5px] font-bold" :class="REQUEST_CHIPS[request.state].tone">
+          <span class="inline-flex h-5 items-center whitespace-nowrap rounded-1 px-1.5 text-[11px] font-[650]" :class="REQUEST_CHIPS[request.state].tone">
             {{ REQUEST_CHIPS[request.state].label }}
           </span>
         </button>
-        <p v-if="admin.coachRequests.length === 0" class="m-0 border-t border-dashed border-border-dashed pb-1 pt-3.5 text-[13.5px] font-semibold text-text-sec">
+        <p v-if="admin.coachRequests.length === 0" class="m-0 border-t border-dashed border-line-strong pb-1 pt-3.5 text-sm text-ink-2">
           Aucune analyse demandée.
         </p>
-      </div>
+      </UiPanel>
     </div>
   </section>
 </template>

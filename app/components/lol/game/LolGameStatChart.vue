@@ -166,11 +166,11 @@ const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?
 </script>
 
 <template>
-  <section v-if="hasChampionStats" class="rounded-[26px] border border-border-subtle bg-surface-base p-[22px] shadow-card">
+  <section v-if="hasChampionStats" class="rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-5 shadow-card">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
-        <h3 class="m-0 text-xl font-bold tracking-[-0.025em]">Stats du champion</h3>
-        <p class="m-0 mt-[3px] text-[12.5px] font-semibold text-text-sec">
+        <h3 class="m-0 type-title text-ink">Stats du champion</h3>
+        <p class="m-0 mt-0.5 type-small text-ink-2">
           {{ selectedPlayerLabel }} — snapshots minute par minute · {{ endValueLabel }} en fin de partie
         </p>
       </div>
@@ -178,7 +178,7 @@ const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?
       <select
         :value="statKey"
         aria-label="Statistique affichée"
-        class="h-[34px] max-w-full cursor-pointer rounded-full border border-border-base bg-surface-muted px-3 text-[12.5px] font-bold text-text-main"
+        class="h-9 max-w-full cursor-pointer rounded-2 border border-line-strong bg-surface px-2.5 text-[0.8125rem] font-semibold text-ink transition-colors duration-[120ms] ease-out hover:border-ink-3"
         @change="onStatKeyChange"
       >
         <optgroup v-for="group in GROUPS" :key="group" :label="group">
@@ -189,15 +189,15 @@ const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?
       </select>
     </div>
 
-    <div class="relative mt-[18px]">
+    <div class="relative mt-4">
       <span
         v-if="hover"
         role="tooltip"
-        class="pointer-events-none absolute -top-1.5 z-[5] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[14px] bg-night px-[11px] py-[7px] text-on-night"
+        class="pointer-events-none absolute -top-1.5 z-[5] grid -translate-x-1/2 -translate-y-full gap-0.5 whitespace-nowrap rounded-2 bg-night px-2.5 py-2 text-on-night shadow-float"
         :style="{ left: `${hover.percent}%` }"
       >
-        <span class="block font-mono text-[11px] text-on-photo-green">{{ hover.time }}</span>
-        <span class="block text-[12.5px] font-bold">{{ hover.value }}</span>
+        <span class="type-mono text-[0.6875rem] text-on-night-2">{{ hover.time }}</span>
+        <span class="text-[0.8125rem] font-semibold">{{ hover.value }}</span>
       </span>
 
       <svg
@@ -207,8 +207,8 @@ const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?
         @mousemove="onChartMouseMove"
         @mouseleave="hoverIndex = null"
       >
-        <path :d="areaPath" class="fill-dmg-magic/22" />
-        <path :d="linePath" fill="none" class="stroke-dmg-magic" stroke-width="2" vector-effect="non-scaling-stroke" />
+        <path :d="areaPath" class="fill-canopy/20" />
+        <path :d="linePath" fill="none" class="stroke-canopy" stroke-width="2" vector-effect="non-scaling-stroke" />
 
         <line
           v-if="showPlayhead && frames.length > 1"
@@ -216,24 +216,24 @@ const endLabel = computed(() => formatTimestamp(frames.value.at(-1)?.timestamp ?
           :x2="playheadX"
           y1="0"
           :y2="HEIGHT"
-          class="stroke-text-main/40"
+          class="stroke-ink/40"
           stroke-width="1.5"
           stroke-dasharray="4 4"
           vector-effect="non-scaling-stroke"
         />
 
-        <line v-if="hover" :x1="hover.x" :x2="hover.x" y1="0" :y2="HEIGHT" class="stroke-brand-gold-bright" stroke-width="1" vector-effect="non-scaling-stroke" />
+        <line v-if="hover" :x1="hover.x" :x2="hover.x" y1="0" :y2="HEIGHT" class="stroke-ink/60" stroke-width="1" vector-effect="non-scaling-stroke" />
       </svg>
 
       <!-- Outside the SVG: its non-uniform scaling would stretch a circle into an ellipse. -->
       <span
         v-if="hover"
-        class="pointer-events-none absolute -ml-1 -mt-1 size-2 rounded-full bg-brand-gold-bright"
+        class="pointer-events-none absolute -ml-1 -mt-1 size-2 rounded-full bg-ink ring-2 ring-surface"
         :style="{ left: `${hover.percent}%`, top: `${(hover.y / HEIGHT) * 100}%` }"
       />
     </div>
 
-    <div class="mt-1.5 flex justify-between font-mono text-[11.5px] text-text-sec">
+    <div class="mt-1.5 flex justify-between type-mono text-ink-3">
       <span>00:00</span>
       <span>{{ endLabel }}</span>
     </div>

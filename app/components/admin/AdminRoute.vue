@@ -7,5 +7,5 @@ withDefaults(defineProps<{ onInk?: boolean }>(), { onInk: false })
 </script>
 
 <template>
-  <span class="font-mono text-[10.5px] leading-snug" :class="onInk ? 'text-on-photo-green' : 'text-text-sec'"><slot /></span>
+  <span class="font-mono text-[11px] leading-snug font-medium tabular-nums [overflow-wrap:anywhere]" :class="onInk ? 'text-on-night-2' : 'text-ink-2'"><slot /></span>
 </template>

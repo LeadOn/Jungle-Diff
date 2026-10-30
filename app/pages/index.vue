@@ -204,10 +204,14 @@ const reload = async () => {
       <UiErrorState
         v-else
         title="Oups, l'API ne répond pas."
-        message="Impossible de récupérer les statistiques du crew et l'historique récent. Le serveur semble indisponible pour le moment."
-        :busy="reloading"
-        @retry="reload"
-      />
+        description="Impossible de récupérer les statistiques du crew et l'historique récent. Le serveur semble indisponible pour le moment."
+      >
+        <template #actions>
+          <UiButton variant="primary" size="sm" :busy="reloading" :disabled="reloading" @click="reload">
+            Réessayer
+          </UiButton>
+        </template>
+      </UiErrorState>
     </section>
 
     <div v-if="!hasApiError" class="cols">

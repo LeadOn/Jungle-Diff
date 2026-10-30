@@ -23,16 +23,16 @@ const props = defineProps<{
 }>()
 
 const OUTCOME_CLASSES: Record<TeamOutcome, string> = {
-  win: 'bg-win-soft text-brand-green',
-  loss: 'bg-loss-soft text-brand-red',
-  remake: 'bg-surface-high text-text-sec',
+  win: 'bg-win-soft text-win-ink',
+  loss: 'bg-loss-soft text-loss-ink',
+  remake: 'bg-neutral-soft text-ink-2',
 }
 
 const rows = computed(() => {
   const players = [...props.team1, ...props.team2]
   return [
-    { teamId: 100, label: 'Équipe bleue', dotClass: 'bg-team-blue' },
-    { teamId: 200, label: 'Équipe rouge', dotClass: 'bg-team-red' },
+    { teamId: 100, label: 'Équipe bleue', dotClass: 'bg-side-blue' },
+    { teamId: 200, label: 'Équipe rouge', dotClass: 'bg-side-red' },
   ].map((side) => {
     const objectives = teamObjectivesFor(props.game.leagueOfLegendsGameTeams || [], props.timeline, players, side.teamId)
     const outcome = teamOutcome(props.game, side.teamId)
@@ -65,25 +65,25 @@ const hasObjectives = computed(() => rows.value.some((row) => row.kills > 0 || r
   <section
     v-if="hasObjectives"
     aria-label="Objectifs par équipe"
-    class="grid animate-rise grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-4 [animation-delay:80ms]"
+    class="grid grid-cols-[repeat(auto-fit,minmax(min(360px,100%),1fr))] gap-4"
   >
     <div
       v-for="row in rows"
       :key="row.teamId"
-      class="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-[22px] border border-border-subtle bg-surface-base px-5 py-4 shadow-card"
+      class="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface px-4 py-3.5 shadow-card"
     >
       <span class="flex min-w-0 items-center gap-2">
         <span class="size-2.5 shrink-0 rounded-full" :class="row.dotClass" />
-        <span class="text-sm font-bold">{{ row.label }}</span>
+        <span class="type-title text-[0.9375rem] text-ink">{{ row.label }}</span>
         <span
           v-if="row.outcomeLabel"
-          class="rounded-lg px-[9px] py-0.5 text-[11px] font-bold uppercase tracking-[0.03em]"
+          class="inline-flex h-5 items-center rounded-1 px-1.5 text-[11px] font-[650] uppercase tracking-[0.04em]"
           :class="row.outcomeClass"
         >{{ row.outcomeLabel }}</span>
       </span>
       <span class="flex items-baseline gap-1">
-        <span class="text-[28px] font-bold leading-none tracking-[-0.04em]">{{ row.kills }}</span>
-        <span class="text-xs font-bold text-text-sec">kills</span>
+        <span class="fig text-[28px] text-ink">{{ row.kills }}</span>
+        <span class="text-xs font-semibold text-ink-2">kills</span>
       </span>
       <span class="flex-1" />
       <span class="flex flex-wrap gap-1.5">
@@ -91,12 +91,12 @@ const hasObjectives = computed(() => rows.value.some((row) => row.kills > 0 || r
           v-for="badge in row.badges"
           :key="badge.label"
           :title="badge.label"
-          class="inline-flex h-[30px] items-center gap-[5px] rounded-full border border-border-subtle bg-surface-muted pl-1.5 pr-2.5 font-mono text-[12.5px] font-semibold"
+          class="inline-flex h-7 items-center gap-[5px] rounded-full border border-line bg-sunken pl-1 pr-2.5"
         >
           <span class="flex size-5 items-center justify-center rounded-full bg-night">
             <UiAppImage :src="badge.iconUrl" alt="" class="size-3.5 object-contain" />
           </span>
-          {{ badge.value }}
+          <span class="fig text-[15px] text-ink">{{ badge.value }}</span>
         </span>
       </span>
     </div>

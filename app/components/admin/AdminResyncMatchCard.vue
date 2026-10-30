@@ -47,25 +47,25 @@ const onInput = () => { result.value = null }
 </script>
 
 <template>
-  <div class="flex flex-col gap-3.5 rounded-3xl border border-border-subtle bg-surface-base p-[22px] shadow-card">
+  <div class="flex flex-col gap-3.5 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-5 shadow-card">
     <div>
-      <h2 class="m-0 text-[17px] font-bold">Re-synchroniser une partie</h2>
-      <p class="mt-1 text-[13px] font-semibold leading-normal text-pretty text-text-sec">Relit la partie et sa timeline depuis Riot.</p>
+      <h2 class="m-0 type-title text-ink">Re-synchroniser une partie</h2>
+      <p class="mt-1 type-body text-pretty text-ink-2">Relit la partie et sa timeline depuis Riot.</p>
     </div>
 
     <label class="flex flex-col gap-1.5">
-      <span class="text-[12.5px] font-bold">Identifiant de partie</span>
+      <span class="text-[13px] font-semibold text-ink">Identifiant de partie</span>
       <input
         v-model="matchId"
         placeholder="EUW1_7234519822"
         spellcheck="false"
         autocomplete="off"
-        class="h-11 rounded-[14px] border bg-surface-hover px-3.5 font-mono text-sm text-text-main outline-none transition-colors focus:border-text-main/45"
-        :class="showFormatHint || (result && !result.ok) ? 'border-brand-red/50' : 'border-border-accent'"
+        class="h-11 min-w-0 rounded-2 border bg-surface px-3.5 font-mono text-sm text-ink transition-colors duration-120 ease-out"
+        :class="showFormatHint || (result && !result.ok) ? 'border-loss' : 'border-line-strong hover:border-ink-3'"
         @input="onInput"
         @keydown.enter.prevent="resync"
       >
-      <span v-if="showFormatHint" class="text-xs font-semibold text-brand-red">Format attendu : EUW1_ suivi de l'identifiant numérique.</span>
+      <span v-if="showFormatHint" class="text-[13px] font-semibold text-loss-ink">Format attendu : EUW1_ suivi de l'identifiant numérique.</span>
     </label>
 
     <AdminResult v-if="result" :tone="result.ok ? 'success' : 'error'">{{ result.text }}</AdminResult>

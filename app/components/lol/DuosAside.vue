@@ -34,42 +34,40 @@ const hiddenCount = computed(() => duos.value.length - COLLAPSED_COUNT)
 </script>
 
 <template>
-  <section aria-labelledby="profile-duos">
-    <div class="mb-3.5 flex items-baseline justify-between gap-3">
-      <h3 id="profile-duos" class="m-0 text-xl font-bold tracking-[-0.025em]">Duos</h3>
-      <span class="text-[12.5px] font-semibold text-text-sec">{{ badge }}</span>
-    </div>
-    <div
-      v-if="duos.length === 0"
-      class="rounded-[18px] border-[1.5px] border-dashed border-border-dashed p-[18px] text-[13px] font-bold text-text-sec"
-    >
+  <UiPanel title="Duos" title-id="profile-duos" :meta="badge">
+    <p v-if="duos.length === 0" class="type-small m-0 px-4 pb-4 text-ink-2">
       Aucun duo suivi sur cette période.
-    </div>
-    <div v-else class="flex flex-col gap-2.5">
+    </p>
+    <div v-else>
       <NuxtLink
         v-for="d in visibleDuos"
         :key="d.id"
         :to="`/summoner/${d.id}`"
-        class="flex items-center gap-3 rounded-[18px] border border-border-subtle bg-surface-base px-3.5 py-3 shadow-card transition-transform duration-300 ease-spring hover:translate-x-1"
+        class="grid grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 border-t border-line px-4 py-2.5 text-inherit no-underline transition-colors duration-[120ms] ease-out outline-offset-[-3px] last:rounded-b-5 hover:bg-[color-mix(in_oklch,var(--sunken)_70%,var(--surface))]"
       >
-        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-sunken bg-cover bg-center" :style="d.iconUrl ? { backgroundImage: `url('${d.iconUrl}')` } : undefined">
-          <Icon v-if="!d.iconUrl" name="lucide:user" class="size-4 text-text-ter" />
+        <span class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-sunken bg-cover bg-center" :style="d.iconUrl ? { backgroundImage: `url('${d.iconUrl}')` } : undefined">
+          <Icon v-if="!d.iconUrl" name="lucide:user" class="size-4 text-ink-3" />
         </span>
-        <span class="min-w-0 flex-1">
-          <span class="block truncate text-[14.5px] font-bold">{{ d.name }}</span>
-          <span class="mt-0.5 block text-xs font-semibold text-text-sec">{{ d.games }}</span>
+        <span class="grid min-w-0 gap-px">
+          <b class="truncate text-[0.875rem] font-[640] text-ink">{{ d.name }}</b>
+          <span class="truncate text-[0.75rem] text-ink-3">{{ d.games }}</span>
         </span>
-        <span class="shrink-0 text-[28px] font-bold tracking-[-0.04em]" :class="d.winRate >= 50 ? 'text-brand-green' : 'text-brand-red'">{{ d.winRate }}%</span>
+        <span class="flex items-baseline gap-0.5" :class="d.winRate >= 50 ? 'text-win-ink' : 'text-loss-ink'">
+          <span class="fig text-[1.75rem]">{{ d.winRate }}</span>
+          <small class="text-[0.75rem] font-semibold">%</small>
+        </span>
       </NuxtLink>
-      <button
-        v-if="hiddenCount > 0"
-        type="button"
-        :aria-expanded="expanded"
-        class="w-full cursor-pointer rounded-full border border-border-base bg-surface-base py-2 text-[12.5px] font-bold transition-colors duration-200 hover:bg-surface-muted"
-        @click="expanded = !expanded"
-      >
-        {{ expanded ? 'Réduire' : hiddenCount > 1 ? `Voir les ${hiddenCount} autres` : 'Voir le dernier' }}
-      </button>
+      <div v-if="hiddenCount > 0" class="border-t border-line p-2">
+        <UiButton
+          variant="quiet"
+          size="sm"
+          block
+          :aria-expanded="expanded"
+          @click="expanded = !expanded"
+        >
+          {{ expanded ? 'Réduire' : hiddenCount > 1 ? `Voir les ${hiddenCount} autres` : 'Voir le dernier' }}
+        </UiButton>
+      </div>
     </div>
-  </section>
+  </UiPanel>
 </template>

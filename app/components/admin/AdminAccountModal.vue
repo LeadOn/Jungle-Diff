@@ -221,10 +221,10 @@ const clearLinkResult = () => { linkResult.value = null }
   <AdminModal size="lg" @close="emit('close')">
     <template #default="{ titleId }">
       <div class="flex items-center gap-3.5 px-[22px] py-5">
-        <AdminAccountIcon :icon-id="live.lolIconId" class="size-12 rounded-[14px]" />
+        <AdminAccountIcon :icon-id="live.lolIconId" class="size-12" />
         <div class="min-w-0">
-          <h2 :id="titleId" class="m-0 truncate text-[21px] font-bold tracking-[-0.025em]">{{ title }}</h2>
-          <p class="mt-0.5 text-[12.5px] font-semibold text-text-sec">{{ subtitle }}</p>
+          <h2 :id="titleId" class="m-0 truncate type-d3 text-ink">{{ title }}</h2>
+          <p class="mt-1 text-[13px] text-ink-2">{{ subtitle }}</p>
         </div>
       </div>
 
@@ -233,11 +233,11 @@ const clearLinkResult = () => { linkResult.value = null }
           <span class="field-heading">Compte JungleDiff</span>
           <div class="grid grid-cols-2 gap-2.5">
             <label class="flex flex-col gap-1.5">
-              <span class="text-[12.5px] font-bold">Pseudo</span>
+              <span class="text-[13px] font-semibold text-ink">Pseudo</span>
               <input v-model="form.nickname" class="field" autocomplete="off">
             </label>
             <label class="flex flex-col gap-1.5">
-              <span class="text-[12.5px] font-bold">Nom complet</span>
+              <span class="text-[13px] font-semibold text-ink">Nom complet</span>
               <input v-model="form.fullName" class="field" autocomplete="off">
             </label>
           </div>
@@ -246,7 +246,7 @@ const clearLinkResult = () => { linkResult.value = null }
         <div class="flex flex-col gap-2.5">
           <span class="field-heading">Riot ID</span>
           <AdminRiotIdInput v-model:name="form.riotName" v-model:tag="form.riotTag" :disabled="!hasUser" />
-          <p v-if="!hasUser" class="m-0 text-xs font-semibold text-pretty text-text-sec">
+          <p v-if="!hasUser" class="m-0 text-[13px] text-pretty text-ink-2">
             Non modifiable sur un compte sans utilisateur JungleDiff : l'API le retrouverait par son utilisateur Keycloak et changerait un autre compte. Pour un smurf, déliez-le puis liez le bon Riot ID.
           </p>
         </div>
@@ -257,7 +257,8 @@ const clearLinkResult = () => { linkResult.value = null }
             label="Membre du crew"
             description="Rafraîchi automatiquement et compté dans les classements et les stats."
           />
-          <p v-if="leaveCrewWarning" class="m-0 rounded-xl bg-brand-gold-soft px-3 py-2 text-[12.5px] font-semibold text-pretty text-brand-gold">
+          <p v-if="leaveCrewWarning" class="m-0 flex items-start gap-2 rounded-3 bg-loss-soft px-3 py-2 text-[13px] font-semibold text-pretty text-loss-ink">
+            <Icon name="lucide:triangle-alert" class="mt-px size-4 shrink-0" aria-hidden="true" />
             {{ leaveCrewWarning }}
           </p>
           <AdminSwitch
@@ -269,14 +270,14 @@ const clearLinkResult = () => { linkResult.value = null }
           />
         </div>
 
-        <div v-if="isSecondary" class="flex flex-wrap items-center gap-2.5 rounded-2xl border border-border-base px-3.5 py-3">
-          <span class="min-w-[180px] flex-1 text-[13.5px] font-semibold">
+        <div v-if="isSecondary" class="flex flex-wrap items-center gap-2.5 rounded-3 border border-line px-3.5 py-3">
+          <span class="min-w-[180px] flex-1 text-sm text-ink">
             Smurf de <strong>{{ main ? accountRiotName(main) : 'un compte inconnu' }}</strong>
           </span>
           <button
             type="button"
             :disabled="admin.isBusy(`unlink:${id}`)"
-            class="inline-flex h-[34px] cursor-pointer items-center rounded-full border border-brand-red/30 px-[13px] text-[12.5px] font-bold text-brand-red disabled:cursor-wait disabled:opacity-60"
+            class="inline-flex h-9 cursor-pointer items-center rounded-2 border border-[color-mix(in_oklch,var(--loss)_40%,var(--line))] bg-surface px-[14px] text-sm font-semibold text-loss-ink transition-colors duration-120 ease-out enabled:hover:bg-loss-soft disabled:cursor-progress disabled:opacity-60"
             @click="unlink(live, true)"
           >
             {{ admin.isBusy(`unlink:${id}`) ? 'Déliaison…' : 'Délier' }}
@@ -288,16 +289,16 @@ const clearLinkResult = () => { linkResult.value = null }
           <div
             v-for="smurf in smurfs"
             :key="smurf.id"
-            class="flex items-center gap-2.5 rounded-[14px] border border-border-base py-2 pl-2.5 pr-2"
+            class="flex items-center gap-2.5 rounded-3 border border-line py-2 pl-2.5 pr-2"
           >
-            <AdminAccountIcon :icon-id="smurf.lolIconId" :archived="smurf.archived" class="size-[30px] rounded-[9px]" />
-            <span class="min-w-0 flex-1 truncate text-[13.5px] font-bold">
-              {{ accountRiotName(smurf) }}<span v-if="smurf.riotGamesTagLine" class="font-medium text-text-sec">#{{ smurf.riotGamesTagLine }}</span>
+            <AdminAccountIcon :icon-id="smurf.lolIconId" :archived="smurf.archived" class="size-[30px]" />
+            <span class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+              {{ accountRiotName(smurf) }}<span v-if="smurf.riotGamesTagLine" class="font-mono text-xs font-medium text-ink-2">#{{ smurf.riotGamesTagLine }}</span>
             </span>
             <button
               type="button"
               :disabled="admin.isBusy(`unlink:${smurf.id}`)"
-              class="inline-flex h-[30px] cursor-pointer items-center rounded-full px-3 text-xs font-bold text-brand-red disabled:cursor-wait disabled:opacity-60"
+              class="inline-flex h-7 cursor-pointer items-center rounded-2 px-2.5 text-[13px] font-semibold text-loss-ink transition-colors duration-120 ease-out enabled:hover:bg-loss-soft disabled:cursor-progress disabled:opacity-60"
               @click="unlink(smurf, false)"
             >
               {{ admin.isBusy(`unlink:${smurf.id}`) ? 'Déliaison…' : 'Délier' }}
@@ -322,15 +323,15 @@ const clearLinkResult = () => { linkResult.value = null }
           <AdminResult v-if="linkResult" :tone="linkResult.ok ? 'success' : 'error'">{{ linkResult.text }}</AdminResult>
         </div>
 
-        <div class="flex flex-col gap-[3px] rounded-xl bg-surface-muted px-3 py-2.5">
+        <div class="flex flex-col gap-1 rounded-3 bg-sunken px-3 py-2.5">
           <AdminRoute v-for="route in routes" :key="route">{{ route }}</AdminRoute>
         </div>
 
         <AdminResult v-if="saveError" tone="error">{{ saveError }}</AdminResult>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 border-t border-border-subtle bg-surface-muted px-[22px] py-3.5">
-        <span class="flex-1 text-[12.5px] font-semibold" :class="invalidReason ? 'text-brand-red' : 'text-text-sec'">{{ dirtyLabel }}</span>
+      <div class="flex flex-wrap items-center gap-2 border-t border-line bg-sunken px-[22px] py-3.5">
+        <span class="flex-1 text-[13px] font-semibold" :class="invalidReason ? 'text-loss-ink' : 'text-ink-2'">{{ dirtyLabel }}</span>
         <AdminButton variant="secondary" @click="emit('close')">Fermer</AdminButton>
         <AdminButton :busy="saving" :disabled="changes.length === 0 || !!invalidReason" @click="save">
           {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
@@ -344,10 +345,11 @@ const clearLinkResult = () => { linkResult.value = null }
 @reference "../../assets/css/main.css";
 
 .field-heading {
-  @apply font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-sec;
+  @apply type-label text-ink-2;
 }
 
+/* Fields: 6 px radius, hairline that darkens on hover; focus is the global focus-visible ring. */
 .field {
-  @apply h-[42px] rounded-xl border border-border-accent bg-surface-hover px-3 text-sm font-semibold text-text-main outline-none transition-colors focus:border-text-main/45;
+  @apply h-10 min-w-0 rounded-2 border border-line-strong bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-120 ease-out hover:border-ink-3;
 }
 </style>

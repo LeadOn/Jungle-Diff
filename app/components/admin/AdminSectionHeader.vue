@@ -9,10 +9,10 @@ defineProps<{
 </script>
 
 <template>
-  <div class="mb-5 flex flex-wrap items-end justify-between gap-x-5 gap-y-4 md:mb-[22px]">
+  <div class="mb-5 flex flex-wrap items-end justify-between gap-x-5 gap-y-4 md:mb-6">
     <div class="min-w-0">
-      <h1 :id="headingId" class="m-0 text-[28px] font-bold tracking-[-0.035em] md:text-[34px]">{{ title }}</h1>
-      <p class="mt-1.5 text-sm font-semibold text-pretty text-text-sec">{{ description }}</p>
+      <h1 :id="headingId" class="m-0 type-d2 text-ink">{{ title }}</h1>
+      <p class="mt-2 max-w-[70ch] type-body text-pretty text-ink-2">{{ description }}</p>
     </div>
     <slot />
   </div>

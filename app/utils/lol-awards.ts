@@ -21,6 +21,9 @@ export interface AwardMeta {
   key: LoLGlobalStatAwardKey
   title: string
   description: string
+  /** Colour of the figure. A result colour only when the figure counts something won or lost
+   *  (victories, defeats, deaths, damage taken, LP dropped, a losing win rate); body ink otherwise —
+   *  gold is reserved for #1 / "Vous". */
   color: string
   icon: string
   unit: string
@@ -32,7 +35,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'pingMachine',
     title: 'Spam Ping',
     description: 'Le plus de pings envoyés en une game',
-    color: 'text-brand-gold',
+    color: 'text-ink',
     icon: '🎯',
     unit: ' pings',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -41,7 +44,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'biggestInter',
     title: 'Énorme Inter',
     description: 'Le plus de morts en une game',
-    color: 'text-brand-red',
+    color: 'text-loss-ink',
     icon: '💀',
     unit: ' morts',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -50,7 +53,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'highestBounty',
     title: 'Plus grosse prime',
     description: 'La plus grosse prime encaissée par un ennemi sur sa tête',
-    color: 'text-brand-gold',
+    color: 'text-ink',
     icon: '🏆',
     unit: ' PO',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -59,7 +62,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'shoppingAddict',
     title: 'Acheteur Compulsif',
     description: 'Le plus de consommables achetés en une game',
-    color: 'text-brand-gold',
+    color: 'text-ink',
     icon: '🛒',
     unit: ' items',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -68,7 +71,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'oneTrickPony',
     title: 'One-Trick Pony',
     description: '% le plus élevé de games sur un seul champion (min. 10 games)',
-    color: 'text-brand-gold',
+    color: 'text-ink',
     icon: '🐴',
     unit: ' %',
     getSubtitle: (s) => `${getPlayerName(s.player)} · Période`
@@ -77,7 +80,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'crowdControlMaster',
     title: 'Maître du CC',
     description: 'Le plus de temps de CC infligé aux ennemis',
-    color: 'text-brand-green',
+    color: 'text-ink',
     icon: '🌀',
     unit: 's',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -86,7 +89,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'punchingBall',
     title: 'Punching Ball',
     description: 'Le plus de dégâts subis par minute',
-    color: 'text-brand-red',
+    color: 'text-loss-ink',
     icon: '🥊',
     unit: ' dég/min',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -95,7 +98,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'pacifist',
     title: 'Pacifiste',
     description: 'Le moins de dégâts infligés aux champions sur une game',
-    color: 'text-brand-gold',
+    color: 'text-ink',
     icon: '🕊️',
     unit: ' dégâts',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -104,7 +107,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'squirrel',
     title: 'Le farmer',
     description: "Le plus d'or non dépensé en fin de game",
-    color: 'text-brand-gold',
+    color: 'text-ink',
     icon: '🐿️',
     unit: ' PO',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -113,7 +116,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'jungleThief',
     title: 'Voleur de jungle',
     description: 'Le plus de monstres jungle tués sans être le jungler',
-    color: 'text-brand-green',
+    color: 'text-ink',
     icon: '🐒',
     unit: ' camps',
     getSubtitle: (s) => `${getPlayerName(s.player)}${s.gameDate ? ' · ' + formatShortDate(s.gameDate) : ''}`
@@ -122,7 +125,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'comebackKing',
     title: 'Roi du comeback',
     description: 'Le plus de victoires en étant derrière en or à 20 min',
-    color: 'text-brand-gold',
+    color: 'text-win-ink',
     icon: '👑',
     unit: ' comebacks',
     getSubtitle: (s) => `${getPlayerName(s.player)} · Retour incroyable`
@@ -131,7 +134,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'nightOwl',
     title: 'Oiseau de nuit',
     description: 'Le plus de games jouées entre minuit et 6h',
-    color: 'text-text-main',
+    color: 'text-ink',
     icon: '🦉',
     unit: ' parties',
     getSubtitle: (s) => `${getPlayerName(s.player)} · Après minuit`
@@ -140,7 +143,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'longestLossStreak',
     title: 'Pire série de défaites',
     description: 'La plus longue série de défaites consécutives',
-    color: 'text-brand-red',
+    color: 'text-loss-ink',
     icon: '📉',
     unit: ' défaites',
     getSubtitle: (s) => `${getPlayerName(s.player)} · En série`
@@ -149,7 +152,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'emotionalElevator',
     title: 'Ascenseur émotionnel',
     description: 'La plus grosse chute de LP entre deux relevés',
-    color: 'text-brand-gold',
+    color: 'text-loss-ink',
     icon: '🎢',
     unit: ' LP',
     getSubtitle: (s) => `${getPlayerName(s.player)} · Montagnes russes`
@@ -158,7 +161,7 @@ export const AWARD_MAPPINGS: Record<LoLGlobalStatAwardKey, AwardMeta> = {
     key: 'cursedPatch',
     title: 'Patch maudit',
     description: 'Patch avec le pire winrate tous joueurs confondus (min. 10 games)',
-    color: 'text-brand-red',
+    color: 'text-loss-ink',
     icon: '☠️',
     unit: '% winrate',
     getSubtitle: () => `Maudit sur la période`

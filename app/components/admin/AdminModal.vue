@@ -2,7 +2,7 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 
 /**
- * Frame of the admin dialogs: scrim, focus, Escape and scroll lock. The content is slotted and
+ * Frame of the admin dialogs: overlay, focus, Escape and scroll lock. The content is slotted and
  * receives `titleId`, which its heading carries so the dialog is named by it.
  */
 const props = withDefaults(defineProps<{ size?: 'md' | 'lg' }>(), { size: 'md' })
@@ -42,14 +42,14 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[90] animate-fade bg-night/35 backdrop-blur-[4px]" @click="emit('close')" />
+    <div class="modal-in fixed inset-0 z-[90] bg-overlay" @click="emit('close')" />
     <div class="pointer-events-none fixed inset-0 z-[91] flex items-start justify-center overflow-y-auto px-4 pb-4" :class="LAYOUT[props.size].frame">
       <div
         ref="dialog"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
-        class="pointer-events-auto w-full animate-pop overflow-hidden rounded-[26px] border border-border-base bg-surface-base shadow-card-hover"
+        class="modal-in pointer-events-auto w-full overflow-hidden rounded-5 bg-surface text-ink shadow-float"
         :class="LAYOUT[props.size].dialog"
       >
         <slot :title-id="titleId" />
@@ -57,3 +57,15 @@ onBeforeUnmount(() => {
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+/* Appearance only (d-3): the dialog fades in, nothing moves. Reduced motion is handled globally. */
+.modal-in {
+  animation: modal-in var(--d-3) var(--ease-out) both;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+</style>

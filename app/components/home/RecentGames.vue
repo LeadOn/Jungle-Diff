@@ -246,7 +246,7 @@ const hasError = computed(() => (selectedPlayerId.value === null ? error.value !
       v-else-if="hasError"
       class="mt-5"
       title="Parties indisponibles"
-      message="Erreur lors du chargement des parties récentes."
+      description="Erreur lors du chargement des parties récentes."
     />
     <UiEmptyState
       v-else-if="entries.length === 0"

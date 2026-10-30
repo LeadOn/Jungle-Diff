@@ -103,9 +103,9 @@ const subtitle = computed(() => [
 ].filter(part => part !== '').join(' · '))
 
 const rowClass = computed(() => {
-  if (props.isSelected) return 'bg-surface-selected'
-  if (props.isMe) return 'bg-surface-highlight'
-  return 'bg-surface-base hover:bg-surface-hover'
+  if (props.isSelected) return 'bg-picked'
+  if (props.isMe) return 'bg-gold-soft'
+  return 'bg-surface hover:bg-sunken'
 })
 
 // --- Figures ---
@@ -269,38 +269,38 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
   <div>
     <!-- Column widths and breakpoints below must stay in sync with the scoreboard's header row. -->
     <div
-      class="flex cursor-pointer items-center gap-2.5 px-3.5 py-[11px] transition-colors duration-200 sm:gap-3 sm:px-5"
+      class="flex cursor-pointer items-center gap-2.5 px-3.5 py-[11px] transition-colors duration-[120ms] ease-out sm:gap-3 sm:px-5"
       :class="rowClass"
       @click="selectPlayer"
     >
       <span class="flex min-w-0 flex-1 items-center gap-3">
         <span class="relative size-11 shrink-0">
           <span
-            class="absolute inset-0 rounded-[14px] bg-surface-sunken bg-[length:112%] bg-center"
-            :class="isSelected ? 'ring-2 ring-text-main ring-offset-2 ring-offset-surface-base' : ''"
+            class="absolute inset-0 rounded-3 bg-sunken bg-[length:112%] bg-center"
+            :class="isSelected ? 'ring-2 ring-ink ring-offset-2 ring-offset-surface' : ''"
             :style="championStyle"
           />
           <span
             v-if="roleIconUrl"
             :title="roleLabel"
-            class="absolute -left-1.5 -top-1.5 flex size-[19px] items-center justify-center rounded-full border-[1.5px] border-surface-base bg-night"
+            class="absolute -left-1.5 -top-1.5 flex size-[19px] items-center justify-center rounded-full border-[1.5px] border-surface bg-night"
           >
             <img :src="roleIconUrl" alt="" class="size-[11px] brightness-0 invert">
           </span>
           <span
-            class="absolute -bottom-1.5 -right-1.5 flex h-[18px] min-w-5 items-center justify-center rounded-full border border-border-accent bg-surface-base px-1 text-[10px] font-bold"
+            class="type-mono absolute -bottom-1.5 -right-1.5 flex h-4 min-w-[18px] items-center justify-center rounded-1 bg-surface px-[3px] text-[10px] text-ink shadow-[0_0_0_1px_var(--line-strong)]"
           >{{ levelLabel }}</span>
         </span>
 
         <span class="flex min-w-0 flex-col gap-[3px]">
           <span class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span class="min-w-0 truncate text-[14.5px] font-bold">{{ player.riotIdGameName }}<span class="font-medium text-text-sec">#{{ player.riotIdTagLine }}</span></span>
+            <span class="min-w-0 truncate text-[0.875rem] font-[640] text-ink">{{ player.riotIdGameName }}<span class="type-mono ml-px font-normal text-ink-2">#{{ player.riotIdTagLine }}</span></span>
 
-            <span v-if="isMe" class="shrink-0 rounded-full bg-gold px-[7px] py-px text-[10.5px] font-bold text-brand-gold-text">Vous</span>
+            <UiStatus v-if="isMe" variant="me" class="shrink-0" />
             <span
               v-else-if="isLinked"
               title="Joueur suivi par JungleDiff"
-              class="shrink-0 rounded-full bg-win-soft px-[7px] py-px text-[10.5px] font-bold text-brand-green"
+              class="inline-flex h-5 shrink-0 items-center rounded-1 bg-canopy-soft px-1.5 text-[11px] font-[650] text-canopy"
             >{{ crewLabel }}</span>
 
             <span v-if="isSmurf" class="group/smurf relative flex shrink-0 cursor-pointer" @click.stop>
@@ -308,24 +308,24 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
                 v-if="primaryPlayerId"
                 :to="`/summoner/${primaryPlayerId}`"
                 :aria-label="`Smurf de ${primaryPlayerName || 'un joueur du crew'} : voir le compte principal`"
-                class="inline-flex size-[18px] items-center justify-center rounded-full bg-brand-gold-soft text-brand-gold transition-colors hover:bg-gold hover:text-brand-gold-text"
+                class="inline-flex size-5 items-center justify-center rounded-1 border border-line-strong text-ink-2 transition-colors duration-[120ms] ease-out hover:bg-neutral-soft hover:text-ink"
               >
                 <Icon name="lucide:bot" class="size-2.5" />
               </NuxtLink>
-              <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-night px-2 py-1 text-[10.5px] font-bold text-on-night group-hover/smurf:block">
-                Smurf de <span class="text-brand-gold-bright">{{ primaryPlayerName || 'Inconnu' }}</span>
+              <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-2 bg-night px-2 py-1 text-[11px] font-medium text-on-night-2 shadow-float group-hover/smurf:block">
+                Smurf de <span class="font-[650] text-on-night">{{ primaryPlayerName || 'Inconnu' }}</span>
               </span>
             </span>
 
             <span
               v-if="isMvp"
               title="Meilleur joueur de l'équipe gagnante"
-              class="shrink-0 rounded-full bg-brand-gold-bright px-[7px] py-px text-[10.5px] font-bold text-night"
+              class="inline-flex h-5 shrink-0 items-center rounded-1 bg-ink px-1.5 text-[11px] font-[650] text-paper"
             >MVP</span>
             <span
               v-if="isAce"
               title="Meilleur joueur de l'équipe perdante"
-              class="shrink-0 rounded-full bg-violet-soft px-[7px] py-px text-[10.5px] font-bold text-violet"
+              class="inline-flex h-5 shrink-0 items-center rounded-1 bg-violet-soft px-1.5 text-[11px] font-[650] text-violet-ink"
             >ACE</span>
 
             <!-- Only tracked players on a ranked game carry one; null means unknown, never 0. -->
@@ -338,7 +338,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Accéder à OP.GG"
-                class="group/ext flex size-5 items-center justify-center rounded-full border border-border-subtle bg-surface-high transition-[translate,border-color] hover:-translate-y-px hover:border-border-accent"
+                class="group/ext flex size-5 items-center justify-center rounded-1 border border-line bg-sunken transition-colors duration-[120ms] ease-out hover:border-line-strong"
                 @click.stop
               >
                 <img src="/img/external/opgg.png" alt="OP.GG" class="size-3 rounded-[2px] opacity-70 grayscale transition-[filter,opacity] group-hover/ext:opacity-100 group-hover/ext:grayscale-0">
@@ -348,7 +348,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Accéder à DPM.LoL"
-                class="group/ext flex size-5 items-center justify-center rounded-full border border-border-subtle bg-surface-high transition-[translate,border-color] hover:-translate-y-px hover:border-border-accent"
+                class="group/ext flex size-5 items-center justify-center rounded-1 border border-line bg-sunken transition-colors duration-[120ms] ease-out hover:border-line-strong"
                 @click.stop
               >
                 <img src="/img/external/dpmlol.png" alt="DPM.LoL" class="size-3 rounded-[2px] opacity-70 grayscale transition-[filter,opacity] group-hover/ext:opacity-100 group-hover/ext:grayscale-0">
@@ -357,24 +357,24 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
           </span>
           <span
             title="KP = part des éliminations de l'équipe auxquelles le joueur a contribué"
-            class="truncate text-xs font-semibold text-text-sec"
+            class="truncate text-xs font-medium text-ink-2"
           >{{ subtitle }}</span>
         </span>
       </span>
 
       <span class="flex w-11 shrink-0 justify-center sm:w-[58px]">
-        <span class="min-w-10 rounded-[10px] px-1.5 py-1 text-center text-[13px] font-bold sm:min-w-11 sm:px-2" :class="ratingClass">{{ ratingLabel }}</span>
+        <span class="fig min-w-10 rounded-full px-1.5 py-[5px] text-center text-[15px] sm:min-w-11 sm:px-2" :class="ratingClass">{{ ratingLabel }}</span>
       </span>
 
       <span class="flex w-[72px] shrink-0 flex-col items-center gap-px sm:w-20">
-        <span class="whitespace-nowrap font-mono text-[12.5px] font-semibold sm:text-[13.5px]">{{ player.kills }} / {{ player.deaths }} / {{ player.assists }}</span>
-        <span class="whitespace-nowrap text-[11.5px] font-bold" :class="kdaClass">{{ kdaLabel(player) }} KDA</span>
+        <span class="fig whitespace-nowrap text-[15px] text-ink sm:text-[16px]">{{ player.kills }} / {{ player.deaths }} / {{ player.assists }}</span>
+        <span class="whitespace-nowrap text-[11px] font-semibold" :class="kdaClass">{{ kdaLabel(player) }} KDA</span>
       </span>
 
       <span :title="damageTitle" class="hidden w-40 shrink-0 items-center gap-2 lg:flex">
-        <span class="h-2 flex-1 overflow-hidden rounded-full bg-surface-high">
+        <span class="h-2 flex-1 overflow-hidden rounded-full bg-sunken">
           <span
-            class="flex h-full overflow-hidden rounded-full transition-[width] duration-900 ease-spring-soft"
+            class="flex h-full overflow-hidden rounded-full transition-[width] duration-700 ease-out"
             :style="{ width: `${entered ? damageBarPercent : 0}%` }"
           >
             <template v-if="damageSplit">
@@ -382,24 +382,24 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
               <span class="h-full bg-dmg-magic" :style="{ width: `${damageSplit.magic}%` }" />
               <span class="h-full bg-dmg-true" :style="{ width: `${damageSplit.trueDamage}%` }" />
             </template>
-            <span v-else class="h-full w-full bg-text-ter" />
+            <span v-else class="h-full w-full bg-ink-3" />
           </span>
         </span>
-        <span class="w-[42px] text-right font-mono text-xs font-semibold">{{ damageLabel }}</span>
+        <span class="fig w-[42px] text-right text-[15px] text-ink">{{ damageLabel }}</span>
       </span>
 
       <span class="hidden w-[104px] shrink-0 flex-col gap-px min-[560px]:flex">
-        <span class="font-mono text-[13px] font-semibold">{{ goldLabel }} or</span>
-        <span class="whitespace-nowrap text-[11.5px] font-semibold text-text-sec">{{ csLabel }}</span>
+        <span class="text-[12px] font-semibold text-ink-2"><span class="fig text-[15px] text-ink">{{ goldLabel }}</span> or</span>
+        <span class="whitespace-nowrap text-[11.5px] font-medium text-ink-2">{{ csLabel }}</span>
       </span>
 
-      <span class="hidden w-[58px] shrink-0 text-center font-mono text-[13px] font-semibold rail:block">{{ player.visionScore }}</span>
+      <span class="fig hidden w-[58px] shrink-0 text-center text-[15px] text-ink rail:block">{{ player.visionScore }}</span>
 
       <span class="hidden w-[196px] shrink-0 gap-[3px] min-[700px]:flex">
         <span
           v-for="(item, index) in itemSlots"
           :key="index"
-          class="size-6 shrink-0 rounded-md bg-surface-high bg-cover bg-center"
+          class="size-6 shrink-0 rounded-1 bg-sunken bg-cover bg-center"
           :class="{ 'ml-1': index === itemSlots.length - 1 }"
           :style="itemStyle(item)"
         />
@@ -409,13 +409,13 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
         type="button"
         title="Statistiques avancées"
         :aria-expanded="showAdvancedStats"
-        class="flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 hover:bg-surface-sunken"
-        :class="{ 'bg-surface-sunken': showAdvancedStats }"
+        class="flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-2 text-ink-2 transition-colors duration-[120ms] ease-out hover:bg-neutral-soft hover:text-ink"
+        :class="{ 'bg-neutral-soft text-ink': showAdvancedStats }"
         @click.stop="showAdvancedStats = !showAdvancedStats"
       >
         <Icon
           name="lucide:chevron-down"
-          class="size-[15px] transition-transform duration-300 ease-spring"
+          class="size-[15px] transition-transform duration-200 ease-out"
           :class="{ 'rotate-180': showAdvancedStats }"
         />
       </button>
@@ -423,34 +423,34 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
 
     <div
       v-if="showAdvancedStats"
-      class="animate-fade border-t-[1.5px] border-dashed border-border-dashed bg-surface-hover px-3.5 pb-[18px] pt-4 sm:px-5"
+      class="border-t border-dashed border-line-strong bg-paper px-3.5 pb-[18px] pt-4 sm:px-5"
     >
       <div v-if="hasAdvancedStats" class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-[18px] gap-y-3">
         <span v-for="cell in advancedStats" :key="cell.label" class="flex flex-col gap-0.5">
-          <span class="text-[11.5px] font-semibold text-text-sec">{{ cell.label }}</span>
-          <span class="font-mono text-sm font-semibold">{{ cell.value }}</span>
+          <span class="text-[11.5px] font-medium text-ink-2">{{ cell.label }}</span>
+          <span class="fig text-[17px] text-ink">{{ cell.value }}</span>
         </span>
       </div>
-      <p v-else class="m-0 text-xs font-semibold text-text-sec">
+      <p v-else class="type-small m-0 text-ink-2">
         Statistiques avancées indisponibles pour cette partie (historique non recalculé).
       </p>
 
       <template v-if="challengeStats.length > 0">
-        <div class="my-3.5 h-0 border-t-[1.5px] border-dashed border-border-dashed" />
+        <div class="my-3.5 h-0 border-t border-dashed border-line-strong" />
         <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-[18px] gap-y-3">
           <span v-for="cell in challengeStats" :key="cell.label" class="flex flex-col gap-0.5">
-            <span class="text-[11.5px] font-semibold text-text-sec">{{ cell.label }}</span>
-            <span class="font-mono text-sm font-semibold">{{ cell.value }}</span>
+            <span class="text-[11.5px] font-medium text-ink-2">{{ cell.label }}</span>
+            <span class="fig text-[17px] text-ink">{{ cell.value }}</span>
           </span>
         </div>
 
         <div v-if="showMoreChallenges" class="mt-4 flex flex-col gap-4">
           <div v-for="group in moreChallengeGroups" :key="group.title">
-            <p class="m-0 mb-2 text-[11px] font-bold uppercase tracking-[0.05em] text-text-sec">{{ group.title }}</p>
+            <p class="type-label m-0 mb-2 text-ink-2">{{ group.title }}</p>
             <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-[18px] gap-y-3">
               <span v-for="cell in group.stats" :key="cell.label" class="flex flex-col gap-0.5">
-                <span class="text-[11.5px] font-semibold text-text-sec">{{ cell.label }}</span>
-                <span class="font-mono text-sm font-semibold">{{ cell.value }}</span>
+                <span class="text-[11.5px] font-medium text-ink-2">{{ cell.label }}</span>
+                <span class="fig text-[17px] text-ink">{{ cell.value }}</span>
               </span>
             </div>
           </div>
@@ -458,7 +458,7 @@ const moreChallengeGroups = computed<{ title: string, stats: StatCell[] }[]>(() 
 
         <button
           type="button"
-          class="mt-3.5 inline-flex cursor-pointer text-[13px] font-bold text-brand-link transition-colors duration-200 hover:text-text-main"
+          class="mt-3.5 inline-flex cursor-pointer text-[0.8125rem] font-semibold text-canopy hover:underline hover:underline-offset-[3px]"
           @click.stop="showMoreChallenges = !showMoreChallenges"
         >
           {{ showMoreChallenges ? 'Voir moins' : 'Voir plus de statistiques →' }}

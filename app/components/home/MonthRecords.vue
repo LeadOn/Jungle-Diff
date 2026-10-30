@@ -44,7 +44,7 @@ const items = computed(() => PRIORITY_KEYS
   <UiPanel
     v-if="items.length > 0"
     title="Records du mois"
-    title-tag="h3"
+    heading-tag="h3"
     link-to="/stats"
     link-text="Tout voir"
   >
