@@ -264,6 +264,15 @@ export class GameOnClient extends BaseApiService {
     return this.patch<GameOnPlayerDto>(`/lol/summoner/${segment(playerId)}/admin?${params.toString()}`, null, GameOnClient.opts(signal))
   }
 
+  /**
+   * Archives or restores an account, for every game (`gameon_admin`). Touches the `archived` flag
+   * only, unlike `updatePlayer`. `404`: unknown account — and also what an API build without the
+   * route answers, since nothing else matches the path there.
+   */
+  public setArchived(playerId: number, archived: boolean, signal?: AbortSignal) {
+    return this.patch<GameOnPlayerDto>(`/player/${segment(playerId)}/archived?archived=${archived}`, null, GameOnClient.opts(signal))
+  }
+
   /** `gameon_admin`. Taking a main out of the crew takes its smurfs out too; the reverse does not. */
   public setCrewMembership(playerId: number, inCrew: boolean, signal?: AbortSignal) {
     return this.patch<LoLSetCrewMembershipResultDto>(`/lol/summoner/${segment(playerId)}/crew?inCrew=${inCrew}`, null, GameOnClient.opts(signal))
@@ -299,6 +308,12 @@ export class GameOnClient extends BaseApiService {
     return this.get<LeaguePlayer>('/player/me', GameOnClient.opts(signal))
   }
 
+  /**
+   * Saves the signed-in player's own profile. `409` when the Riot ID sent already belongs to another
+   * account, and then nothing is saved — nickname and full name included. Decide on the status, not
+   * on the body's English sentence. Builds of the API before that answer `200` with the account
+   * unchanged instead.
+   */
   public updateCurrentPlayer(data: { FullName: string; Nickname: string; RiotGamesNickname?: string; RiotGamesTagLine?: string }, signal?: AbortSignal) {
     return this.patch<LeaguePlayer>('/player/me', data, GameOnClient.opts(signal))
   }

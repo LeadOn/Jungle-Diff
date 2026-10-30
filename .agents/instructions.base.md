@@ -78,7 +78,8 @@ public sign-up — authentication exists so a crew member can edit their own pro
   not generated yet, queued, report, abandoned, error — polls the `GET` every 5 s while queued, and
   the tab is only offered when the route carries a usable `playerId`.
 - `/settings` — authenticated (`definePageMeta({ auth: true })`): edit nickname, full name, Riot ID
-  and avatar; holders of the `gameon_admin` realm role get a link to the admin space.
+  and avatar (`PATCH /player/me`, then `POST /player/pp` only once the profile is saved); holders of
+  the `gameon_admin` realm role get a link to the admin space.
 - `/admin` — the admin space, built from the Claude Design mock-up "JungleDiff Admin v2", reserved to
   signed-in `gameon_admin` holders (`definePageMeta({ admin: true })`, see Authentication). Its own
   layout (`app/layouts/admin.vue`: "Admin" chip, "Retour au site", no crew search or mobile bar), a
@@ -90,7 +91,8 @@ public sign-up — authentication exists so a crew member can edit their own pro
     accounts synced the longest ago, and "Pas encore possible", what no route allows yet.
   - `/admin/players` — every account, filtered by status (in the URL, `?filter=`) and searched by
     Riot ID, nickname or name; per row a Riot refresh and "Gérer" (`AdminAccountModal`: nickname,
-    full name and archive through `PATCH /player`, Riot ID through `PATCH /lol/summoner/{id}/admin`,
+    full name through `PATCH /player`, archive through `PATCH /player/{id}/archived`, Riot ID
+    through `PATCH /lol/summoner/{id}/admin`,
     crew membership through `PATCH /lol/summoner/{id}/crew`, link / unlink smurfs), plus "Lier un
     smurf" (`AdminLinkSmurfModal`, `POST /lol/summoner/{id}/smurfs`).
   - `/admin/games` — re-synchronise a match from Riot, import a custom game from the JSON the League
@@ -536,8 +538,19 @@ Each of these is easy to reintroduce and hard to diagnose.
 - **`PATCH /player` (admin) overwrites the whole account.** It writes `fullName`, `nickname`,
   `keycloakId` and `archived` from the body, so the admin space always sends the account as read —
   a partial body detaches the Keycloak user or blanks the name. Its model validation also rejects an
-  empty `fullName` or `nickname`, which is why nickname, full name and archive are only offered on an
-  account with a Keycloak user (smurfs have no full name).
+  empty `fullName` or `nickname`, which is why nickname and full name are only offered on an
+  account with a Keycloak user (smurfs have no full name). It is called only when one of those two
+  changed, with `archived` as read.
+- **Archiving goes through `PATCH /player/{id}/archived?archived=`**, which touches that flag alone,
+  for LoL and Valorant at once (PeekDiff drives the same flag, and the same crew and smurf fields:
+  an account archived or taken out of the crew there is so here too, by design). API builds before
+  the `features/valorant/admin-and-economy` merge lack the route and answer `404`; until it is
+  deployed everywhere, `AdminAccountModal` falls back to `PATCH /player` on that `404`, which is also why the archive
+  switch is still offered only on accounts with a Keycloak user.
+- **`PATCH /player/me` answers `409` when the Riot ID belongs to another account, and then saves
+  nothing**, nickname and full name included. Decide on the status: the body is an English sentence.
+  `/settings` therefore uploads the picture only after a successful `PATCH`, or a refused save would
+  still change it. Older API builds answer `200` with the account unchanged instead.
 - **`PATCH /lol/summoner/{id}/admin` answers `200` even when it changed nothing** — when Riot does
   not know the Riot ID, or another account already holds it. Compare the Riot ID it returns with the
   one sent (`sameRiotId`) before reporting success.

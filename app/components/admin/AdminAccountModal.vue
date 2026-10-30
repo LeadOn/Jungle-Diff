@@ -4,7 +4,7 @@ import type { LoLAdminAccountDto } from '~/lib/types'
 import { useAdminStore } from '~/stores/admin'
 import { useGameOnLol } from '~/composables/useGameOnLol'
 import { useNow } from '~/composables/useNow'
-import { isAbortError } from '~/lib/types/error'
+import { errorStatusCode, isAbortError } from '~/lib/types/error'
 import { isSmurf } from '~/utils/lol-smurf'
 import { tierLabel } from '~/utils/lol-tier'
 import { timeAgo } from '~/utils/date'
@@ -25,7 +25,7 @@ import AdminRoute from './AdminRoute.vue'
 import AdminSwitch from './AdminSwitch.vue'
 
 /**
- * "Gérer": one account's settings, spread over the three admin routes that own them. Nothing is sent
+ * "Gérer": one account's settings, spread over the four admin routes that own them. Nothing is sent
  * until "Enregistrer", except linking and unlinking smurfs, which act at once like the mock-up's.
  *
  * The form is seeded once, when the dialog opens: the list may reload behind it (after a link, say)
@@ -76,12 +76,13 @@ const main = computed(() => (isSecondary ? admin.accountById(live.value.primaryP
 const smurfs = computed(() => admin.accounts.filter(account => isSmurf(account) && account.primaryPlayerId === id))
 const crewSmurfCount = computed(() => smurfs.value.filter(smurf => smurf.inCrew && !smurf.archived).length)
 
-type Change = 'riot' | 'player' | 'crew'
+type Change = 'riot' | 'player' | 'archive' | 'crew'
 
 const changes = computed<Change[]>(() => {
   const list: Change[] = []
   if (!sameRiotId({ name: form.riotName, tag: form.riotTag }, { name: initial.riotName, tag: initial.riotTag })) list.push('riot')
-  if (hasUser && (form.nickname !== initial.nickname || form.fullName !== initial.fullName || form.archived !== initial.archived)) list.push('player')
+  if (hasUser && (form.nickname !== initial.nickname || form.fullName !== initial.fullName)) list.push('player')
+  if (form.archived !== initial.archived) list.push('archive')
   if (form.inCrew !== initial.inCrew) list.push('crew')
   return list
 })
@@ -110,7 +111,10 @@ const dirtyLabel = computed(() => {
 
 const routes = computed(() => {
   const list: string[] = []
-  if (hasUser) list.push('PATCH /Player · Pseudo, Nom complet, Archivé (objet complet)')
+  if (hasUser) {
+    list.push('PATCH /Player · Pseudo, Nom complet (objet complet)')
+    list.push(`PATCH /Player/${id}/archived?archived`)
+  }
   list.push(`PATCH /lol/Summoner/${id}/admin?riotGamesNickname&riotGamesTagLine`)
   list.push(`PATCH /lol/Summoner/${id}/crew?inCrew`)
   list.push(isSecondary
@@ -118,6 +122,18 @@ const routes = computed(() => {
     : `POST /lol/Summoner/${id}/smurfs · DELETE /lol/Summoner/smurfs/{id}`)
   return list
 })
+
+/** `PATCH /player` rewrites the whole account, so everything but the edited fields goes back as read. */
+const updatePlayer = (archived: boolean) => api.updatePlayer({
+  id,
+  // Sent back as read: the API overwrites it, and a blank one would detach the Keycloak user.
+  keycloakId: props.account.keycloakId,
+  nickname: form.nickname.trim(),
+  fullName: form.fullName.trim(),
+  archived,
+  riotGamesNickname: live.value.riotGamesNickname,
+  riotGamesTagLine: live.value.riotGamesTagLine,
+}, admin.signal())
 
 const save = async () => {
   if (saving.value || changes.value.length === 0 || invalidReason.value) return
@@ -138,17 +154,21 @@ const save = async () => {
     }
 
     if (changes.value.includes('player')) {
-      await api.updatePlayer({
-        id,
-        // Sent back as read: the API overwrites it, and a blank one would detach the Keycloak user.
-        keycloakId: props.account.keycloakId,
-        nickname: form.nickname.trim(),
-        fullName: form.fullName.trim(),
-        archived: form.archived,
-        riotGamesNickname: live.value.riotGamesNickname,
-        riotGamesTagLine: live.value.riotGamesTagLine,
-      }, admin.signal())
-      done.push(form.archived !== initial.archived ? (form.archived ? 'archivé' : 'restauré') : 'profil')
+      // The archive flag goes as read: it changes in its own step below, through its own route.
+      await updatePlayer(initial.archived)
+      done.push('profil')
+    }
+
+    if (changes.value.includes('archive')) {
+      try {
+        await api.setArchived(id, form.archived, admin.signal())
+      } catch (error) {
+        // Transitional: an API build without the route answers 404 to it, and there the full
+        // account write is still the only way. Remove once that route is deployed everywhere.
+        if (!hasUser || errorStatusCode(error) !== 404) throw error
+        await updatePlayer(form.archived)
+      }
+      done.push(form.archived ? 'archivé' : 'restauré')
     }
 
     if (changes.value.includes('crew')) {
