@@ -83,15 +83,20 @@ rather than through Nitro's auto-import, so dependencies stay visible.
 **Templates** — props and events in kebab-case (`:hero-player`, `@player-selected`), camelCase in
 `<script setup>`. ESLint enforces it; `v-model` pairs use `update:<prop>`.
 
-**Design tokens** — `app/assets/css/main.css` defines raw values on `:root` (`--color-gold`) and maps
-them in `@theme` to what Tailwind exposes (`--color-brand-gold`). Write `bg-surface-base`,
-`text-text-main`, `text-brand-gold` — never a raw hex in a component. The match page's data colours
-are tokens too: `team-blue` / `team-red` (with `-text` and `-soft`), `dmg-physical` / `dmg-magic` /
-`dmg-true`, `violet` for the ACE accolade and `surface-selected` for a picked row. **Light is the
-default theme** (the v7 design palette) and the `.dark` class switches to a dark one; new code uses
-`dark:`, while `light:` stays active whenever `.dark` is absent so the few components written
-dark-first keep their light corrections. The custom `rail:` breakpoint (1100px) is declared in rem so Tailwind sorts it after
-`md:`.
+**Design tokens** — the site runs on the **Canopée** design system (specification, mock-ups and
+contrast audit in `docs/canopee/`). `app/assets/css/main.css` defines raw OKLCH values on `:root`
+and `:root.dark` (`--paper`, `--surface`, `--ink`) and maps them in `@theme` to what Tailwind exposes:
+write `bg-surface`, `text-ink-2`, `border-line`, `bg-night` — never a raw colour in a component.
+Type roles are utilities (`type-d1`…`type-d3`, `type-title`, `type-label`, `fig` for figures,
+`type-mono`), radii run `rounded-1`…`rounded-5` (4 to 18 px), and the primitives under
+`app/components/ui/` (`UiButton`, `UiSegmented`, `UiSwitch`, `UiPanel`, `UiStatus`, `UiSkeleton`,
+`UiEmptyState`, `UiErrorState`, …) carry them. Gold marks only the #1 and "Vous"; result colours only
+what is won or lost; text over splash art sits on a scrim or a night pill, never a text shadow. Tier
+colours stay data in `lol-tier.ts`, passed to CSS as an inline `--tier`. The match page's data
+colours are tokens: `side-blue` / `side-red` (with `-ink` and `-soft`), `dmg-physical` / `dmg-magic`
+/ `dmg-true`, `violet-ink` for the ACE accolade and `picked` for a picked row. **Light is the default
+theme** and the `.dark` class switches every raw value; only the `dark:` variant exists. The custom
+`rail:` breakpoint (1100px) is declared in rem so Tailwind sorts it after `md:`.
 
 ## 🔑 Authentication
 
@@ -252,7 +257,7 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   image with a health probe. `vue` is pinned to `^3.5.42`; it was `latest`, which let two installs a
   week apart produce different builds. Delivery is manual — see "Checks Before Deploying".
 - **Design v7** (2026-09-25): the home page was rebuilt from the Claude Design mock-up
-  "JungleDiff Accueil v7", which is now the design base for the whole site. The new tokens (light
+  "JungleDiff Accueil v7", the design base for the whole site until Canopée replaced it. The new tokens (light
   sage palette, Archivo / Geist Mono, pill controls, soft shadows), the sticky header, the footer and
   the mobile bottom bar apply everywhere; the other pages inherit the palette and typography and keep
   their layouts until they are redesigned in turn. The home page itself: a bento of the week, the
@@ -261,14 +266,14 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   derived from the brand guidelines stays available from the header (the mock-up has none). The
   crew search is back, as a command palette (⌘K / Ctrl K, "/").
 - **Profile on design v7** (2026-09-25): `/summoner/[id]` was rebuilt from the Claude Design
-  mock-up "JungleDiff Profil v5": an ink hero over the player's main-champion splash, rank cards with
+  mock-up "JungleDiff Profil v5": a dark hero over the player's main-champion splash, rank cards with
   a win-rate ring, big KPI tiles with a "Filtré" chip when the history filters narrow them, the match
   history grouped by Paris day with a W/L and LP total per day (its game cards are the home feed's,
   one shared `LolGameCard`), and a rail (LP progression and
   per-game LP bars, champions, roles, duos). Same data and routes as before; the per-queue game
   counts the mock-up shows in the queue filter are left out, since the API does not serve them.
 - **Match page on design v7** (2026-09-25): `/game/[id]/[playerId]` was rebuilt from the Claude
-  Design mock-up "JungleDiff Partie v5": an ink hero over the champion splash (result, rating,
+  Design mock-up "JungleDiff Partie v5": a dark hero over the champion splash (result, rating,
   MVP/ACE, the game's LP), per-team objective cards, key moments, and the five tabs in a pill bar that
   sticks under the header. Every feature was kept — scoreboards with unfolding advanced stats, the
   smurf badge, OP.GG / DPM links, LP per game, the film, the Performance charts, rAImmus and the raw
@@ -281,6 +286,16 @@ The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
   refused during SSR to anyone but a signed-in `gameon_admin`. The proxy gained `DELETE` for the
   smurf-unlink route only. Not in the mock-up and so not built: changelog management and the API's
   `GET /Admin/dashboard` (mostly FIFA counters).
+- **Canopée** (2026-10-30): the whole site moved from the v7 look to the Canopée design system
+  (`docs/canopee/`), in phases: the `ink` band renamed `night`, an OKLCH palette tuned for WCAG AA in
+  both themes, Archivo's width axis (wide titles, condensed figures), a set of `Ui*` primitives, then
+  the home page (headline written from the week's data, the week as a day-by-day ledger, the ladder's
+  podium, rank scale and list redrawn) and every other page — profile, match, stats, settings, admin
+  and error pages. No feature, route or data flow changed. Splash art stays on the podium, the player
+  of the week and the two heroes; text over it no longer relies on a halo. The temporary v7 bridge
+  and the `light:` variant are gone. `docs/canopee/tools/contrast-audit.mjs` checks every visible
+  text against AA and passes on `/`, `/stats`, a profile and a match, at 1440 and 375 px, light and
+  dark.
 - **Home on live data** (2026-09-25): the GameOn API now serves everything the v7 home needs, and the
   temporary placeholders are gone. `GET /lol/Home?window=Last7Days` gives a rolling 7-day window with
   its bounds, a per-day breakdown (games, playtime, net LP), the active players, and last week's wins
@@ -338,7 +353,12 @@ npm run sync:rules:check  # generated instruction files still match their source
 npm audit --omit=dev --audit-level=high
 npm run build             # required before the e2e suite; it boots .output
 npm run test:e2e
+node docs/canopee/tools/contrast-audit.mjs http://localhost:3000/ http://localhost:3000/stats \
+  http://localhost:3000/summoner/<id> http://localhost:3000/game/<matchId>/<playerId>
 ```
+
+The contrast audit runs against a running server and checks every visible text against WCAG AA at
+1440 and 375 px in both themes; it exits 1 on any failure.
 
 `tests/smoke.spec.ts` needs **no upstream and no secrets**: it passes with no GameOn API and no
 Keycloak at all, covering the security headers and CSP nonce, the proxy's allowlist and
