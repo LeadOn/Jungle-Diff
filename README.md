@@ -181,8 +181,13 @@ crew or not, archived or not) and re-read after every write:
 Each action prints the API route it calls. A few API behaviours shape the screens:
 
 - `PATCH /Player` overwrites the whole account (including its Keycloak link) and refuses an empty
-  name, so the admin sends the account as read, and only offers name and archive on accounts with a
-  Keycloak user.
+  name, so the admin sends the account as read, only when the nickname or full name changed, and
+  only offers them on accounts with a Keycloak user.
+- Archiving goes through `PATCH /Player/{id}/archived`, which changes that flag alone, for LoL and
+  Valorant (PeekDiff archives and edits crew membership on the same fields). Until every deployed
+  API has that route, a `404` from it falls back to `PATCH /Player`.
+- On `/settings`, `PATCH /Player/me` answers `409` when the Riot ID belongs to another account and
+  saves nothing: the page says so, and uploads the profile picture only after a successful save.
 - `PATCH /lol/Summoner/{id}/admin` answers `200` even when it changed nothing (unknown Riot ID, or one
   already taken): the screen compares the Riot ID it gets back. It also looks the account up again by
   `keycloakId`, which on an account without one (a smurf) targets another account — so the Riot ID is

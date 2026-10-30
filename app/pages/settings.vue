@@ -4,7 +4,7 @@ import { useAuthStore } from '~/stores/auth'
 import { usePlayerStore } from '~/stores/player'
 import { useRuntimeConfig } from '#app'
 import { useGameOnLol } from '~/composables/useGameOnLol'
-import { isAbortError } from '~/lib/types/error'
+import { errorStatusCode, isAbortError } from '~/lib/types/error'
 
 definePageMeta({
   auth: true
@@ -86,12 +86,9 @@ const saveProfile = async () => {
   saving.value = true
   showSuccess.value = false
   saveError.value = null
+  // The step under way, so a failure says what did and did not go through.
+  let step: 'profile' | 'picture' | 'reload' = 'profile'
   try {
-    if (selectedFile.value) {
-      await gameOnApi.uploadProfilePicture(selectedFile.value, pageRequests.signal)
-      // Force fetch to get new PP URL (if backend doesn't return it in update)
-      // or we can just append a new timestamp to avatarUrl computed
-    }
     const updated = await gameOnApi.updateCurrentPlayer({
       FullName: form.value.fullName,
       Nickname: form.value.nickname,
@@ -99,7 +96,12 @@ const saveProfile = async () => {
       RiotGamesTagLine: form.value.riotGamesTagLine || undefined
     }, pageRequests.signal)
     playerStore.setCurrentPlayer(updated)
+    // Uploaded only once the profile is saved: a 409 saves nothing, and the picture must not be the
+    // one change that went through.
     if (selectedFile.value) {
+      step = 'picture'
+      await gameOnApi.uploadProfilePicture(selectedFile.value, pageRequests.signal)
+      step = 'reload'
       // Reload the profile to pick up the new picture URL.
       await playerStore.fetchCurrentPlayer(true, pageRequests.signal)
     }
@@ -114,7 +116,16 @@ const saveProfile = async () => {
     console.error('[settings] Mise à jour du profil en échec:', e)
     // Rendered in-page rather than via `alert()`: a native dialog blocks the thread and cannot be
     // styled or announced properly by a screen reader.
-    saveError.value = "La mise à jour n'a pas pu être enregistrée. Réessayez dans un instant."
+    if (step === 'reload') {
+      saveError.value = "Le profil et la photo sont enregistrés, mais la page n'a pas pu les relire. Rechargez-la."
+    } else if (step === 'picture') {
+      saveError.value = "Le profil est enregistré, mais pas la photo. Réessayez dans un instant."
+    } else if (errorStatusCode(e) === 409) {
+      // Decided on the status alone: the body is an English sentence, not a contract.
+      saveError.value = "Ce Riot ID est déjà utilisé par un autre compte. Rien n'a été enregistré."
+    } else {
+      saveError.value = "La mise à jour n'a pas pu être enregistrée. Réessayez dans un instant."
+    }
   } finally {
     saving.value = false
   }
