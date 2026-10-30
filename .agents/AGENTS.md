@@ -50,6 +50,13 @@ public sign-up — authentication exists so a crew member can edit their own pro
   layout and opened from the header, the mobile bottom bar, ⌘K / Ctrl K or "/". It resolves names
   locally against the crew list (see Known Gaps) and loads that list on first opening when the
   current page did not.
+- **Link to PeekDiff**, the crew's Valorant twin (`runtimeConfig.public.peekDiffUrl`): a square
+  button with its logo (`app/assets/img/PeekDiff_Logo.png`, 128 px) just before the theme toggle in
+  `AppHeader`, in the toggle's style, shown from `sm:` up — at 375 px the signed-out header has no
+  room left for it — and a "PeekDiff ↗" text link beside the version in the default layout's footer
+  for phones. Same tab. It mirrors PeekDiff's own JungleDiff button. Both sites share the Keycloak
+  realm and client and PeekDiff signs a JungleDiff visitor in silently (`prompt=none`), so the link
+  needs no auth work. The admin layout does not carry it: the admin space is a place apart.
 - `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
   with one card per award defined in `app/utils/lol-awards.ts`.
 - `/summoner/[id]` — player profile, built from the Claude Design mock-up "JungleDiff Profil v5":
@@ -626,7 +633,8 @@ Each of these is easy to reintroduce and hard to diagnose.
 Required: `NUXT_PUBLIC_GAME_ON_API_URL`, `NUXT_PUBLIC_KEYCLOAK_AUTHORITY`,
 `NUXT_PUBLIC_KEYCLOAK_CLIENT_ID`, `NUXT_PUBLIC_KEYCLOAK_REALM`.
 Optional: `NUXT_GAME_ON_API_URL` (overrides the proxy target server-side),
-`NUXT_KEYCLOAK_CLIENT_SECRET` (only for a confidential Keycloak client; empty means public + PKCE).
+`NUXT_KEYCLOAK_CLIENT_SECRET` (only for a confidential Keycloak client; empty means public + PKCE),
+`NUXT_PUBLIC_PEEK_DIFF_URL` (target of the PeekDiff button, `https://val.junglediff.fr` by default).
 The Keycloak client must allow `<origin>/api/auth/callback` as a redirect URI.
 
 `typescript` is pinned to `^6.0.3` on purpose: `typescript-eslint` (via `@nuxt/eslint-config`) still

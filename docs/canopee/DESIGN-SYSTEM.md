@@ -155,6 +155,7 @@ Le segmenté choisit une vue exclusive. L'interrupteur active un filtre qui touc
 - Le segment actif se détache par la surface, pas par l'encre pleine.
 - Le filtre joueur actif est le seul élément en encre pleine de sa rangée.
 - Navigation : soulignement de 2 px sous l'onglet courant.
+- En-tête : juste avant le thème, un bouton carré de 36 px au logo de PeekDiff (le crew sur Valorant), dans le style du bouton de thème, dès sm ; sur téléphone, un lien « PeekDiff ↗ » dans le pied de page le remplace.
 
 Accueil Records
 

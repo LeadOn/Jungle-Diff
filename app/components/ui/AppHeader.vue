@@ -91,6 +91,16 @@ const toggleTheme = () => {
         <kbd class="inline-flex h-[22px] items-center rounded-1 border border-line bg-surface px-1.5 font-mono text-[11px] font-medium text-ink-2">{{ shortcutLabel }}</kbd>
       </button>
 
+      <!-- The crew's Valorant twin. Hidden on phones, where the header is full: the footer carries it. -->
+      <a
+        :href="config.public.peekDiffUrl"
+        aria-label="PeekDiff, le crew sur Valorant"
+        title="PeekDiff, le crew sur Valorant"
+        class="hidden size-9 shrink-0 items-center justify-center rounded-2 transition-colors duration-120 ease-out hover:bg-neutral-soft sm:inline-flex"
+      >
+        <img src="~/assets/img/PeekDiff_Logo.png" alt="" width="128" height="128" class="size-7 object-contain">
+      </a>
+
       <button
         type="button"
         :aria-label="isDark ? 'Passer au thème clair' : 'Passer au thème sombre'"

@@ -9,7 +9,13 @@
     <!-- The bottom padding clears the floating bar on phones. -->
     <footer class="border-t border-line">
       <div class="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-4 pb-[104px] pt-[18px] text-[13px] text-ink-3 md:px-6 md:pb-7 rail:px-8">
-        <span class="font-mono text-xs font-medium tabular-nums">JungleDiff v{{ config.public.appVersion }}</span>
+        <span class="flex items-center gap-x-5">
+          <span class="font-mono text-xs font-medium tabular-nums">JungleDiff v{{ config.public.appVersion }}</span>
+          <!-- The header's PeekDiff button only shows from `sm:`; this link is the way there on phones. -->
+          <a :href="config.public.peekDiffUrl" title="PeekDiff, le crew sur Valorant" class="font-semibold text-ink no-underline hover:underline">
+            PeekDiff <span aria-hidden="true">↗</span>
+          </a>
+        </span>
         <span>Créé en France par <a href="https://www.valentinvirot.fr" target="_blank" rel="noopener noreferrer" class="font-semibold text-ink no-underline hover:underline">LeadOn</a></span>
         <UiButton
           href="https://www.paypal.me/ValentinVirot"
