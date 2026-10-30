@@ -20,14 +20,27 @@ const props = defineProps<{
 const rankHistoryChart = ref<HTMLCanvasElement | null>(null)
 let chartInstance: Chart | null = null
 
-const SERIES_COLORS = {
-  // Use tailwind dark mode colors directly via CSS or just hardcode suitable ones
-  light: { solo: '#4d6ce5', flex: '#0ea47a' },
-  dark: { solo: '#6b8afb', flex: '#1b998b' },
+/**
+ * Every colour comes from the Canopée tokens, which already flip with the `.dark` class: Solo/Duo on
+ * `--side-blue`, Flex on `--canopy`, rules on `--line` / `--line-strong`, the tooltip on the night band.
+ * Chart.js draws on a canvas, which cannot read a CSS variable, so each one is resolved to a computed
+ * colour when the chart is built (and rebuilt on every data change).
+ */
+const SERIES_TOKENS = { solo: '--side-blue', flex: '--canopy' } as const
+
+function resolveColor(expression: string): string {
+  if (typeof document === 'undefined') return 'transparent'
+  const probe = document.createElement('span')
+  probe.style.display = 'none'
+  probe.style.color = expression
+  document.body.appendChild(probe)
+  const resolved = getComputedStyle(probe).color
+  probe.remove()
+  return resolved || 'transparent'
 }
 
-const GRID_COLOR = 'rgba(156, 163, 175, 0.15)'
-const AVERAGE_LINE_COLOR = 'rgba(156, 163, 175, 0.5)'
+const tokenColor = (token: string, percent = 100) =>
+  resolveColor(percent >= 100 ? `var(${token})` : `color-mix(in oklch, var(${token}) ${percent}%, transparent)`)
 
 interface RankPoint {
   x: number;
@@ -50,13 +63,6 @@ function periodStart(date: Date, granularity: LoLRankHistoryGranularity): number
     case 'Month':
       return new Date(d.getFullYear(), d.getMonth(), 1).getTime()
   }
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 const averageLinePlugin = {
@@ -86,7 +92,7 @@ const averageLinePlugin = {
 
     ctx.save()
     ctx.setLineDash([4, 4])
-    ctx.strokeStyle = AVERAGE_LINE_COLOR
+    ctx.strokeStyle = tokenColor('--line-strong')
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(chartArea.left, y)
@@ -119,11 +125,6 @@ function rebuildChart() {
   const soloPoints = toPoints(props.rankHistory.filter((h) => h.queueType === 'RANKED_SOLO_5x5'))
   const flexPoints = toPoints(props.rankHistory.filter((h) => h.queueType === 'RANKED_FLEX_SR'))
 
-  // The theme is read through `isLightTheme()`: this block used to test a `.dark` class the app
-  // never sets, so the chart always rendered its light palette — including in dark mode, which is
-  // the default theme.
-  const colors = isLightTheme() ? SERIES_COLORS.light : SERIES_COLORS.dark
-
   const timestamps = Array.from(new Set([...soloPoints, ...flexPoints].map((p) => p.x))).sort((a, b) => a - b)
 
   const alignToTimeline = (points: RankPoint[]) => {
@@ -134,8 +135,11 @@ function rebuildChart() {
     }
   }
 
-  const buildDataset = (label: string, points: RankPoint[], color: string): RankDataset => {
+  const buildDataset = (label: string, points: RankPoint[], token: string): RankDataset => {
     const { data, entries } = alignToTimeline(points)
+    const color = tokenColor(token)
+    const fillTop = tokenColor(token, 25)
+    const fillBottom = tokenColor(token, 0)
 
     let lastIndex = -1
     for (let i = data.length - 1; i >= 0; i--) {
@@ -152,10 +156,10 @@ function rebuildChart() {
       borderColor: color,
       backgroundColor: (context: ScriptableContext<'line'>) => {
         const { ctx, chartArea } = context.chart
-        if (!chartArea) return hexToRgba(color, 0.2)
+        if (!chartArea) return fillTop
         const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
-        gradient.addColorStop(0, hexToRgba(color, 0.25))
-        gradient.addColorStop(1, hexToRgba(color, 0))
+        gradient.addColorStop(0, fillTop)
+        gradient.addColorStop(1, fillBottom)
         return gradient
       },
       borderWidth: 2.5,
@@ -172,8 +176,8 @@ function rebuildChart() {
   }
 
   const datasets: RankDataset[] = []
-  if (soloPoints.length > 0) datasets.push(buildDataset('Solo 5v5', soloPoints, colors.solo))
-  if (flexPoints.length > 0) datasets.push(buildDataset('Flex 5v5', flexPoints, colors.flex))
+  if (soloPoints.length > 0) datasets.push(buildDataset('Solo 5v5', soloPoints, SERIES_TOKENS.solo))
+  if (flexPoints.length > 0) datasets.push(buildDataset('Flex 5v5', flexPoints, SERIES_TOKENS.flex))
 
   chartInstance = new Chart(rankHistoryChart.value, {
     type: 'line',
@@ -194,7 +198,7 @@ function rebuildChart() {
         x: { display: false },
         y: {
           display: true,
-          grid: { display: true, color: GRID_COLOR, drawTicks: false },
+          grid: { display: true, color: tokenColor('--line'), drawTicks: false },
           border: { display: false },
           ticks: { display: false, maxTicksLimit: 3 },
         },
@@ -210,16 +214,18 @@ function rebuildChart() {
             padding: 12,
             boxWidth: 6,
             boxHeight: 6,
-            color: 'rgba(156, 163, 175, 0.9)',
+            color: tokenColor('--ink-2'),
             font: { size: 11 },
           },
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backgroundColor: tokenColor('--night'),
+          titleColor: tokenColor('--on-night-2'),
+          bodyColor: tokenColor('--on-night'),
           padding: 10,
           titleFont: { size: 12 },
           bodyFont: { size: 12 },
-          cornerRadius: 6,
+          cornerRadius: 10,
           displayColors: true,
           callbacks: {
             title: (context: TooltipItem<'line'>[]) => {

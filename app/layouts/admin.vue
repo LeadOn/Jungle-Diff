@@ -49,15 +49,13 @@ const toggleTheme = () => {
 
 <template>
   <div class="relative min-h-screen overflow-x-clip">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 z-0 h-[520px] bg-page-wash" />
-
-    <header class="sticky top-0 z-50 border-b border-border-base bg-header backdrop-blur-[14px]">
-      <div class="mx-auto flex h-[68px] max-w-[1360px] items-center gap-3.5 px-4 md:px-8">
-        <NuxtLink to="/" aria-label="JungleDiff, accueil" class="flex shrink-0 items-center gap-2.5">
-          <img src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-8 object-contain">
-          <span class="hidden text-[21px] font-bold tracking-[-0.03em] text-text-main md:inline">JungleDiff</span>
+    <header class="sticky top-0 z-50 border-b border-line bg-header backdrop-blur-[12px]">
+      <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-3 px-4 md:px-6 rail:px-8">
+        <NuxtLink to="/" aria-label="JungleDiff, accueil" class="flex shrink-0 items-center gap-2 text-ink no-underline">
+          <img src="~/assets/img/JungleDiff_Logo.png" alt="" class="size-[30px] object-contain">
+          <b class="hidden font-wide text-[18px] font-[780] tracking-[-0.035em] md:inline">JungleDiff</b>
         </NuxtLink>
-        <span class="inline-flex h-7 items-center rounded-full bg-ink px-[11px] font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-on-photo-gold">Admin</span>
+        <span class="inline-flex h-6 items-center rounded-1 bg-ink px-2 type-label text-paper">Admin</span>
 
         <span class="flex-1" />
 
@@ -65,18 +63,18 @@ const toggleTheme = () => {
           type="button"
           :aria-label="isDark ? 'Passer au thème clair' : 'Passer au thème sombre'"
           :title="isDark ? 'Thème clair' : 'Thème sombre'"
-          class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-base bg-surface-base text-text-sec transition-colors hover:text-text-main"
+          class="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-2 text-ink-2 transition-colors duration-120 ease-out hover:bg-neutral-soft hover:text-ink"
           @click="toggleTheme"
         >
-          <Icon :name="isDark ? 'lucide:sun' : 'lucide:moon'" class="size-[17px]" />
+          <Icon :name="isDark ? 'lucide:sun' : 'lucide:moon'" class="size-4" />
         </button>
 
         <NuxtLink
           to="/"
           aria-label="Retour au site"
-          class="inline-flex h-10 shrink-0 items-center gap-[7px] rounded-full border border-border-base bg-surface-base px-4 text-[13.5px] font-bold text-text-main transition-colors duration-200 hover:border-text-main/30"
+          class="inline-flex h-9 shrink-0 items-center gap-2 rounded-2 border border-line-strong bg-surface px-2.5 text-sm font-semibold text-ink no-underline transition-colors duration-120 ease-out hover:border-ink-3 hover:bg-raised md:px-[14px]"
         >
-          <Icon name="lucide:arrow-left" class="size-[15px]" />
+          <Icon name="lucide:arrow-left" class="size-4 shrink-0" />
           <span class="hidden md:inline">Retour au site</span>
         </NuxtLink>
 
@@ -84,29 +82,29 @@ const toggleTheme = () => {
           <NuxtLink
             to="/settings"
             title="Paramètres du compte"
-            class="flex h-10 shrink-0 items-center gap-[9px] rounded-full border border-border-base bg-surface-base p-[3px] md:pr-3.5"
+            class="inline-flex h-9 shrink-0 items-center gap-2 rounded-2 border border-line bg-surface pl-[3px] pr-[3px] text-[13px] font-[620] text-ink no-underline transition-colors duration-120 ease-out hover:border-line-strong md:pr-2.5"
           >
-            <span class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-gold-bright text-[13px] font-bold text-ink">
+            <span class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gold text-xs font-bold text-on-tier shadow-[0_0_0_1px_var(--line)]">
               <UiAppImage v-if="avatarUrl" :src="avatarUrl" alt="" class="size-full object-cover" />
               <span v-else>{{ avatarInitial }}</span>
             </span>
-            <span class="hidden max-w-[150px] truncate text-[13.5px] font-bold text-text-main md:block">{{ profileLabel }}</span>
+            <span class="hidden max-w-[150px] truncate md:inline">{{ profileLabel }}</span>
           </NuxtLink>
           <template #fallback>
-            <div class="h-10 w-10 animate-pulse rounded-full border border-border-base bg-surface-base md:w-28" />
+            <UiSkeleton class="h-9 w-9 rounded-2 md:w-28" />
           </template>
         </ClientOnly>
       </div>
     </header>
 
-    <div class="relative z-[1] mx-auto max-w-[1360px] px-4 pt-5 md:px-8 md:pt-9">
+    <main class="mx-auto max-w-[1280px] px-4 pt-7 md:px-6 md:pt-9 rail:px-8">
       <slot />
-    </div>
+    </main>
 
-    <footer class="relative z-[1] mx-auto mt-[72px] max-w-[1360px] px-4 pb-9 md:px-8">
-      <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[22px] bg-ink px-[22px] py-[18px] text-[13px] text-ink-muted">
-        <span class="font-mono text-[11px] font-medium uppercase tracking-[0.1em]">JungleDiff · Administration · v{{ config.public.appVersion }}</span>
-        <span>Créé en France par <a href="https://www.valentinvirot.fr" target="_blank" rel="noopener noreferrer" class="font-bold text-on-photo-gold">LeadOn</a></span>
+    <footer class="mt-14 border-t border-line">
+      <div class="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-4 pb-7 pt-[18px] text-[13px] text-ink-3 md:px-6 rail:px-8">
+        <span class="font-mono text-xs font-medium tabular-nums">JungleDiff · Administration · v{{ config.public.appVersion }}</span>
+        <span>Créé en France par <a href="https://www.valentinvirot.fr" target="_blank" rel="noopener noreferrer" class="font-semibold text-ink no-underline hover:underline">LeadOn</a></span>
       </div>
     </footer>
   </div>

@@ -50,34 +50,36 @@ const signedInAs = computed(() => playerStore.currentPlayer?.nickname || authSto
 <template>
   <div>
     <div class="grid items-start gap-8 lg:grid-cols-[232px_minmax(0,1fr)]">
-      <aside class="relative min-w-0 lg:sticky lg:top-[92px]">
-        <nav aria-label="Sections d'administration" class="-mx-4 flex gap-1 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] md:-mx-8 md:px-8 lg:mx-0 lg:flex-col lg:p-0 [&::-webkit-scrollbar]:hidden">
+      <aside class="relative min-w-0 lg:sticky lg:top-20">
+        <nav aria-label="Sections d'administration" class="-mx-4 flex gap-1 overflow-x-auto px-4 py-1 [scrollbar-width:none] md:-mx-6 md:px-6 lg:mx-0 lg:flex-col lg:p-0 [&::-webkit-scrollbar]:hidden">
           <NuxtLink
             v-for="section in sections"
             :key="section.to"
             :to="section.to"
-            class="flex h-[42px] shrink-0 items-center justify-between gap-3 whitespace-nowrap rounded-full pl-4 pr-3 text-sm font-bold transition-colors duration-200"
-            :class="currentPath === section.to ? 'bg-inverse text-inverse-text' : 'text-text-main hover:bg-text-main/[0.06]'"
+            class="flex h-10 shrink-0 items-center justify-between gap-3 whitespace-nowrap rounded-2 pl-3 pr-2 text-sm no-underline transition-[background-color,color,box-shadow] duration-120 ease-out"
+            :class="currentPath === section.to
+              ? 'bg-surface font-[640] text-ink shadow-[0_0_0_1px_var(--line-strong),var(--shadow-hair-value)]'
+              : 'font-medium text-ink-2 hover:bg-neutral-soft hover:text-ink'"
           >
             <span>{{ section.label }}</span>
             <span
               v-if="section.count !== null"
-              class="inline-flex h-[22px] min-w-6 items-center justify-center rounded-full px-[7px] font-mono text-[11px] font-semibold"
-              :class="currentPath === section.to ? 'bg-inverse-text/15 text-inverse-text' : 'bg-surface-sunken text-text-main'"
+              class="inline-flex h-5 min-w-6 items-center justify-center rounded-full bg-neutral-soft px-1.5 font-mono text-[11px] font-medium tabular-nums"
+              :class="currentPath === section.to ? 'text-ink' : 'text-ink-2'"
             >{{ section.count }}</span>
           </NuxtLink>
         </nav>
 
-        <div class="mt-[22px] hidden rounded-[20px] border-[1.5px] border-dashed border-border-dashed p-4 lg:block">
-          <div class="text-xs font-semibold text-text-sec">Connecté en tant que</div>
+        <div class="mt-5 hidden rounded-5 border border-dashed border-line-strong p-4 lg:block">
+          <div class="type-label text-ink-2">Connecté en tant que</div>
           <ClientOnly>
-            <div class="mt-1 truncate text-[15px] font-bold">{{ signedInAs }}</div>
+            <div class="mt-1.5 truncate text-[15px] font-semibold text-ink">{{ signedInAs }}</div>
             <template #fallback>
-              <div class="mt-1 h-5 w-24 animate-pulse rounded bg-surface-sunken" />
+              <UiSkeleton class="mt-1.5 h-5 w-24" />
             </template>
           </ClientOnly>
-          <div class="mt-2 inline-flex rounded-full bg-brand-gold-soft px-[9px] py-[3px] font-mono text-[11px] font-semibold text-brand-gold">{{ ADMIN_ROLE }}</div>
-          <div class="mt-3.5 border-t border-border-subtle pt-3 font-mono text-[11px] text-text-sec">
+          <div class="mt-2 inline-flex h-5 items-center rounded-1 bg-neutral-soft px-1.5 font-mono text-[11px] font-medium text-ink-2">{{ ADMIN_ROLE }}</div>
+          <div class="mt-3.5 border-t border-line pt-3 font-mono text-[11px] text-ink-2">
             Front v{{ config.public.appVersion }}
           </div>
         </div>

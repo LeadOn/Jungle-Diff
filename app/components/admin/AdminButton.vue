@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * The pill buttons of the admin space. `primary` is the inverse pill (ink in the light theme);
- * `secondary` the white one with a hairline. `busy` spins the icon and blocks the button, so an
- * action cannot be fired twice while its call is in flight.
+ * The buttons of the admin space, drawn exactly like `UiButton` (primary: ink fill; secondary:
+ * surface with a hairline; 28 / 36 / 44 px, 6 px radius). Kept as its own component because `busy`
+ * also blocks the button, so an action cannot be fired twice while its call is in flight, and the
+ * icon (which spins while busy) is passed by name.
  */
 withDefaults(defineProps<{
   variant?: 'primary' | 'secondary'
@@ -21,9 +22,14 @@ withDefaults(defineProps<{
 })
 
 const SIZES = {
-  sm: 'h-[34px] px-3.5 text-[12.5px]',
-  md: 'h-10 px-4 text-[13.5px]',
-  lg: 'h-[42px] px-[18px] text-sm',
+  sm: 'h-7 px-2.5 gap-1.5 text-[0.8125rem]',
+  md: 'h-9 px-[14px] gap-2 text-[0.875rem]',
+  lg: 'h-11 px-[18px] gap-2 text-[0.9375rem]',
+} as const
+
+const VARIANTS = {
+  primary: 'border-transparent bg-ink text-paper enabled:hover:bg-[color-mix(in_oklch,var(--ink)_86%,var(--paper))]',
+  secondary: 'border-line-strong bg-surface text-ink enabled:hover:border-ink-3 enabled:hover:bg-raised',
 } as const
 </script>
 
@@ -32,23 +38,18 @@ const SIZES = {
     :type="type"
     :disabled="disabled || busy"
     :aria-busy="busy || undefined"
-    class="inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full font-bold transition-[transform,border-color,opacity] duration-[250ms] ease-spring disabled:cursor-not-allowed"
+    class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-2 border font-semibold transition-colors duration-120 ease-out select-none"
     :class="[
       SIZES[size],
-      variant === 'primary'
-        ? 'bg-inverse text-inverse-text enabled:hover:scale-[1.03] disabled:opacity-45'
-        : 'border border-border-accent bg-surface-base text-text-main enabled:hover:border-text-main/35 disabled:opacity-45',
-      busy && 'disabled:opacity-100',
+      VARIANTS[variant],
+      busy ? 'cursor-progress' : disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer',
     ]"
   >
     <Icon
       v-if="icon"
       :name="icon"
-      class="size-3.5 shrink-0"
-      :class="[
-        variant === 'primary' ? 'text-on-photo-lime dark:text-win' : 'text-win',
-        busy && 'animate-spin',
-      ]"
+      class="size-4 shrink-0"
+      :class="busy && 'animate-spin'"
     />
     <slot />
   </button>

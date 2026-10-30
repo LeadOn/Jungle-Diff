@@ -126,147 +126,253 @@ const logout = () => {
 </script>
 
 <template>
-  <div class="w-full max-w-[800px] mx-auto py-8 px-4">
-    <!-- Error Banner -->
-    <div v-if="saveError" class="mb-6 bg-brand-red/10 border border-brand-red/20 rounded-2xl p-4 flex items-center gap-3 animate-fade-in-up">
-      <div class="w-8 h-8 rounded-full bg-brand-red/20 flex items-center justify-center flex-shrink-0 text-brand-red">
-        <Icon name="lucide:triangle-alert" class="text-[16px]" style="stroke-width: 3px;" />
-      </div>
-      <p class="text-brand-red text-sm font-bold m-0">{{ saveError }}</p>
-    </div>
-
-    <!-- Success Banner -->
-    <div v-if="showSuccess" class="mb-6 bg-brand-green/10 border border-brand-green/20 rounded-2xl p-4 flex items-center gap-3 animate-fade-in-up">
-      <div class="w-8 h-8 rounded-full bg-brand-green/20 flex items-center justify-center flex-shrink-0 text-brand-green">
-        <Icon name="lucide:check" class="text-[16px]" style="stroke-width: 3px;" />
-      </div>
-      <p class="text-brand-green text-sm font-bold m-0">Mise à jour réussie !</p>
-    </div>
-
+  <div class="mx-auto grid w-full max-w-[800px] gap-6 px-4 py-8">
     <!-- Header Skeleton -->
-    <div v-if="loading" class="flex items-center justify-between animate-pulse mb-8 bg-surface-base rounded-2xl p-6 border border-border-base">
-      <div class="flex items-center gap-6">
-        <div class="w-24 h-24 rounded-full bg-surface-high"/>
-        <div class="flex flex-col gap-2">
-          <div class="w-32 h-6 rounded bg-surface-high"/>
-          <div class="w-48 h-4 rounded bg-surface-high"/>
+    <div
+      v-if="loading"
+      class="flex items-center justify-between gap-4 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-6 shadow-card"
+      aria-busy="true"
+    >
+      <div class="flex items-center gap-5">
+        <UiSkeleton circle class="h-20 w-20 shrink-0" />
+        <div class="grid gap-2">
+          <UiSkeleton class="h-6 w-32" />
+          <UiSkeleton class="h-4 w-48 max-w-full" />
         </div>
       </div>
-      <div class="w-12 h-12 rounded-full bg-surface-high"/>
+      <UiSkeleton class="h-11 w-11 shrink-0" />
     </div>
 
     <!-- Header -->
-    <div v-else-if="player" class="flex items-center justify-between mb-8 bg-surface-base rounded-2xl p-6 border border-border-base shadow-sm animate-fade-in-up">
-      <div class="flex items-center gap-6">
-        <div class="w-24 h-24 rounded-full bg-surface-high border border-border-subtle overflow-hidden flex-shrink-0 shadow-inner">
-          <img v-if="player.profilePictureUrl" :src="avatarUrl" alt="Avatar" class="w-full h-full object-cover" >
-          <div v-else class="w-full h-full flex items-center justify-center text-text-ter font-bold text-3xl">
+    <div
+      v-else-if="player"
+      class="flex items-center justify-between gap-4 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-6 shadow-card"
+    >
+      <div class="flex min-w-0 items-center gap-5">
+        <div class="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-sunken">
+          <img v-if="player.profilePictureUrl" :src="avatarUrl" alt="Avatar" class="h-full w-full object-cover" >
+          <div v-else class="flex h-full w-full items-center justify-center fig text-[2rem] text-ink-3">
             {{ player.nickname?.charAt(0).toUpperCase() }}
           </div>
         </div>
-        <div class="flex flex-col justify-center">
-          <h1 class="m-0 text-2xl font-black text-text-main leading-tight">{{ player.nickname }}</h1>
-          <p class="m-0 text-sm font-medium text-text-sec mt-1">{{ player.fullName }}</p>
+        <div class="flex min-w-0 flex-col justify-center gap-1">
+          <h1 class="type-d2 m-0 text-ink [overflow-wrap:anywhere]">{{ player.nickname }}</h1>
+          <p class="type-body m-0 truncate text-ink-2">{{ player.fullName }}</p>
         </div>
       </div>
-      
-      <button class="w-12 h-12 flex items-center justify-center rounded-full bg-brand-red/10 text-brand-red hover:bg-brand-red/20 border border-brand-red/20 transition-colors shadow-sm" title="Se déconnecter" @click="logout">
-        <Icon name="lucide:log-out" class="text-[18px]" style="stroke-width: 2.5px;" />
-      </button>
+
+      <UiButton
+        variant="secondary"
+        size="lg"
+        icon
+        title="Se déconnecter"
+        aria-label="Se déconnecter"
+        class="shrink-0"
+        @click="logout"
+      >
+        <Icon name="lucide:log-out" class="size-[18px]" aria-hidden="true" />
+      </UiButton>
     </div>
 
-    <div v-if="!loading && player" class="flex flex-col gap-6">
+    <template v-if="!loading && player">
       <!--
         The admin block no longer carries the "copy access token" button: tokens now live in
         httpOnly cookies and are not readable by the page. Copying one to the clipboard — synced
         across devices and readable by other applications — also exposed a full session credential.
       -->
-      <div v-if="isAdmin" class="bg-surface-base rounded-2xl p-6 border border-border-base shadow-sm animate-fade-in-up" style="animation-delay: 50ms;">
-        <h2 class="text-sm font-black text-text-main mb-4 flex items-center gap-2">
-          <Icon name="lucide:shield-alert" class="text-brand-gold" />
-          Administration
-        </h2>
-        <p class="m-0 text-[13px] font-medium text-text-sec">
-          Votre compte dispose du rôle <span class="font-mono font-bold text-brand-gold">gameon_admin</span>.
-        </p>
-        <NuxtLink to="/admin" class="mt-4 flex items-center justify-between w-full p-4 rounded-xl bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-high/80 text-text-main transition-colors group">
-          <span class="flex items-center gap-3 font-bold text-[13px]">
-            Ouvrir l'espace d'administration
+      <UiPanel v-if="isAdmin" heading-tag="h2">
+        <template #title>
+          <span class="inline-flex items-center gap-2">
+            <Icon name="lucide:shield-alert" class="size-[18px] text-ink-3" aria-hidden="true" />
+            Administration
           </span>
-          <Icon name="lucide:arrow-right" class="text-[16px] text-text-ter group-hover:text-brand-gold transition-colors" />
-        </NuxtLink>
-      </div>
+        </template>
+        <div class="grid gap-4 px-4 pb-4">
+          <p class="type-body m-0 text-ink-2">
+            Votre compte dispose du rôle <span class="type-mono text-ink">gameon_admin</span>.
+          </p>
+          <NuxtLink
+            to="/admin"
+            class="group flex w-full items-center justify-between gap-3 rounded-3 border border-line bg-sunken px-4 py-3.5 text-ink transition-colors duration-[120ms] ease-out hover:border-line-strong"
+          >
+            <span class="text-[0.8125rem] font-semibold">
+              Ouvrir l'espace d'administration
+            </span>
+            <Icon name="lucide:arrow-right" class="size-4 text-ink-3 transition-colors duration-[120ms] ease-out group-hover:text-ink" aria-hidden="true" />
+          </NuxtLink>
+        </div>
+      </UiPanel>
 
       <!-- LoL Block -->
-      <div class="bg-surface-base rounded-2xl p-6 border border-border-base shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
-        <h2 class="text-sm font-black text-text-main mb-4 flex items-center gap-2">
-          <Icon name="lucide:gamepad-2" class="text-brand-gold text-[18px]" />
-          League of Legends
-        </h2>
-        
-        <div v-if="!player.riotGamesNickname" class="mb-4 text-[13px] font-medium text-brand-gold bg-brand-gold/10 p-3 rounded-lg border border-brand-gold/20">
-          Vous pouvez renseigner votre compte Riot Games dans les préférences ci-dessous.
-        </div>
-        
-        <NuxtLink :to="`/summoner/${player.id}`" class="flex items-center justify-between w-full p-4 rounded-xl bg-surface-high border border-border-subtle hover:border-border-accent hover:bg-surface-high/80 text-text-main transition-colors group">
-          <span class="flex items-center gap-3 font-bold text-[13px]">
-            Voir mon profil LoL
+      <UiPanel heading-tag="h2">
+        <template #title>
+          <span class="inline-flex items-center gap-2">
+            <Icon name="lucide:gamepad-2" class="size-[18px] text-ink-3" aria-hidden="true" />
+            League of Legends
           </span>
-          <Icon name="lucide:arrow-right" class="text-[16px] text-text-ter group-hover:text-brand-gold transition-colors" />
-        </NuxtLink>
-      </div>
+        </template>
+        <div class="grid gap-4 px-4 pb-4">
+          <p v-if="!player.riotGamesNickname" class="type-small m-0 rounded-3 border border-line bg-canopy-soft px-3.5 py-3 text-ink">
+            Vous pouvez renseigner votre compte Riot Games dans les préférences ci-dessous.
+          </p>
+
+          <NuxtLink
+            :to="`/summoner/${player.id}`"
+            class="group flex w-full items-center justify-between gap-3 rounded-3 border border-line bg-sunken px-4 py-3.5 text-ink transition-colors duration-[120ms] ease-out hover:border-line-strong"
+          >
+            <span class="text-[0.8125rem] font-semibold">
+              Voir mon profil LoL
+            </span>
+            <Icon name="lucide:arrow-right" class="size-4 text-ink-3 transition-colors duration-[120ms] ease-out group-hover:text-ink" aria-hidden="true" />
+          </NuxtLink>
+        </div>
+      </UiPanel>
 
       <!-- Preferences -->
-      <div class="bg-surface-base rounded-2xl p-6 border border-border-base shadow-sm animate-fade-in-up" style="animation-delay: 150ms;">
-        <h2 class="text-sm font-black text-text-main mb-6 flex items-center gap-2">
-          <Icon name="lucide:settings" class="text-text-sec" />
-          Préférences
-        </h2>
-        
-        <form class="flex flex-col gap-5" @submit.prevent="saveProfile">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold text-text-ter uppercase tracking-widest">Nom complet <span class="text-brand-red">*</span></label>
-              <input v-model="form.fullName" type="text" required class="bg-surface-high border border-border-subtle rounded-xl px-4 py-2.5 text-[13px] font-bold text-text-main focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition-all" >
+      <UiPanel heading-tag="h2">
+        <template #title>
+          <span class="inline-flex items-center gap-2">
+            <Icon name="lucide:settings" class="size-[18px] text-ink-3" aria-hidden="true" />
+            Préférences
+          </span>
+        </template>
+
+        <form class="flex flex-col gap-5 px-4 pt-1 pb-5" @submit.prevent="saveProfile">
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div class="flex flex-col gap-1.5">
+              <label for="settings-full-name" class="text-[0.8125rem] font-semibold text-ink">
+                Nom complet <span class="text-loss-ink" aria-hidden="true">*</span>
+              </label>
+              <input id="settings-full-name" v-model="form.fullName" type="text" required class="field" >
             </div>
-            
-            <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold text-text-ter uppercase tracking-widest">Pseudo <span class="text-brand-red">*</span></label>
-              <input v-model="form.nickname" type="text" required class="bg-surface-high border border-border-subtle rounded-xl px-4 py-2.5 text-[13px] font-bold text-text-main focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition-all" >
+
+            <div class="flex flex-col gap-1.5">
+              <label for="settings-nickname" class="text-[0.8125rem] font-semibold text-ink">
+                Pseudo <span class="text-loss-ink" aria-hidden="true">*</span>
+              </label>
+              <input id="settings-nickname" v-model="form.nickname" type="text" required class="field" >
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold text-text-ter uppercase tracking-widest">Compte Riot Games</label>
-              <input v-model="form.riotGamesNickname" type="text" placeholder="Ex: Faker" class="bg-surface-high border border-border-subtle rounded-xl px-4 py-2.5 text-[13px] font-bold text-text-main focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition-all" >
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div class="flex flex-col gap-1.5">
+              <label for="settings-riot-name" class="text-[0.8125rem] font-semibold text-ink">Compte Riot Games</label>
+              <input id="settings-riot-name" v-model="form.riotGamesNickname" type="text" placeholder="Ex: Faker" class="field" >
             </div>
-            
-            <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold text-text-ter uppercase tracking-widest">Tag Line</label>
-              <input v-model="form.riotGamesTagLine" type="text" placeholder="Ex: EUW" class="bg-surface-high border border-border-subtle rounded-xl px-4 py-2.5 text-[13px] font-bold text-text-main focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition-all" >
+
+            <div class="flex flex-col gap-1.5">
+              <label for="settings-riot-tag" class="text-[0.8125rem] font-semibold text-ink">Tag Line</label>
+              <input id="settings-riot-tag" v-model="form.riotGamesTagLine" type="text" placeholder="Ex: EUW" class="field" >
             </div>
           </div>
 
-          <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-bold text-text-ter uppercase tracking-widest">Photo de profil</label>
-            <input ref="fileInput" type="file" accept="image/png, image/jpeg, image/webp, image/gif" class="block w-full text-sm text-text-sec file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-surface-high file:text-text-main hover:file:bg-surface-high/80 file:cursor-pointer cursor-pointer border border-border-subtle rounded-xl p-2 bg-surface-base" @change="handleFileChange" >
-            <p class="text-[11px] text-text-ter font-medium mt-1">Formats autorisés : PNG, JPG, WebP ou GIF.</p>
+          <div class="flex flex-col gap-1.5">
+            <label for="settings-avatar" class="text-[0.8125rem] font-semibold text-ink">Photo de profil</label>
+            <input
+              id="settings-avatar"
+              ref="fileInput"
+              type="file"
+              accept="image/png, image/jpeg, image/webp, image/gif"
+              aria-describedby="settings-avatar-hint"
+              class="field-file"
+              @change="handleFileChange"
+            >
+            <p id="settings-avatar-hint" class="type-small m-0 text-ink-3">Formats autorisés : PNG, JPG, WebP ou GIF.</p>
           </div>
 
-          <div class="mt-4">
-            <button type="submit" :disabled="saving" class="w-full md:w-auto px-8 py-3 rounded-full bg-brand-gold text-brand-gold-text font-black text-[13px] hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait">
-              <Icon v-if="saving" name="lucide:loader-2" class="animate-spin text-[16px]" />
-              <Icon v-else name="lucide:save" class="text-[16px]" />
+          <div class="mt-2 flex flex-col gap-3 md:flex-row md:items-center">
+            <UiButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              :busy="saving"
+              :disabled="saving"
+              class="w-full md:w-auto"
+            >
+              <Icon v-if="saving" name="lucide:loader-2" class="size-4 animate-spin" aria-hidden="true" />
+              <Icon v-else name="lucide:save" class="size-4" aria-hidden="true" />
               {{ saving ? 'Enregistrement...' : 'Enregistrer les modifications' }}
-            </button>
+            </UiButton>
+
+            <!-- Save outcome, inline beside the action that produced it. -->
+            <p
+              v-if="saveError"
+              role="alert"
+              class="type-small m-0 flex items-center gap-2 rounded-2 border border-[color-mix(in_oklch,var(--loss)_45%,var(--line))] bg-loss-soft px-3 py-2 text-loss-ink"
+            >
+              <Icon name="lucide:triangle-alert" class="size-4 shrink-0" aria-hidden="true" />
+              {{ saveError }}
+            </p>
+            <p
+              v-if="showSuccess"
+              role="status"
+              class="type-small m-0 flex items-center gap-2 rounded-2 border border-[color-mix(in_oklch,var(--win)_45%,var(--line))] bg-win-soft px-3 py-2 text-win-ink"
+            >
+              <Icon name="lucide:check" class="size-4 shrink-0" aria-hidden="true" />
+              Mise à jour réussie !
+            </p>
           </div>
         </form>
-      </div>
-    </div>
+      </UiPanel>
+    </template>
   </div>
 </template>
 
 <style scoped>
 @reference "../assets/css/main.css";
+
+.field {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: border-color 120ms var(--ease-out);
+}
+
+.field:hover {
+  border-color: var(--line-strong);
+}
+
+.field:focus {
+  border-color: var(--focus);
+}
+
+.field-file {
+  display: block;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: border-color 120ms var(--ease-out);
+}
+
+.field-file:hover {
+  border-color: var(--line-strong);
+}
+
+.field-file::file-selector-button {
+  height: 28px;
+  margin-right: 12px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-1);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease-out);
+}
+
+.field-file:hover::file-selector-button {
+  background: var(--raised);
+}
 </style>

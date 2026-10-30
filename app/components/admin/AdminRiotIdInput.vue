@@ -35,12 +35,12 @@ const read = (event: Event) => (event.target as HTMLInputElement).value
       :disabled="disabled"
       spellcheck="false"
       autocomplete="off"
-      class="riot-field min-w-0 flex-1 font-bold"
-      :class="size === 'lg' ? 'h-11 rounded-[14px] px-3.5 text-[15px]' : 'h-[42px] rounded-xl px-3 text-sm'"
+      class="riot-field min-w-0 flex-1 font-semibold"
+      :class="size === 'lg' ? 'h-11 px-3.5 text-[15px]' : 'h-10 px-3 text-sm'"
       @input="emit('update:name', read($event))"
       @keydown.enter.prevent="emit('submit')"
     >
-    <span aria-hidden="true" class="font-bold text-text-sec" :class="size === 'lg' ? 'text-lg' : 'text-[17px]'">#</span>
+    <span aria-hidden="true" class="font-mono font-medium text-ink-3" :class="size === 'lg' ? 'text-base' : 'text-[15px]'">#</span>
     <input
       :value="tag"
       :aria-label="tagLabel"
@@ -49,7 +49,7 @@ const read = (event: Event) => (event.target as HTMLInputElement).value
       spellcheck="false"
       autocomplete="off"
       class="riot-field font-mono"
-      :class="size === 'lg' ? 'h-11 w-[100px] rounded-[14px] px-3.5 text-sm' : 'h-[42px] w-24 rounded-xl px-3 text-[13.5px]'"
+      :class="size === 'lg' ? 'h-11 w-[100px] px-3.5 text-sm' : 'h-10 w-24 px-3 text-[13px]'"
       @input="emit('update:tag', read($event))"
       @keydown.enter.prevent="emit('submit')"
     >
@@ -60,6 +60,7 @@ const read = (event: Event) => (event.target as HTMLInputElement).value
 @reference "../../assets/css/main.css";
 
 .riot-field {
-  @apply border border-border-accent bg-surface-hover text-text-main outline-none transition-colors focus:border-text-main/45 disabled:cursor-not-allowed disabled:opacity-60;
+  /* Fields: 6 px radius, hairline that darkens on hover; focus is the global focus-visible ring. */
+  @apply rounded-2 border border-line-strong bg-surface text-ink transition-colors duration-120 ease-out hover:border-ink-3 disabled:cursor-not-allowed disabled:bg-sunken disabled:opacity-60 disabled:hover:border-line-strong;
 }
 </style>

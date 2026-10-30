@@ -8,7 +8,7 @@ useSeoMeta({ title: 'Parties · Administration' })
 </script>
 
 <template>
-  <section aria-labelledby="admin-games-title" class="animate-rise">
+  <section aria-labelledby="admin-games-title">
     <AdminSectionHeader
       heading-id="admin-games-title"
       title="Parties"

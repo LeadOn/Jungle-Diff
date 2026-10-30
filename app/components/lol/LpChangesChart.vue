@@ -35,8 +35,8 @@ type BarKind = 'gain' | 'loss' | 'neutral' | 'unknown'
 const BAR_CLASS: Record<BarKind, string> = {
   gain: 'bg-win',
   loss: 'bg-loss',
-  neutral: 'bg-text-sec',
-  unknown: 'bg-text-sec',
+  neutral: 'bg-ink-2',
+  unknown: 'bg-ink-2',
 }
 
 // One scale for both directions, so a +20 and a -20 draw the same height. Floored at 10 LP so a run
@@ -104,9 +104,9 @@ const lastLabel = computed(() => {
 const hoveredEntry = computed(() => (hoveredIndex.value != null ? props.entries[hoveredIndex.value] ?? null : null))
 
 const LP_TONE_CLASS = {
-  gain: 'text-on-photo-green',
-  loss: 'text-on-photo-red',
-  neutral: 'text-ink-text',
+  gain: 'text-on-night-win',
+  loss: 'text-on-night-loss',
+  neutral: 'text-on-night',
 } as const
 
 const hoveredLpLabel = computed(() => {
@@ -115,7 +115,7 @@ const hoveredLpLabel = computed(() => {
 })
 const hoveredLpClass = computed(() => {
   const change = hoveredEntry.value?.rankChange
-  return change ? LP_TONE_CLASS[lpDeltaTone(change.leaguePointsChange)] : 'text-ink-muted'
+  return change ? LP_TONE_CLASS[lpDeltaTone(change.leaguePointsChange)] : 'text-on-night-2'
 })
 
 // Keeps the tooltip inside the card near the chart's left and right edges.
@@ -130,36 +130,36 @@ const tooltipStyle = computed(() => {
 <template>
   <div>
     <div class="flex items-baseline justify-between gap-2">
-      <h4 class="m-0 text-[14.5px] font-bold">Gains et pertes par partie</h4>
-      <span v-if="!loading && entries.length > 0" class="text-xs font-semibold text-text-sec">{{ plural(entries.length) }}</span>
+      <h4 class="m-0 text-[0.9375rem] font-[640] text-ink">Gains et pertes par partie</h4>
+      <span v-if="!loading && entries.length > 0" class="type-small text-ink-2">{{ plural(entries.length) }}</span>
     </div>
 
-    <div v-if="loading" class="mt-3.5 h-24 animate-pulse rounded-[14px] bg-surface-high" />
+    <UiSkeleton v-if="loading" class="mt-3.5 h-24 rounded-3" />
     <div
       v-else-if="entries.length === 0"
-      class="mt-3.5 flex h-24 items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-border-dashed text-center text-[12.5px] font-bold text-text-sec"
+      class="type-small mt-3.5 flex h-24 items-center justify-center rounded-3 border border-dashed border-line-strong px-3 text-center text-ink-2"
     >
       Aucune partie classée sur cette période.
     </div>
     <template v-else>
-      <div class="mb-[18px] mt-2.5 flex flex-wrap gap-1.5">
-        <span class="rounded-full bg-win-soft px-[9px] py-[3px] text-[11.5px] font-bold text-brand-green">
-          Moy. victoire <span class="font-mono font-semibold">{{ averageWin != null ? formatLpDelta(averageWin) : '—' }}</span>
+      <div class="mt-2.5 mb-[18px] flex flex-wrap gap-1.5">
+        <span class="inline-flex h-[22px] items-center gap-1 rounded-full bg-win-soft px-[9px] text-[11.5px] font-semibold text-win-ink">
+          Moy. victoire <span class="font-mono tabular-nums">{{ averageWin != null ? formatLpDelta(averageWin) : '—' }}</span>
         </span>
-        <span class="rounded-full bg-loss-soft px-[9px] py-[3px] text-[11.5px] font-bold text-brand-red">
-          Moy. défaite <span class="font-mono font-semibold">{{ averageLoss != null ? formatLpDelta(averageLoss) : '—' }}</span>
+        <span class="inline-flex h-[22px] items-center gap-1 rounded-full bg-loss-soft px-[9px] text-[11.5px] font-semibold text-loss-ink">
+          Moy. défaite <span class="font-mono tabular-nums">{{ averageLoss != null ? formatLpDelta(averageLoss) : '—' }}</span>
         </span>
         <span
           v-if="unknownCount > 0"
-          class="inline-flex items-center gap-[5px] rounded-full border border-dashed border-border-accent px-[9px] py-[3px] text-[11.5px] font-bold text-text-sec"
+          class="inline-flex h-[22px] items-center gap-[5px] rounded-full border border-dashed border-line-strong px-[9px] text-[11.5px] font-semibold text-ink-2"
         >
-          <span class="h-2.5 w-[5px] rounded-[2px] bg-text-sec/45" />
+          <span class="h-2.5 w-[5px] rounded-[2px] bg-ink-2/45" />
           {{ plural(unknownCount) }} aux LP inconnus
         </span>
       </div>
 
       <div role="img" :aria-label="ariaLabel" class="relative flex h-24" @mouseleave="hoveredIndex = null">
-        <span class="absolute inset-x-0 top-12 h-px bg-border-accent" />
+        <span class="absolute inset-x-0 top-12 h-px bg-line-strong" />
         <span
           v-for="(bar, index) in bars"
           :key="bar.key"
@@ -167,7 +167,7 @@ const tooltipStyle = computed(() => {
           @mouseenter="hoveredIndex = index"
         >
           <span
-            class="absolute inset-x-0 mx-auto w-[70%] max-w-3 rounded-[3px] transition-[top,height,opacity] duration-[600ms,600ms,150ms] ease-spring-soft"
+            class="absolute inset-x-0 mx-auto w-[70%] max-w-3 rounded-[2px] transition-[top,height,opacity] duration-[600ms,600ms,120ms] ease-out"
             :class="bar.class"
             :style="bar.style"
           />
@@ -176,22 +176,22 @@ const tooltipStyle = computed(() => {
         <span
           v-if="hoveredEntry"
           role="tooltip"
-          class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-ink px-[11px] py-2 text-ink-text"
+          class="pointer-events-none absolute -top-2 z-10 grid gap-0.5 whitespace-nowrap rounded-3 bg-night px-2.5 py-2 text-on-night shadow-float"
           :style="tooltipStyle"
         >
-          <span class="block text-[11px] font-semibold text-ink-muted">{{ formatGameDate(hoveredEntry.gameStart) }}</span>
-          <span class="block text-[12.5px] font-bold">
-            <span :class="hoveredEntry.win ? 'text-on-photo-green' : 'text-on-photo-red'">{{ hoveredEntry.win ? 'Victoire' : 'Défaite' }}</span>
+          <span class="block font-mono text-[11px] text-on-night-2">{{ formatGameDate(hoveredEntry.gameStart) }}</span>
+          <span class="block text-[0.8125rem] font-[640]">
+            <span :class="hoveredEntry.win ? 'text-on-night-win' : 'text-on-night-loss'">{{ hoveredEntry.win ? 'Victoire' : 'Défaite' }}</span>
             · {{ hoveredEntry.championName }}
-            <span class="font-mono font-medium text-ink-muted">{{ hoveredEntry.kills }}/{{ hoveredEntry.deaths }}/{{ hoveredEntry.assists }}</span>
+            <span class="font-mono text-[11px] font-medium text-on-night-2">{{ hoveredEntry.kills }}/{{ hoveredEntry.deaths }}/{{ hoveredEntry.assists }}</span>
           </span>
-          <span class="mt-px block text-xs font-bold" :class="hoveredLpClass">{{ hoveredLpLabel }}</span>
+          <span class="block font-mono text-[11.5px] font-semibold" :class="hoveredLpClass">{{ hoveredLpLabel }}</span>
         </span>
       </div>
 
-      <div class="mt-2.5 flex justify-between gap-2 text-[11.5px] font-bold text-text-sec">
-        <span>{{ firstLabel }}</span>
-        <span>{{ lastLabel }}</span>
+      <div class="mt-2.5 flex justify-between gap-2">
+        <span class="type-mono text-ink-3">{{ firstLabel }}</span>
+        <span class="type-mono text-ink-3">{{ lastLabel }}</span>
       </div>
     </template>
   </div>

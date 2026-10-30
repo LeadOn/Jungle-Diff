@@ -6,31 +6,43 @@ const palette = usePlayerPalette()
 
 <template>
   <!-- Phones only: the header drops its navigation and search below `md`, and this bar carries them. -->
-  <nav
-    aria-label="Navigation"
-    class="fixed bottom-3.5 left-1/2 z-[60] flex -translate-x-1/2 gap-1 rounded-full bg-ink p-[5px] shadow-float md:hidden"
-  >
-    <NuxtLink to="/" class="bar-link">Accueil</NuxtLink>
-    <NuxtLink to="/stats" class="bar-link">Records</NuxtLink>
-    <button
-      type="button"
-      aria-label="Chercher un joueur"
-      class="flex size-12 cursor-pointer items-center justify-center rounded-full bg-brand-gold-bright text-ink"
-      @click="palette.open()"
+  <div class="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] md:hidden">
+    <nav
+      aria-label="Navigation"
+      class="pointer-events-auto flex gap-0.5 rounded-3 bg-night p-1 shadow-float"
     >
-      <Icon name="lucide:search" class="size-[19px]" />
-    </button>
-  </nav>
+      <NuxtLink to="/" class="bar-link">Accueil</NuxtLink>
+      <NuxtLink to="/stats" class="bar-link">Records</NuxtLink>
+      <button
+        type="button"
+        aria-label="Chercher un joueur"
+        class="inline-flex size-11 cursor-pointer items-center justify-center rounded-2 bg-gold text-on-tier"
+        @click="palette.open()"
+      >
+        <Icon name="lucide:search" class="size-4" />
+      </button>
+    </nav>
+  </div>
 </template>
 
 <style scoped>
 @reference "../../assets/css/main.css";
 
 .bar-link {
-  @apply flex h-12 items-center rounded-full px-[18px] text-[13px] font-bold text-ink-text;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-2);
+  color: var(--on-night-2);
+  font-size: 0.8125rem;
+  font-weight: 640;
+  text-decoration: none;
 }
 
 .bar-link[aria-current='page'] {
-  @apply bg-ink-text text-ink;
+  background: var(--night-2);
+  color: var(--on-night);
 }
 </style>

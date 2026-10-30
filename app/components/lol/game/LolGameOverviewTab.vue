@@ -26,14 +26,14 @@ defineEmits<{
 const durationSeconds = computed(() => durationSecondsFor(props.game))
 
 const OUTCOME_CLASSES: Record<TeamOutcome, string> = {
-  win: 'bg-win text-white dark:text-ink',
-  loss: 'bg-loss text-white dark:text-ink',
-  remake: 'bg-text-ter text-white dark:text-ink',
+  win: 'bg-win-soft text-win-ink',
+  loss: 'bg-loss-soft text-loss-ink',
+  remake: 'bg-neutral-soft text-ink-2',
 }
 
 const scoreboards = computed(() => [
-  { teamId: 100, label: 'Équipe bleue', dotClass: 'bg-team-blue', washClass: 'from-team-blue-soft', players: props.team1 },
-  { teamId: 200, label: 'Équipe rouge', dotClass: 'bg-team-red', washClass: 'from-team-red-soft', players: props.team2 },
+  { teamId: 100, label: 'Équipe bleue', dotClass: 'bg-side-blue', washClass: 'from-side-blue-soft', players: props.team1 },
+  { teamId: 200, label: 'Équipe rouge', dotClass: 'bg-side-red', washClass: 'from-side-red-soft', players: props.team2 },
 ]
   .filter(side => side.players.length > 0)
   .map((side) => {
@@ -53,37 +53,36 @@ const isMe = (player: LoLGameParticipantDto) => props.mePlayerId != null && play
 <template>
   <div class="flex flex-col gap-4">
     <div
-      v-for="(side, index) in scoreboards"
+      v-for="side in scoreboards"
       :key="side.teamId"
-      class="animate-rise overflow-hidden rounded-[26px] border border-border-subtle bg-surface-base shadow-card"
-      :style="{ animationDelay: `${120 + index * 80}ms` }"
+      class="overflow-hidden rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface shadow-card"
     >
       <div
-        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 bg-linear-to-r to-surface-base to-75% px-3.5 py-4 sm:px-5"
+        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 bg-linear-to-r to-surface to-75% px-3.5 py-3.5 sm:px-5"
         :class="side.washClass"
       >
         <div class="flex items-center gap-2.5">
           <span class="size-2.5 shrink-0 rounded-full" :class="side.dotClass" />
-          <span class="text-[17px] font-bold tracking-[-0.02em]">{{ side.label }}</span>
+          <span class="type-title text-ink">{{ side.label }}</span>
           <span
             v-if="side.outcomeLabel"
-            class="rounded-lg px-2.5 py-[3px] text-[11.5px] font-bold uppercase tracking-[0.03em]"
+            class="inline-flex h-5 items-center rounded-1 px-1.5 text-[11px] font-[650] uppercase tracking-[0.04em]"
             :class="side.outcomeClass"
           >{{ side.outcomeLabel }}</span>
         </div>
         <div class="flex gap-1.5">
-          <span class="inline-flex items-baseline gap-[5px] rounded-full border border-border-base bg-surface-base px-[11px] py-1 text-xs font-bold">
-            <span class="font-mono font-semibold">{{ side.kills }}</span>
-            <span class="text-text-sec">kills</span>
+          <span class="inline-flex h-7 items-baseline gap-[5px] rounded-full border border-line bg-surface px-2.5 pt-[5px] text-xs font-semibold">
+            <span class="fig text-[15px] text-ink">{{ side.kills }}</span>
+            <span class="text-ink-2">kills</span>
           </span>
-          <span class="inline-flex items-baseline gap-[5px] rounded-full border border-border-base bg-surface-base px-[11px] py-1 text-xs font-bold">
-            <span class="font-mono font-semibold">{{ side.goldLabel }}</span>
-            <span class="text-text-sec">or</span>
+          <span class="inline-flex h-7 items-baseline gap-[5px] rounded-full border border-line bg-surface px-2.5 pt-[5px] text-xs font-semibold">
+            <span class="fig text-[15px] text-ink">{{ side.goldLabel }}</span>
+            <span class="text-ink-2">or</span>
           </span>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5 border-t border-border-subtle px-3.5 py-[9px] text-[11px] font-bold uppercase tracking-[0.05em] text-text-sec sm:gap-3 sm:px-5">
+      <div class="type-label flex items-center gap-2.5 border-t border-line px-3.5 py-[9px] text-ink-2 sm:gap-3 sm:px-5">
         <span class="min-w-0 flex-1 truncate">Joueur — cliquez pour analyser</span>
         <span title="Note sur 10 : KDA, KP, Dégâts, Or, Survie" class="w-11 shrink-0 cursor-help text-center sm:w-[58px]">Note</span>
         <span class="w-[72px] shrink-0 text-center sm:w-20">K / D / A</span>
@@ -97,7 +96,7 @@ const isMe = (player: LoLGameParticipantDto) => props.mePlayerId != null && play
       <LolGameDetailsPlayer
         v-for="player in side.players"
         :key="player.puuid"
-        class="border-t border-border-subtle"
+        class="border-t border-line"
         :player="player"
         :team="side.players"
         :timeline="timeline"

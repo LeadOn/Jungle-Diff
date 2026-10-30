@@ -6,8 +6,8 @@ defineProps<{ tone: 'success' | 'error' }>()
 <template>
   <div
     role="status"
-    class="rounded-[14px] px-3.5 py-2.5 text-[13px] font-bold text-pretty"
-    :class="tone === 'success' ? 'bg-win-soft text-brand-green' : 'bg-loss-soft text-brand-red'"
+    class="rounded-3 px-3.5 py-2.5 text-[13px] font-semibold text-pretty"
+    :class="tone === 'success' ? 'bg-win-soft text-win-ink' : 'bg-loss-soft text-loss-ink'"
   >
     <slot />
   </div>

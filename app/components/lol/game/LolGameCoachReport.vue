@@ -288,12 +288,12 @@ const generatedOnLabel = computed(() =>
 <template>
   <section
     aria-labelledby="game-coach"
-    class="animate-rise overflow-hidden rounded-[26px] border border-border-subtle bg-surface-base shadow-card">
+    class="overflow-hidden rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface shadow-card">
     <header
-      class="flex flex-wrap items-center gap-3.5 bg-ink px-[22px] py-[18px] text-ink-text">
+      class="flex flex-wrap items-center gap-3.5 bg-night px-4 py-4 text-on-night sm:px-[22px]">
       <!-- The site's own mascot: Rammus throwing the OK sign, which is exactly the coach's register. -->
       <span
-        class="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/14 bg-white/8">
+        class="flex size-12 shrink-0 items-center justify-center rounded-3 border border-on-night-line bg-night-2">
         <img
           src="~/assets/img/JungleDiff_Logo.png"
           alt="rAImmus"
@@ -301,17 +301,17 @@ const generatedOnLabel = computed(() =>
       </span>
 
       <div class="min-w-[200px] flex-1">
-        <h3 id="game-coach" class="m-0 text-[22px] font-bold tracking-[-0.03em]">
+        <h3 id="game-coach" class="type-d3 m-0 text-on-night">
           rAImmus
         </h3>
-        <p class="m-0 mt-0.5 text-[13px] font-medium text-white/75">
+        <p class="m-0 mt-0.5 text-[0.8125rem] text-on-night-2">
           Le coach IA de JungleDiff &middot; il regarde la partie et dit ce
           qu'il en pense
         </p>
       </div>
 
       <span
-        class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-brand-gold-bright/40 bg-brand-gold-bright/20 px-[11px] py-[5px] font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-on-photo-gold">
+        class="type-mono inline-flex h-6 shrink-0 items-center gap-1.5 rounded-1 border border-on-night-line bg-night-2 px-2 text-[10.5px] uppercase tracking-[0.08em] text-on-night-2">
         <Icon name="lucide:sparkles" class="size-3" />
         Généré par IA
       </span>
@@ -329,20 +329,20 @@ const generatedOnLabel = computed(() =>
         src="~/assets/img/JungleDiff_Logo.png"
         alt=""
         aria-hidden="true"
-        class="size-[72px] animate-throb object-contain" >
-      <p class="m-0 text-[22px] font-bold tracking-[-0.03em]">
+        class="size-[72px] object-contain" >
+      <p class="type-d3 m-0 text-ink">
         {{ queueTitle }}
       </p>
       <p
-        class="m-0 max-w-[440px] text-sm font-medium leading-[1.55] text-text-sec">
+        class="type-body m-0 max-w-[440px] text-ink-2">
         Il prend les demandes une par une. {{ queueLengthLabel }}
       </p>
       <span
-        class="inline-flex items-center gap-2 rounded-full bg-brand-gold-soft px-4 py-2 text-sm font-bold text-brand-gold">
-        <Icon name="lucide:hourglass" class="size-[15px]" />
+        class="inline-flex h-8 items-center gap-2 rounded-full bg-neutral-soft px-3.5 text-sm font-semibold text-ink">
+        <Icon name="lucide:loader-circle" class="size-[15px] animate-spin text-ink-2" />
         Encore {{ waitLabel }}
       </span>
-      <p class="m-0 text-[12.5px] font-semibold text-text-sec">
+      <p class="type-small m-0 text-ink-2">
         Cette page se met à jour toute seule — inutile de recliquer.
       </p>
     </div>
@@ -350,8 +350,8 @@ const generatedOnLabel = computed(() =>
     <div
       v-else-if="isLoading"
       aria-busy="true"
-      class="flex items-center justify-center gap-[9px] px-6 py-14 text-sm font-bold text-text-sec">
-      <Icon name="lucide:refresh-cw" class="size-[15px] animate-spin text-win" />
+      class="flex items-center justify-center gap-[9px] px-6 py-14 text-sm font-semibold text-ink-2">
+      <Icon name="lucide:refresh-cw" class="size-[15px] animate-spin text-ink-3" />
       rAImmus relit ses notes…
     </div>
 
@@ -360,14 +360,14 @@ const generatedOnLabel = computed(() =>
       <div
         v-if="errorCopy"
         role="alert"
-        class="mx-[22px] mt-6 flex items-start gap-2 rounded-2xl border border-brand-red/25 bg-loss-soft px-4 py-3 text-[13px] font-semibold text-text-main">
+        class="mx-4 mt-6 flex items-start gap-2 rounded-3 border border-[color-mix(in_oklch,var(--loss)_45%,var(--line))] bg-loss-soft px-4 py-3 text-[0.8125rem] font-medium text-ink sm:mx-[22px]">
         <Icon
           name="lucide:triangle-alert"
-          class="mt-0.5 size-4 shrink-0 text-brand-red" />
+          class="mt-0.5 size-4 shrink-0 text-loss-ink" />
         <span>{{ errorCopy.message }}</span>
       </div>
 
-      <div class="flex flex-col gap-[26px] px-[22px] py-6">
+      <div class="flex flex-col gap-6 px-4 py-6 sm:px-[22px]">
         <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
           <!--
             Explicitly labelled as rAImmus' own mark: the note in the page header comes from
@@ -375,39 +375,39 @@ const generatedOnLabel = computed(() =>
             editorial and can land several points away on the very same game.
           -->
           <span
-            class="inline-flex items-baseline gap-1.5 rounded-full bg-brand-gold-soft px-[18px] py-2.5 text-brand-gold">
-            <span class="text-sm font-bold">L'avis de rAImmus</span>
-            <span class="text-[28px] font-bold leading-none tracking-[-0.04em]">{{
+            class="inline-flex items-baseline gap-1.5 rounded-full bg-canopy-soft px-4 py-2.5 text-canopy">
+            <span class="text-sm font-semibold">L'avis de rAImmus</span>
+            <span class="fig text-[32px]">{{
               noteLabel
             }}</span>
-            <span class="text-sm font-bold">/10</span>
+            <span class="text-sm font-semibold">/10</span>
           </span>
           <span
-            class="max-w-[360px] text-pretty text-[12.5px] font-semibold text-text-sec">
+            class="type-small max-w-[360px] text-pretty text-ink-2">
             Note éditoriale, indépendante de la note calculée affichée en haut
             de la page.
           </span>
         </div>
 
         <div>
-          <h4 class="m-0 mb-2 text-[17px] font-bold tracking-[-0.02em]">
+          <h4 class="type-title m-0 mb-2 text-ink">
             Synthèse
           </h4>
           <p
-            class="m-0 max-w-[760px] text-pretty text-[15px] font-medium leading-[1.6]">
+            class="m-0 max-w-[760px] text-pretty text-[0.9375rem] leading-[1.6] text-ink">
             {{ report.analysis.synthese }}
           </p>
         </div>
 
         <div>
-          <h4 class="m-0 mb-2.5 text-[17px] font-bold tracking-[-0.02em]">
+          <h4 class="type-title m-0 mb-2.5 text-ink">
             Points forts
           </h4>
 
           <!-- An empty list is a deliberate API answer: the coach never invents a compliment. -->
           <p
             v-if="report.analysis.pointsForts.length === 0"
-            class="m-0 text-[14.5px] font-medium leading-normal text-text-sec">
+            class="type-body m-0 text-ink-2">
             rAImmus n'a rien trouvé à sauver sur cette partie. « OK. » Ça
             arrive.
           </p>
@@ -416,9 +416,9 @@ const generatedOnLabel = computed(() =>
             <li
               v-for="(point, index) in report.analysis.pointsForts"
               :key="index"
-              class="flex items-start gap-2.5 text-[14.5px] font-medium leading-normal">
+              class="type-body flex items-start gap-2.5 text-ink">
               <span
-                class="mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full bg-win-soft text-brand-green">
+                class="mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full bg-canopy-soft text-canopy">
                 <Icon name="lucide:check" class="size-3" />
               </span>
               <span class="text-pretty">{{ point }}</span>
@@ -427,7 +427,7 @@ const generatedOnLabel = computed(() =>
         </div>
 
         <div v-if="report.analysis.axesProgression.length > 0">
-          <h4 class="m-0 mb-2.5 text-[17px] font-bold tracking-[-0.02em]">
+          <h4 class="type-title m-0 mb-2.5 text-ink">
             Axes de progression
           </h4>
 
@@ -436,15 +436,15 @@ const generatedOnLabel = computed(() =>
             <article
               v-for="(axis, index) in report.analysis.axesProgression"
               :key="index"
-              class="flex flex-col rounded-[20px] border border-border-subtle bg-surface-muted p-[18px]">
-              <h5 class="m-0 text-[15px] font-bold">{{ axis.titre }}</h5>
+              class="flex flex-col rounded-4 border border-line bg-paper p-4">
+              <h5 class="m-0 text-[0.9375rem] font-[640] text-ink">{{ axis.titre }}</h5>
               <p
-                class="m-0 mt-2 text-pretty text-sm font-medium leading-[1.55] text-text-sec">
+                class="type-body m-0 mt-2 text-pretty text-ink-2">
                 {{ axis.explication }}
               </p>
               <p
-                class="m-0 mt-3.5 flex gap-2 border-t-[1.5px] border-dashed border-border-dashed pt-3 text-[13.5px] font-bold leading-normal">
-                <span class="shrink-0 text-brand-green">→</span>
+                class="m-0 mt-3.5 flex gap-2 border-t border-dashed border-line-strong pt-3 text-[0.8125rem] font-semibold leading-normal text-ink">
+                <span class="shrink-0 text-canopy">→</span>
                 <span class="text-pretty">{{ axis.actionConcrete }}</span>
               </p>
             </article>
@@ -452,8 +452,8 @@ const generatedOnLabel = computed(() =>
         </div>
 
         <footer
-          class="flex flex-wrap items-center justify-between gap-3 border-t border-border-base pt-4">
-          <p class="m-0 text-[12.5px] font-medium text-text-sec">
+          class="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+          <p class="type-small m-0 text-ink-2">
             Écrit le {{ generatedOnLabel
             }}<template v-if="report.modelName">
               par {{ report.modelName }}</template
@@ -464,16 +464,18 @@ const generatedOnLabel = computed(() =>
             The API returns the stored report instead of paying for a second generation, so this
             reloads rather than rewrites — the label says so, to avoid promising a new opinion.
           -->
-          <button
+          <UiButton
             v-if="authStore.isAuthenticated"
-            type="button"
-            class="inline-flex h-[34px] shrink-0 cursor-pointer items-center gap-[7px] rounded-full border border-border-accent bg-surface-base px-3.5 text-[12.5px] font-bold transition-colors duration-200 hover:border-text-ter disabled:cursor-wait disabled:opacity-60"
+            variant="secondary"
+            size="sm"
+            class="shrink-0"
             title="rAImmus ne réécrit pas : il ressort l'analyse déjà enregistrée."
             :disabled="isLoading"
+            :busy="isLoading"
             @click="retry">
             <Icon name="lucide:refresh-cw" class="size-[13px]" />
             Recharger l'analyse
-          </button>
+          </UiButton>
         </footer>
       </div>
     </template>
@@ -487,46 +489,49 @@ const generatedOnLabel = computed(() =>
     <div
       v-else-if="hasBeenAbandoned"
       class="flex flex-col items-center gap-2.5 px-6 py-14 text-center">
-      <p class="m-0 text-[30px] font-bold tracking-[-0.04em]">« OK. »</p>
-      <p class="m-0 text-base font-bold">
+      <p class="type-d2 m-0 text-ink">« OK. »</p>
+      <p class="type-title m-0 text-ink">
         rAImmus n'a pas réussi à analyser cette partie.
       </p>
       <p
-        class="m-0 max-w-[440px] text-pretty text-sm font-medium leading-[1.55] text-text-sec">
+        class="type-body m-0 max-w-[440px] text-pretty text-ink-2">
         Il a tourné autour un moment, puis il a lâché l'affaire. Ça arrive sur
         les parties qui sortent de l'ordinaire — redemandez-lui plus tard.
       </p>
 
-      <button
+      <UiButton
         v-if="authStore.isAuthenticated"
-        type="button"
-        class="mt-1.5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-5 text-sm font-bold text-ink transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
+        variant="primary"
+        size="lg"
+        class="mt-1.5"
         :disabled="isSubmitting"
+        :busy="isSubmitting"
         @click="requestAnalysis">
         <Icon name="lucide:refresh-cw" class="size-4" />
         Redemander l'analyse
-      </button>
+      </UiButton>
     </div>
 
     <div
       v-else-if="errorCopy"
       class="flex flex-col items-center gap-2.5 px-6 py-14 text-center">
-      <p class="m-0 text-[30px] font-bold tracking-[-0.04em]">
+      <p class="type-d2 m-0 text-ink">
         « {{ errorCopy.quote }} »
       </p>
-      <p class="m-0 text-base font-bold">{{ errorCopy.title }}</p>
+      <p class="type-title m-0 text-ink">{{ errorCopy.title }}</p>
       <p
-        class="m-0 max-w-[460px] text-pretty text-sm font-medium leading-[1.55] text-text-sec">
+        class="type-body m-0 max-w-[460px] text-pretty text-ink-2">
         {{ errorCopy.message }}
       </p>
 
-      <button
-        type="button"
-        class="mt-1.5 inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-inverse px-5 text-sm font-bold text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-105"
+      <UiButton
+        variant="primary"
+        size="lg"
+        class="mt-1.5"
         @click="retry">
         <Icon name="lucide:refresh-cw" class="size-4" />
         Réessayer
-      </button>
+      </UiButton>
     </div>
 
     <!-- Nothing stored yet: the 404 above lands here, and this is the only state offering the button. -->
@@ -535,38 +540,40 @@ const generatedOnLabel = computed(() =>
         src="~/assets/img/JungleDiff_Logo.png"
         alt=""
         aria-hidden="true"
-        class="size-[88px] animate-bob object-contain" >
-      <p class="m-0 text-[22px] font-bold tracking-[-0.03em]">
+        class="size-[88px] object-contain" >
+      <p class="type-d3 m-0 text-ink">
         rAImmus n'a pas encore vu cette partie.
       </p>
       <p
-        class="m-0 max-w-[460px] text-pretty text-sm font-medium leading-[1.55] text-text-sec">
+        class="type-body m-0 max-w-[460px] text-pretty text-ink-2">
         Il veut bien s'en occuper : une synthèse, ce qui a marché, et ce qu'il y
         a à travailler. Il traite les demandes une par une — vous verrez votre
         place dans sa file.
       </p>
 
-      <button
+      <UiButton
         v-if="authStore.isAuthenticated"
-        type="button"
-        class="mt-1.5 inline-flex h-[46px] cursor-pointer items-center gap-2 rounded-full bg-brand-gold-bright px-[22px] text-[15px] font-bold text-ink transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait disabled:opacity-60"
+        variant="primary"
+        size="lg"
+        class="mt-1.5"
         :disabled="isSubmitting"
+        :busy="isSubmitting"
         @click="requestAnalysis">
         <Icon name="lucide:sparkles" class="size-4" />
         Demander l'analyse
-      </button>
+      </UiButton>
 
       <template v-else>
-        <p class="m-0 mt-1.5 text-[13.5px] font-semibold text-text-sec">
+        <p class="type-small m-0 mt-1.5 text-ink-2">
           Connectez-vous pour lui demander son avis.
         </p>
-        <button
-          type="button"
-          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-bold text-brand-gold-text transition-transform duration-[250ms] ease-spring hover:scale-105"
+        <UiButton
+          variant="primary"
+          size="lg"
           @click="authStore.login()">
           <Icon name="lucide:log-in" class="size-4" />
           Se connecter
-        </button>
+        </UiButton>
       </template>
     </div>
   </section>

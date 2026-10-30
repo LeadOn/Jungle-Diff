@@ -77,17 +77,17 @@ const onFiles = async (event: Event) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3.5 rounded-3xl border border-border-subtle bg-surface-base p-[22px] shadow-card">
+  <div class="flex flex-col gap-3.5 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-5 shadow-card">
     <div>
-      <h2 class="m-0 text-[17px] font-bold">Importer une partie personnalisée</h2>
-      <p class="mt-1 text-[13px] font-semibold leading-normal text-pretty text-text-sec">
+      <h2 class="m-0 type-title text-ink">Importer une partie personnalisée</h2>
+      <p class="mt-1 type-body text-pretty text-ink-2">
         Riot ne sert pas les parties personnalisées : déposez le JSON extrait du client LoL par fetch_custom_games_lcu.py.
       </p>
     </div>
 
     <label
-      class="relative flex min-h-[108px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[18px] border-[1.5px] border-dashed p-4 text-center transition-colors duration-200"
-      :class="busy || isDragging ? 'border-win bg-win-soft' : 'border-border-dashed bg-surface-hover'"
+      class="relative flex min-h-[108px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-3 border-[1.5px] border-dashed p-4 text-center transition-colors duration-120 ease-out focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus"
+      :class="busy || isDragging ? 'border-canopy bg-canopy-soft' : 'border-line-strong bg-sunken hover:border-ink-3'"
       @dragenter="isDragging = true"
       @dragleave="isDragging = false"
     >
@@ -99,35 +99,35 @@ const onFiles = async (event: Event) => {
         class="absolute inset-0 cursor-pointer opacity-0"
         @change="onFiles"
       >
-      <span class="text-sm font-bold">{{ dropTitle }}</span>
-      <span class="font-mono text-[11px] text-text-sec">{{ dropSub }}</span>
+      <span class="text-sm font-semibold text-ink">{{ dropTitle }}</span>
+      <span class="font-mono text-[11px] text-ink-2">{{ dropSub }}</span>
     </label>
 
     <AdminResult v-if="error" tone="error">{{ error }}</AdminResult>
 
-    <div v-if="result && !busy" class="flex flex-col gap-2.5 rounded-2xl bg-surface-hover p-3.5">
+    <div v-if="result && !busy" class="flex flex-col gap-2.5 rounded-3 bg-sunken p-3.5">
       <span class="flex flex-wrap items-center gap-2">
-        <span class="font-mono text-[13px] font-semibold">{{ result.matchId }}</span>
+        <span class="type-mono text-ink">{{ result.matchId }}</span>
         <span
-          class="rounded-full px-[9px] py-0.5 text-[11.5px] font-bold"
-          :class="result.replaced ? 'bg-brand-gold-soft text-brand-gold' : 'bg-win-soft text-brand-green'"
+          class="inline-flex h-5 items-center rounded-1 px-1.5 text-[11px] font-[650]"
+          :class="result.replaced ? 'border border-line-strong text-ink-2' : 'bg-canopy-soft text-canopy'"
         >{{ result.replaced ? 'Remplacée' : 'Nouvelle' }}</span>
       </span>
       <div class="grid grid-cols-3 gap-2">
         <span v-for="figure in figures" :key="figure.label" class="flex flex-col gap-px">
-          <span class="text-[22px] font-bold tracking-[-0.03em]">{{ figure.value }}</span>
-          <span class="text-[11.5px] font-semibold text-text-sec">{{ figure.label }}</span>
+          <span class="fig text-[26px] text-ink">{{ figure.value }}</span>
+          <span class="mt-1 text-xs text-ink-2">{{ figure.label }}</span>
         </span>
       </div>
-      <span class="text-xs font-bold">Riot ID sans joueur GameOn</span>
+      <span class="text-[13px] font-semibold text-ink">Riot ID sans joueur GameOn</span>
       <span v-if="result.unlinkedRiotIds.length" class="flex flex-wrap gap-1.5">
         <span
           v-for="riotId in result.unlinkedRiotIds"
           :key="riotId"
-          class="rounded-full border border-border-accent bg-surface-base px-2 py-0.5 text-[11.5px] font-semibold"
+          class="inline-flex h-6 items-center rounded-1 border border-line-strong bg-surface px-2 font-mono text-[11px] font-medium text-ink"
         >{{ riotId }}</span>
       </span>
-      <span v-else class="text-xs font-semibold text-text-sec">Aucun : chaque participant est un joueur suivi.</span>
+      <span v-else class="text-[13px] text-ink-2">Aucun : chaque participant est un joueur suivi.</span>
     </div>
 
     <AdminRoute>POST /lol/Match/custom/import · gameon_admin</AdminRoute>

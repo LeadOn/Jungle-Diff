@@ -35,15 +35,17 @@ public sign-up — authentication exists so a crew member can edit their own pro
 
 ## Features
 
-- `/` — crew dashboard, built from the Claude Design mock-up "JungleDiff Accueil v7", **the design
-  base for the whole site** (theme, layout, header, footer). Top to bottom: status chips (last sync,
-  the 7-day window, the patch), a bento of the last 7 days (`WeekBento`: ranked games, active
-  players, win-rate ring and its delta, net LP and playtime day by day), the "En partie maintenant"
+- `/` — crew dashboard, on the Canopée design system (reference: `docs/canopee/reference/home/`).
+  Top to bottom: a status line (last sync, the 7-day window, the patch), a headline written from the
+  week's data ("Le crew a lâché 107 LP cette semaine.", `headlineParts` in `index.vue`) with its
+  standfirst and the page-level "Inclure les smurfs" switch, the week ledger (`WeekBento`: one column
+  per Paris day — games, record, net LP, playtime — and the week's totals, pivoting to one row per
+  day on narrow widths), the "En partie maintenant"
   strip (`LiveStrip`, from `GET /lol/live`), then two columns — `CrewLadder` (podium of three over
   each player's main champion, "L'échelle des rangs" (`RankTrack`), the remaining rows) and
   `RecentGames` (the feed grouped by Paris day, with player filters counted from `activePlayers`) —
   beside a rail: `PlayerOfTheWeek`, `MonthRecords`, `CrewChampions` (with each champion's
-  `topPlayer`). Everything on it is live data.
+  `topPlayer`), sticky from 1100 px. Everything on it is live data.
 - **Crew search** — `app/components/lol/LolPlayerPalette.vue`, a command palette mounted once by the
   layout and opened from the header, the mobile bottom bar, ⌘K / Ctrl K or "/". It resolves names
   locally against the crew list (see Known Gaps) and loads that list on first opening when the
@@ -51,7 +53,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
 - `/stats` — global crew records, filterable by queue, period, ranked-only and "inclure les smurfs",
   with one card per award defined in `app/utils/lol-awards.ts`.
 - `/summoner/[id]` — player profile, built from the Claude Design mock-up "JungleDiff Profil v5":
-  an ink hero over the player's main-champion splash (`LolPlayerHeader`: avatar and level, Riot ID,
+  a night hero over the player's main-champion splash (`LolPlayerHeader`: avatar and level, Riot ID,
   archived / smurf-of chips, sync time, OP.GG / DPM links, Rafraîchir, a disabled "Comparer ·
   Bientôt"), Solo/Duo and Flex rank cards with a win-rate ring and recent form, a period-filtered
   performance KPI panel (flagged "Filtré · …" when the history's role or queue filter also narrows
@@ -62,7 +64,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
   Duos panels (the champion and duo lists show five, the rest on demand). Server-rendered; the crew
   list is loaded after mount for the hero's `mainChampionName` and the smurf's main account.
 - `/game/[id]/[playerId]` — match detail, built from the Claude Design mock-up "JungleDiff Partie
-  v5": an ink hero over the route player's champion splash (`LolGameHeader`: result tinted
+  v5": a night hero over the route player's champion splash (`LolGameHeader`: result tinted
   win/loss, rating and MVP/ACE chips, queue / duration / date / patch chips, the game's LP with a
   promotion chip, Synchroniser, the match id), per-team objective cards (`LolGameObjectives`), key
   moments, then five tabs in a pill bar that sticks under the site header — Vue d'ensemble (two
@@ -79,7 +81,7 @@ public sign-up — authentication exists so a crew member can edit their own pro
   as "+18 LP" / "-21 LP" / "0 LP" with a "Emerald II 27 LP → Emerald II 45 LP" tooltip, plus a
   chevron chip tinted with the reached tier when the division or tier changes. It shows in every
   scoreboard row on the match page. `LolGameCard` (the game cards of the home feed and of the
-  profile history) draws the same information as v7 chips of its own, from the same helpers. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
+  profile history) draws the same information as chips of its own, from the same helpers. Helpers live in `app/utils/lol-rank-change.ts`, built on `app/utils/lol-tier.ts`.
 - **rAImmus** — the AI coach, named after Rammus, rendered by
   `app/components/lol/game/LolGameCoachReport.vue`. The persona is a UI skin only: the routes stay
   neutral (`GET`/`POST /lol/coach/{matchId}/player/{playerId}`) and the report text comes from the
@@ -156,17 +158,21 @@ public sign-up — authentication exists so a crew member can edit their own pro
   through Nitro's auto-import, so the dependency is visible at the top of the file.
 - **Props and events in templates**: kebab-case (`:hero-player`, `@player-selected`), camelCase in
   `<script setup>`. ESLint enforces this; `v-model` pairs use `update:<prop>`.
-- **Design tokens**: `app/assets/css/main.css` defines raw values on `:root` (`--color-gold`,
-  `--color-surface`) and maps them in `@theme` to the names Tailwind exposes
-  (`--color-brand-gold`, `--color-surface-base`, `--color-text-main`). Write `bg-surface-base`,
-  `text-text-main`, `text-brand-gold` — never a raw hex in a component. Shadows, scrims and the page
-  wash are `@utility` classes over theme variables (`shadow-card`, `bg-scrim-side`,
-  `bg-page-wash`). Text over splash art gets `text-shadow-photo` (inherited, so set it on the card):
-  the scrims are kept light on purpose so the art shows, and the halo carries the contrast. Tier pastels (`tierTint`) are data colours in `lol-tier.ts`, not tokens.
+- **Design tokens**: `app/assets/css/main.css` defines raw OKLCH values on `:root` (`--paper`,
+  `--surface`, `--ink`) and on `:root.dark`, and maps them in `@theme` to the names Tailwind exposes
+  (`--color-paper`, `--color-surface`, `--color-ink`). Write `bg-surface`, `text-ink-2`,
+  `border-line` — never a raw hex, `rgb()`, `oklch()` or named colour in a component
+  (`rg -n "#[0-9a-fA-F]{3,8}\b|rgba?\(|oklch\(|hsl\(" app --glob '*.vue'` stays empty; `color-mix()`
+  over tokens is fine). Shadows and scrims are `@utility` classes over theme variables
+  (`shadow-card`, `shadow-float`, `shadow-hair`, `bg-overlay`, `bg-scrim-side`, `bg-scrim-rise`,
+  `bg-photo-scrim`). Tier colours (`tierTint`, `TIER_TINTS`) are data colours in `lol-tier.ts`, not
+  tokens: OKLCH values handed to CSS through an inline custom property
+  (`:style="{ '--tier': tierTint(tier) }"`, read as `var(--tier, var(--tier-none))`); only `--on-tier`
+  and `--tier-none` are tokens, because they depend on the theme.
   The match page's data colours are tokens, because every chart and chip needs them as utilities:
-  the two sides (`team-blue` / `team-red`, each with `-text` and `-soft`), the damage types
-  (`dmg-physical`, `dmg-magic`, `dmg-true`), the ACE accolade (`violet`, `violet-soft`) and a picked
-  row (`surface-selected`). A side is not a result: `team-red` shares `loss`'s values but the red team
+  the two sides (`side-blue` / `side-red`, each with `-ink` and `-soft`), the damage types
+  (`dmg-physical`, `dmg-magic`, `dmg-true`), the ACE accolade (`violet-ink`, `violet-soft`) and a
+  picked row (`picked`). A side is not a result: `side-red` shares `loss`'s values but the red team
   can win. Ratings map to tones through `ratingTone` / `ratingToneClass` in `lol-match.ts`.
 
 ## Authentication (no token ever reaches the browser)
@@ -229,22 +235,52 @@ public sign-up — authentication exists so a crew member can edit their own pro
 
 ## Design System
 
-- The design base is the home page of the Claude Design mock-up "JungleDiff Accueil v7": a light
-  sage palette (`#F4F5F0` page, white cards, `#16241B` ink), Archivo for everything, Geist Mono for
-  figures and technical labels, pill-shaped controls, 20–26px card radii, soft layered shadows and a
-  springy easing (`ease-spring`). New pages and restyled old ones follow it.
-- **Light is the default theme**: the `:root` tokens are the v7 palette, and the `.dark` class on
-  `<html>` switches to a dark one derived from the brand guidelines (jungle green-black `#0C120E`).
-  The mock-up has no dark variant and no theme button; both were added on purpose, the toggle sits in
-  the header. `public/theme-init.js` applies a stored `dark` choice before first paint.
-- Two variants: `dark:` applies under `.dark` and is what new code uses. `light:` applies whenever
-  `.dark` is absent — components written for the former dark-first palette carry their light-mode
-  corrections under `light:`, and this definition keeps them active on the new default without
-  rewriting them. Only `LolRankChangeBadge` and `RankHistory` still use it; the match page, its
-  former main user, was rebuilt on the v7 tokens.
-- `inverse` tokens flip with the theme (selected pills, primary buttons); `ink` tokens stay dark in
-  both (footer, tooltips, the mobile bar, and cards printed over splash art).
+- The site runs on **Canopée** (v8), specified in `docs/canopee/` (`DESIGN-SYSTEM.md` for the rules in
+  French, `reference/` for the offline mock-ups whose CSS holds the exact values, `BRIEF.md` for the
+  migration that brought it in). It replaced the v7 look ("JungleDiff Accueil v7") on every page.
+- **Colour**: OKLCH neutrals biased to the shell green (hue 165) — `paper` (page), `surface` (cards),
+  `sunken`, `raised`, `line` / `line-strong`, text in `ink` / `ink-2` / `ink-3` (`ink-3` is the
+  lightest grey allowed for text). Brand `canopy` (links, selected state, focus in light), `shell`
+  (logo only). **Gold** (`gold`, `gold-ink`, `gold-soft`) only marks the #1 of the ladder, "Vous",
+  the mobile search button and the focus ring in dark — not MVPs, not primary buttons. **Result
+  colours** (`win*`, `loss*`) only on what is won or lost; a decorative figure is `ink`. `night`
+  (`bg-night`, `text-on-night`, `text-on-night-2`, `text-on-night-win|loss|gold|blue`) is the band that
+  stays dark in both themes: footer, tooltips, the mobile bar, the heroes, pills over art. `ink` is
+  body text and flips with the theme — `bg-ink text-paper` is the inverted primary button.
+- **Type**: Archivo with its width axis (wdth 62–125, served by `@nuxt/fonts` through
+  `variableAxis`) and Geist Mono. Roles: `type-d1` / `type-d2` / `type-d3` (wide 118 % titles),
+  `type-title` (card titles), `type-body`, `type-small`, `type-label` (eyebrows), `fig` (every figure:
+  condensed 72 %, tabular) and `type-mono` (times, durations, patches, Riot tags, ids).
+- **Radii** `rounded-1` 4 px (text badges, items) · `rounded-2` 6 px (buttons, fields, segmented
+  controls) · `rounded-3` 10 px (palette, tooltips, bands) · `rounded-4` 14 px · `rounded-5` 18 px
+  (cards). A child is never rounder than its parent. `rounded-full` is reserved for avatars, number
+  chips (LP, gap, win rate, level, position), player filter chips and the live dot.
+- **Surfaces**: cards are `rounded-5 bg-surface shadow-card` with a faint line (`UiPanel`). The
+  floating shadow (`shadow-float`) is for the search palette, modals, menus and tooltips only.
+- **Text over splash art has no halo.** It sits over a scrim (`bg-scrim-side` on the heroes with the
+  identity on the opaque side, `bg-scrim-rise` where art ends in the night band, `bg-photo-scrim` on
+  the podium) or on a night pill (`bg-night/80 text-on-night`). The element holding the art carries
+  `data-photo`, which `docs/canopee/tools/contrast-audit.mjs` uses to test the text over it against
+  both a white and a black picture. Splash art appears on the podium, the player of the week and the
+  two heroes (profile, match), nowhere else.
+- **Motion**: state transitions 120–200 ms with `ease-out`; no spring, no hover lift, no decorative
+  loop. The one orchestrated moment is the ladder reordering (620 ms, `ease-glide`, FLIP). The live dot
+  and spinners are the only infinite animations. `prefers-reduced-motion` is honoured globally.
+- **Primitives** live in `app/components/ui/` and are used through their `Ui` prefix: `UiButton`
+  (primary / secondary / quiet / gold / night, sm / md / lg, `busy`), `UiSegmented` (`v-model`),
+  `UiSwitch` (`role="switch"`), `UiPlayerChip`, `UiPanel` (props `title`, `heading-tag`, `title-id`,
+  `meta`, `link-to`), `UiStatus` (Vous, Smurf, Archivé, En partie, +N), `UiSkeleton`, `UiEmptyState`
+  and `UiErrorState` (props `title`, `description`, `retry-label`, or an `actions` slot). Domain
+  indicators: `LolLpBadge`, `LolFormPills` (oldest game left), `LolRankEmblem`. The admin space keeps
+  `AdminButton` / `AdminSwitch`, drawn like their `Ui` counterparts (an `AdminButton` that is `busy`
+  is also disabled).
+- **Light is the default theme**, and the `.dark` class on `<html>` switches every raw value. The
+  toggle sits in the header; `public/theme-init.js` applies a stored `dark` choice before first paint
+  (`error.vue` loads it too, since it replaces `app.vue`). Only the `dark:` variant exists.
 - Read and write the theme through `app/utils/theme.ts`; never test the class by hand.
+- Container queries over viewport breakpoints for anything that lives in columns of varying width
+  (ladder 560 / 640 / 760 px, game card 600 / 700 px): `@container` on the parent, `@min-[560px]:` on
+  the children.
 - Custom breakpoint `rail:` (1100px, where the dashboard gains its side rail) is declared in **rem**
   (`68.75rem`). Tailwind cannot sort a px breakpoint against its rem ones: in px it was emitted
   before `md:`, which then always won.
@@ -276,8 +312,12 @@ npm run sync:rules:check  # generated instruction files still match their source
 npm audit --omit=dev --audit-level=high
 npm run build           # required before the e2e suite; it boots .output
 npm run test:e2e
+node docs/canopee/tools/contrast-audit.mjs http://localhost:3000/ http://localhost:3000/stats \
+  http://localhost:3000/summoner/<id> http://localhost:3000/game/<matchId>/<playerId>
 ```
 
+- The contrast audit (last line, against a running server) checks every visible text against WCAG
+  AA at 1440 and 375 px in both themes, through scrims and pills; it exits 1 on any failure.
 - Tests target the **production build**, not `nuxt dev`: the CSP nonce, SWR route rules and real 404
   status codes all behave differently under Vite's dev middleware.
 - `tests/smoke.spec.ts` needs **no upstream and no secrets** — it passes with no GameOn API and no
@@ -496,6 +536,15 @@ Each of these is easy to reintroduce and hard to diagnose.
   in roster order: re-sorting the elements themselves would re-insert them and skip the slide.
 - **Clip paths are document-wide ids.** `LolGameGoldChart` builds its two masks from `useId()`; a
   hard-coded id would be shared by any second instance.
+- **A misspelt prop on a `Ui*` primitive fails silently.** Vue passes an undeclared prop through as
+  an HTML attribute and `vue-tsc` does not flag it, so `<UiErrorState message="…">` rendered no
+  description and `<UiPanel title-tag="h3">` the default `h3` by luck. Check the primitive's
+  `defineProps` when using one.
+- **`ink` means body text now.** The v7 always-dark band was renamed `night`; a `bg-ink` meant as a
+  dark band paints the body-text colour, which inverts in dark. Use `bg-night` for what must stay
+  dark in both themes.
+- **Theme variables resolve on `:root`.** `@theme` names point at raw values that `:root.dark`
+  redefines; moving the `dark` class to `<body>` would leave every token on its light value.
 
 - **`PATCH /player` (admin) overwrites the whole account.** It writes `fullName`, `nickname`,
   `keycloakId` and `archived` from the body, so the admin space always sends the account as read —

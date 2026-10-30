@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import type { LoLCrewChampionStatDto } from '~/lib/types'
 import { usePatchStore } from '~/stores/patch'
-import { useEntered } from '~/composables/useEntered'
 import { getChampionIconUrl, getProfileIconUrl } from '~/utils/ddragon'
 import { championDisplayName } from '~/utils/lol-champion'
 import { playerDisplayName } from '~/utils/lol-ladder'
@@ -17,7 +16,6 @@ const props = defineProps<{
 }>()
 
 const patchStore = usePatchStore()
-const entered = useEntered()
 
 const rows = computed(() => props.champions.slice(0, 4).map((champion) => {
   const top = champion.topPlayer
@@ -26,45 +24,130 @@ const rows = computed(() => props.champions.slice(0, 4).map((champion) => {
   return {
     key: champion.championName,
     name: championDisplayName(champion.championName),
-    iconStyle: { backgroundImage: `url('${getChampionIconUrl(champion.championName, patchStore.currentPatch)}')` },
-    mainName: top ? `surtout ${topName}` : null,
-    mainTitle: top ? `${topName} · ${top.gamesPlayed} partie${top.gamesPlayed > 1 ? 's' : ''} sur ${champion.gamesPlayed}` : undefined,
-    mainIconStyle: top?.player.lolIconId != null
-      ? { backgroundImage: `url('${getProfileIconUrl(top.player.lolIconId, patchStore.currentPatch)}')` }
-      : {},
-    meta: `${champion.gamesPlayed} partie${champion.gamesPlayed > 1 ? 's' : ''} · ${formatDecimal(champion.kda)} KDA`,
+    iconUrl: getChampionIconUrl(champion.championName, patchStore.currentPatch),
+    mainTitle: top ? `Surtout ${topName} · ${top.gamesPlayed} partie${top.gamesPlayed > 1 ? 's' : ''} sur ${champion.gamesPlayed}` : undefined,
+    mainIconUrl: top?.player.lolIconId != null
+      ? getProfileIconUrl(top.player.lolIconId, patchStore.currentPatch)
+      : null,
+    sub: [
+      topName ? `surtout ${topName}` : null,
+      `${champion.gamesPlayed} partie${champion.gamesPlayed > 1 ? 's' : ''}`,
+      `${formatDecimal(champion.kda)} KDA`,
+    ].filter(Boolean).join(' · '),
+    winRateNum: winRate,
     winRate: formatPercent(winRate),
-    winRateClass: winRate >= 50 ? 'text-brand-green' : 'text-brand-red',
-    barStyle: { width: `${entered.value ? winRate : 0}%` },
+    winRateClass: winRate >= 50 ? 'text-win-ink' : 'text-loss-ink',
   }
 }))
 </script>
 
 <template>
-  <section v-if="rows.length > 0" aria-labelledby="crew-champions-title" class="rounded-3xl border border-border-subtle bg-surface-base p-[18px] shadow-card">
-    <h3 id="crew-champions-title" class="text-xl font-bold tracking-[-0.025em]">Champions du crew</h3>
-    <p class="mb-1.5 mt-[3px] text-[12.5px] font-semibold text-text-sec">30 derniers jours</p>
-    <div v-for="row in rows" :key="row.key" class="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
-      <span class="relative size-11">
-        <span class="absolute inset-0 rounded-[14px] bg-surface-sunken bg-[length:112%] bg-center" :style="row.iconStyle" />
-        <span
-          v-if="row.mainName"
+  <UiPanel
+    v-if="rows.length > 0"
+    title="Champions du crew"
+    heading-tag="h3"
+    meta="30 jours"
+  >
+    <div v-for="row in rows" :key="row.key" class="list-row champ-row">
+      <span class="champ">
+        <img :src="row.iconUrl" alt="">
+        <img
+          v-if="row.mainIconUrl"
+          class="by"
+          :src="row.mainIconUrl"
+          alt=""
           :title="row.mainTitle"
-          class="absolute -bottom-[5px] -right-[5px] size-5 rounded-full border-2 border-surface-base bg-surface-sunken bg-cover bg-center"
-          :style="row.mainIconStyle"
-        />
+        >
       </span>
-      <span class="min-w-0">
-        <span class="flex items-baseline justify-between gap-2">
-          <span class="shrink-0 text-[14.5px] font-bold">{{ row.name }}</span>
-          <span v-if="row.mainName" class="min-w-0 truncate text-[11.5px] font-semibold text-text-sec" :title="row.mainTitle">{{ row.mainName }}</span>
-        </span>
-        <span class="block text-[11.5px] font-semibold text-text-sec">{{ row.meta }}</span>
-        <span class="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-loss-track">
-          <span class="block h-full rounded-full bg-win transition-[width] duration-[1100ms] ease-spring-soft" :style="row.barStyle" />
+      <span class="list-main">
+        <b>{{ row.name }}</b>
+        <span :title="row.mainTitle">{{ row.sub }}</span>
+        <span class="split" role="img" :aria-label="`${row.winRateNum} % de victoires`">
+          <i :style="{ width: `${row.winRateNum}%` }" />
         </span>
       </span>
-      <span class="text-base font-bold" :class="row.winRateClass">{{ row.winRate }}</span>
+      <span class="wr" :class="row.winRateClass">{{ row.winRate }}</span>
     </div>
-  </section>
+  </UiPanel>
 </template>
+
+<style scoped>
+@reference "../../assets/css/main.css";
+
+.list-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 48px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.champ {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+.champ > img:first-child {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-2);
+  object-fit: cover;
+  background: var(--sunken);
+}
+
+.champ .by {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.list-main {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.list-main b {
+  font-weight: 640;
+  font-size: 0.875rem;
+}
+
+.list-main > span:not(.split) {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.split {
+  display: flex;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--loss);
+}
+
+.split i {
+  display: block;
+  height: 100%;
+  background: var(--win);
+}
+
+.wr {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+</style>

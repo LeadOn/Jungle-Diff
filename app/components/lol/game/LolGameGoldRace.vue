@@ -49,8 +49,8 @@ const rows = computed(() => {
     widthPercent: Math.max(4, (row.value / max) * 100),
     championName: row.player.championName ? championDisplayName(row.player.championName) : '',
     championStyle: { backgroundImage: `url('${championIconUrl(row.player.championName, props.patch)}')` },
-    teamClass: row.player.teamId === 100 ? 'bg-team-blue' : 'bg-team-red',
-    ringClass: row.player.teamId === 100 ? 'ring-team-blue' : 'ring-team-red',
+    teamClass: row.player.teamId === 100 ? 'bg-side-blue' : 'bg-side-red',
+    ringClass: row.player.teamId === 100 ? 'ring-side-blue' : 'ring-side-red',
   }))
 })
 </script>
@@ -58,28 +58,28 @@ const rows = computed(() => {
 <template>
   <div class="p-[22px]">
     <div class="mb-3.5 flex items-baseline justify-between gap-2">
-      <span class="text-[17px] font-bold tracking-[-0.02em]">Course à l'or</span>
-      <span class="font-mono text-xs font-semibold text-text-sec">à {{ frameLabel }}</span>
+      <span class="type-title text-ink">Course à l'or</span>
+      <span class="type-mono text-ink-2">à {{ frameLabel }}</span>
     </div>
 
     <div class="relative" :style="{ height: `${rows.length * ROW_HEIGHT}px` }">
       <div
         v-for="row in rows"
         :key="row.player.puuid"
-        class="absolute inset-x-0 flex h-10 items-center gap-2.5 transition-[top] duration-500 ease-spring-soft"
+        class="absolute inset-x-0 flex h-10 items-center gap-2.5 transition-[top] duration-500 ease-out"
         :style="{ top: `${row.rank * ROW_HEIGHT}px` }"
       >
-        <span class="w-[18px] shrink-0 text-right font-mono text-[11.5px] text-text-sec">{{ row.rank + 1 }}</span>
+        <span class="w-[18px] shrink-0 text-right fig text-[0.875rem] text-ink-2">{{ row.rank + 1 }}</span>
         <span
-          class="size-7 shrink-0 rounded-[9px] bg-surface-sunken bg-[length:112%] bg-center ring-2"
+          class="size-7 shrink-0 rounded-2 bg-sunken bg-[length:112%] bg-center ring-2"
           :class="row.ringClass"
           :style="row.championStyle"
         />
-        <span class="w-[78px] shrink-0 truncate text-[12.5px] font-bold" :title="row.player.riotIdGameName">{{ row.championName }}</span>
-        <span class="h-3.5 flex-1 overflow-hidden rounded-full bg-surface-high">
-          <span class="block h-full rounded-full transition-[width] duration-400" :class="row.teamClass" :style="{ width: `${row.widthPercent}%` }" />
+        <span class="w-[78px] shrink-0 truncate text-[0.8125rem] font-semibold text-ink" :title="row.player.riotIdGameName">{{ row.championName }}</span>
+        <span class="h-3 flex-1 overflow-hidden rounded-full bg-neutral-soft">
+          <span class="block h-full rounded-full transition-[width] duration-400 ease-out" :class="row.teamClass" :style="{ width: `${row.widthPercent}%` }" />
         </span>
-        <span class="w-[58px] shrink-0 text-right font-mono text-xs font-semibold">{{ formatFull(row.value) }}</span>
+        <span class="w-[58px] shrink-0 text-right fig text-[0.9375rem] text-ink">{{ formatFull(row.value) }}</span>
       </div>
     </div>
   </div>

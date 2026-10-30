@@ -9,10 +9,9 @@ import { getChampionIconUrl, getItemIconUrl } from '~/utils/ddragon'
 import { championDisplayName } from '~/utils/lol-champion'
 import { roleLabel } from '~/utils/lol-role'
 import { rankAfter, rankChangeSummary, rankTransition } from '~/utils/lol-rank-change'
-import { tierEmblemUrl, tierLabel } from '~/utils/lol-tier'
+import { tierEmblemUrl, tierLabel, tierTint } from '~/utils/lol-tier'
 import { playerDisplayName } from '~/utils/lol-ladder'
 import { formatClock } from '~/utils/date'
-import { formatSigned } from '~/utils/number'
 
 /**
  * One game of a feed, told from one crew member's side: the home's recent games and a profile's
@@ -25,7 +24,8 @@ import { formatSigned } from '~/utils/number'
 const props = withDefaults(defineProps<{
   entry: FeedEntry
   showPlayer?: boolean
-}>(), { showPlayer: true })
+  isMe?: boolean
+}>(), { showPlayer: true, isMe: false })
 
 const store = useLolStore()
 const patchStore = usePatchStore()
@@ -43,17 +43,13 @@ const nameOf = (playerId: number | null, fallback: string) => {
 const who = computed(() => nameOf(participant.value.playerId, participant.value.riotIdGameName))
 const teammatesTitle = computed(() => `Avec ${props.entry.teammates.map(mate => nameOf(mate.playerId, mate.riotIdGameName)).join(', ')}`)
 
-/**
- * The card itself carries the result — an accent bar on the left and a wash fading out towards the
- * right, where the KDA and the LP chip keep a neutral background — so the label is plain text.
- */
 const result = computed(() => {
   if (game.value.isRemake) {
-    return { label: 'Remake', text: 'text-text-sec', bar: 'bg-border-accent', wash: 'from-surface-high' }
+    return { label: 'Remake', cls: 'r' }
   }
   return participant.value.win
-    ? { label: 'Victoire', text: 'text-brand-green', bar: 'bg-win', wash: 'from-win-soft' }
-    : { label: 'Défaite', text: 'text-brand-red', bar: 'bg-loss', wash: 'from-loss-soft' }
+    ? { label: 'Victoire', cls: 'w' }
+    : { label: 'Défaite', cls: 'l' }
 })
 
 const queueLabel = computed(() => formatQueueShort(game.value.queueId, store.queues))
@@ -62,9 +58,15 @@ const clock = computed(() => formatClock(game.value.gameStart))
 const duration = computed(() => formatGameDuration(game.value.gameStart, game.value.gameEnd))
 const championName = computed(() => championDisplayName(participant.value.championName))
 const title = computed(() => (props.showPlayer ? who.value : championName.value))
-const meta = computed(() => [roleLabel(participant.value.teamPosition), queueLabel.value, duration.value].filter(Boolean).join(' · '))
+const meta = computed(() => [
+  props.showPlayer ? championName.value : '',
+  roleLabel(participant.value.teamPosition),
+  queueLabel.value,
+  duration.value,
+].filter(Boolean).join(' · '))
 
 const kda = computed(() => `${participant.value.kills} / ${participant.value.deaths} / ${participant.value.assists}`)
+const kdaCompact = computed(() => `${participant.value.kills}/${participant.value.deaths}/${participant.value.assists}`)
 const kdaRatio = computed(() => `${calculateKda(participant.value.kills, participant.value.deaths, participant.value.assists)} KDA`)
 
 const items = computed(() => {
@@ -83,17 +85,15 @@ const items = computed(() => {
 const lp = computed(() => {
   const change = participant.value.rankChange
   if (change) {
-    const value = change.leaguePointsChange
     return {
       kind: 'known' as const,
-      text: `${formatSigned(value)} LP`,
+      value: change.leaguePointsChange,
       title: rankChangeSummary(change),
-      class: value > 0 ? 'bg-win-soft text-brand-green' : value < 0 ? 'bg-loss-soft text-brand-red' : 'bg-surface-base text-text-main border border-border-accent',
     }
   }
   if (game.value.isRemake) return { kind: 'none' as const, title: 'Remake : aucun LP en jeu' }
   if (game.value.queueId === null || !RANKED_QUEUE_IDS.has(game.value.queueId)) {
-    return { kind: 'none' as const, title: 'Partie non classée : aucun LP en jeu' }
+    return { kind: 'none' as const, title: 'Partie normale ou remake : aucun LP en jeu' }
   }
   return null
 })
@@ -103,83 +103,327 @@ const transition = computed(() => {
   const direction = change ? rankTransition(change) : null
   if (!change || !direction) return null
   const reached = rankAfter(change)
+  const tint = tierTint(reached.tier)
   return {
     text: `${direction === 'promotion' ? 'Promu' : 'Rétrogradé'} ${tierLabel(reached)}`,
     emblem: tierEmblemUrl(reached),
-    class: direction === 'promotion' ? 'bg-win-soft text-brand-green' : 'bg-loss-soft text-brand-red',
+    style: tint ? { '--tier': tint } : undefined,
   }
 })
 
-const championStyle = computed(() => ({
-  backgroundImage: `url('${getChampionIconUrl(participant.value.championName, ddragonVersion.value)}')`,
-}))
+const championIconUrl = computed(() => getChampionIconUrl(participant.value.championName, ddragonVersion.value))
 </script>
 
 <template>
   <NuxtLink
     :to="`/game/${game.matchId}/${participant.playerId}`"
-    class="group relative grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3.5 overflow-hidden rounded-[20px] border border-border-subtle bg-surface-base bg-linear-to-r to-surface-base to-60% py-3.5 pl-5 pr-3.5 shadow-card transition-[translate,box-shadow] duration-300 ease-spring hover:-translate-y-[3px] hover:shadow-card-hover @min-[600px]:grid-cols-[52px_minmax(0,1fr)_90px_44px_auto]"
-    :class="result.wash"
+    class="game"
+    :class="result.cls"
+    :aria-label="`${result.label} de ${who} sur ${championName}`"
   >
-    <span aria-hidden="true" class="absolute inset-y-0 left-0 w-[5px]" :class="result.bar" />
-    <span class="relative size-[52px]">
-      <span class="absolute inset-0 overflow-hidden rounded-2xl bg-surface-sunken">
-        <span class="absolute inset-0 bg-[length:112%] bg-center transition-transform duration-[600ms] ease-out-expo group-hover:scale-[1.15]" :style="championStyle" />
-      </span>
-      <span class="absolute -bottom-[7px] -right-[7px] flex h-5 min-w-[22px] items-center justify-center rounded-full border border-border-accent bg-surface-base px-1 text-[10.5px] font-bold">{{ participant.champLevel }}</span>
+    <span class="champ">
+      <img :src="championIconUrl" alt="">
+      <span class="lvl">{{ participant.champLevel }}</span>
     </span>
 
-    <span class="flex min-w-0 flex-col gap-1">
-      <span class="flex min-w-0 items-center gap-2">
-        <span class="shrink-0 text-[12px] font-bold uppercase tracking-[0.04em]" :class="result.text">{{ result.label }}</span>
-        <span class="min-w-0 truncate text-[15.5px] font-bold">{{ title }}</span>
-        <span
-          v-if="entry.teammates.length > 0"
-          :title="teammatesTitle"
-          class="shrink-0 cursor-help rounded-full border border-border-accent px-1.5 text-[11px] font-bold text-text-sec"
-        >+{{ entry.teammates.length }}</span>
+    <span class="game-main">
+      <span class="game-title">
+        <span class="game-res">{{ result.label }}</span>
+        <b>{{ title }}</b>
+        <UiStatus v-if="isMe && showPlayer" variant="me">Vous</UiStatus>
+        <UiStatus v-if="entry.teammates.length > 0" variant="plus" :title="teammatesTitle">+{{ entry.teammates.length }}</UiStatus>
         <span
           v-if="transition"
           :title="transition.text"
-          class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full py-px pl-[3px] pr-[9px] text-[11.5px] font-bold"
-          :class="transition.class"
+          :style="transition.style"
+          class="promo"
         >
-          <img :src="transition.emblem" alt="" class="size-5 object-contain">{{ transition.text }}
+          <img :src="transition.emblem" alt="">{{ transition.text }}
         </span>
       </span>
-      <span class="truncate text-[12.5px] font-semibold text-text-sec">
-        <template v-if="showPlayer"><span class="text-text-main">{{ championName }}</span> · </template>{{ meta }}<span class="@min-[600px]:hidden"> · {{ clock }}</span>
+      <span class="game-meta">
+        {{ meta }}<span class="time-inline"> · {{ clock }}</span>
       </span>
-      <span class="mt-[3px] hidden gap-[3px] @min-[700px]:flex">
-        <span
-          v-for="item in items"
-          :key="item.slot"
-          class="size-[22px] shrink-0 rounded-md bg-(--color-item-bg) bg-cover bg-center"
-          :class="item.slot === 6 ? 'ml-1' : ''"
-          :style="item.url ? { backgroundImage: `url('${item.url}')` } : undefined"
-        />
+      <span class="game-items">
+        <template v-for="item in items" :key="item.slot">
+          <img
+            v-if="item.url"
+            :src="item.url"
+            alt=""
+            :class="item.slot === 6 ? 'trinket' : ''"
+          >
+          <i v-else :class="item.slot === 6 ? 'trinket' : ''" />
+        </template>
       </span>
     </span>
 
-    <span class="hidden flex-col items-end gap-0.5 @min-[600px]:flex">
-      <span class="whitespace-nowrap font-mono text-sm font-semibold">{{ kda }}</span>
-      <span class="whitespace-nowrap text-[11.5px] font-semibold text-text-sec">{{ kdaRatio }}</span>
+    <span class="game-kda">
+      <span class="fig">{{ kda }}</span>
+      <span>{{ kdaRatio }}</span>
     </span>
-    <span class="hidden text-right font-mono text-xs text-text-sec @min-[600px]:block">{{ clock }}</span>
+    <span class="game-time">{{ clock }}</span>
 
-    <span class="flex flex-col items-end gap-[5px]">
-      <span class="whitespace-nowrap font-mono text-xs font-semibold @min-[600px]:hidden">{{ kda }}</span>
-      <span
+    <span class="game-end">
+      <span class="kda-inline">{{ kdaCompact }}</span>
+      <LolLpBadge
         v-if="lp?.kind === 'known'"
+        :value="lp.value"
         :title="lp.title"
-        class="whitespace-nowrap rounded-full px-2.5 py-1 font-mono text-xs font-semibold"
-        :class="lp.class"
-      >{{ lp.text }}</span>
-      <span
+        size="md"
+      />
+      <LolLpBadge
         v-else-if="lp?.kind === 'none'"
+        none
         :title="lp.title"
-        class="cursor-help whitespace-nowrap rounded-full border border-dashed border-border-accent px-2.5 py-1 text-[11.5px] font-bold text-text-sec"
-      >Sans LP</span>
+        size="md"
+      />
     </span>
   </NuxtLink>
 </template>
+
+<style scoped>
+@reference "../../assets/css/main.css";
+
+.game {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  padding: 14px 14px 14px 20px;
+  border-radius: var(--radius-5);
+  border: 1px solid color-mix(in oklch, var(--line) 70%, transparent);
+  box-shadow: var(--shadow-card-value);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 120ms var(--ease-out);
+}
+
+.game.w {
+  background: linear-gradient(90deg, var(--win-soft), var(--surface) 60%);
+}
+
+.game.l {
+  background: linear-gradient(90deg, var(--loss-soft), var(--surface) 60%);
+}
+
+.game.r {
+  background: linear-gradient(90deg, var(--neutral-soft), var(--surface) 60%);
+}
+
+.game::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--win);
+}
+
+.game.l::before {
+  background: var(--loss);
+}
+
+.game.r::before {
+  background: var(--line-strong);
+}
+
+.game:hover {
+  box-shadow: var(--shadow-card-value), 0 0 0 1px var(--line-strong);
+}
+
+.champ {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 52px;
+}
+
+.champ > img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-4);
+  object-fit: cover;
+  background: var(--sunken);
+}
+
+.champ .lvl {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  min-width: 22px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line-strong);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.game-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.game-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  min-width: 0;
+}
+
+.game-res {
+  flex: 1 0 100%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.game.w .game-res {
+  color: var(--win-ink);
+}
+
+.game.l .game-res {
+  color: var(--loss-ink);
+}
+
+.game.r .game-res {
+  color: var(--ink-2);
+}
+
+.game-title b {
+  font-weight: 700;
+  font-size: 0.96875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px 0 2px;
+  border-radius: var(--radius-1);
+  font-size: 11.5px;
+  font-weight: 650;
+  background: color-mix(in oklch, var(--tier, var(--tier-none)) 32%, var(--surface));
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.promo img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.game-meta {
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-items {
+  display: none;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.game-items img,
+.game-items i {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--neutral-soft);
+  object-fit: cover;
+}
+
+.game-items .trinket {
+  margin-left: 4px;
+}
+
+.game-kda,
+.game-time {
+  display: none;
+}
+
+.game-kda {
+  text-align: right;
+}
+
+.game-kda .fig {
+  font-size: 1.0625rem;
+  display: block;
+  white-space: nowrap;
+}
+
+.game-kda span:not(.fig) {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+
+.game-time {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+.game-end {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.game-end .kda-inline {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+@container (min-width: 600px) {
+  .game {
+    grid-template-columns: 52px minmax(0, 1fr) 92px 46px auto;
+  }
+
+  .game-kda,
+  .game-time {
+    display: block;
+  }
+
+  .game-end .kda-inline,
+  .time-inline {
+    display: none;
+  }
+
+  .game-title {
+    flex-wrap: nowrap;
+  }
+
+  .game-res {
+    flex: none;
+  }
+}
+
+@container (min-width: 700px) {
+  .game-items {
+    display: flex;
+  }
+}
+</style>

@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { LoLWeeklyActivityDto } from '~/lib/types'
 import { usePatchStore } from '~/stores/patch'
-import { useAnimatedNumber } from '~/composables/useAnimatedNumber'
-import { useEntered } from '~/composables/useEntered'
-import { championSplashUrl } from '~/utils/lol-champion'
 import { getProfileIconUrl } from '~/utils/ddragon'
 import { playerDisplayName } from '~/utils/lol-ladder'
-import { describeDay, parisDayKey } from '~/utils/date'
+import { parisDayKey } from '~/utils/date'
 import { computeWinRate, formatDecimal, formatSigned } from '~/utils/number'
 
 /**
  * `weeklyActivity` as the home page asks for it: the last 7 days (`window=Last7Days`, six days ago
  * 00:00 Paris time to now) against the 7 days before, **ranked games only** (Solo/Duo and Flex).
+ *
+ * Rendered as the Canopée week ledger: a 7-day + total table above 760 px container width, and a
+ * 2×2 summary + per-day rows below 760 px. Degrades to the 2×2 summary alone when `days` is absent.
  */
 const props = defineProps<{
   activity: LoLWeeklyActivityDto
@@ -21,22 +21,13 @@ const props = defineProps<{
 }>()
 
 const patchStore = usePatchStore()
-const entered = useEntered()
+const hoveredDay = ref<string | null>(null)
 
-const games = useAnimatedNumber(() => props.activity.gamesThisWeek)
-const winRateValue = useAnimatedNumber(() => props.activity.winRateThisWeek)
-const netLp = useAnimatedNumber(() => props.activity.netLpChangeThisWeek)
-const hours = useAnimatedNumber(() => props.activity.totalPlaytimeMinutesThisWeek / 60)
+const weekdayShortFormat = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'short' })
 
 const gamesDelta = computed(() => props.activity.gamesThisWeek - props.activity.gamesLastWeek)
-
-const RING_RADIUS = 46
-const RING_LENGTH = 2 * Math.PI * RING_RADIUS
-const winShare = computed(() => {
-  const played = props.activity.winsThisWeek + props.activity.lossesThisWeek
-  return played > 0 ? props.activity.winsThisWeek / played : 0
-})
-const ringDash = computed(() => `${(entered.value ? winShare.value : 0) * RING_LENGTH} ${RING_LENGTH}`)
+const totalHours = computed(() => formatDecimal(props.activity.totalPlaytimeMinutesThisWeek / 60))
+const averageDuration = computed(() => `${Math.round(props.activity.averageGameDurationMinutesThisWeek)} min par partie`)
 
 /** In points against the previous 7 days; absent when nothing was played back then. */
 const winRateDelta = computed(() => {
@@ -47,26 +38,26 @@ const winRateDelta = computed(() => {
   const delta = Math.round(props.activity.winRateThisWeek - previous)
   return {
     text: `${formatSigned(delta)} pts`,
-    title: `Par rapport aux 7 jours précédents (${previous} %)`,
-    class: delta > 0 ? 'text-brand-green' : delta < 0 ? 'text-brand-red' : 'text-text-sec',
+    title: `${winsLastWeek + lossesLastWeek} parties les 7 jours précédents (${previous} %)`,
+    class: delta > 0 ? 'text-win-ink' : delta < 0 ? 'text-loss-ink' : 'text-ink-3',
   }
 })
 
 const lpTone = computed(() => {
-  if (props.activity.netLpChangeThisWeek > 0) return 'text-brand-green'
-  if (props.activity.netLpChangeThisWeek < 0) return 'text-brand-red'
-  return 'text-text-main'
+  if (props.activity.netLpChangeThisWeek > 0) return 'text-win-ink'
+  if (props.activity.netLpChangeThisWeek < 0) return 'text-loss-ink'
+  return 'text-ink-3'
 })
 
-const averageDuration = computed(() => `${Math.round(props.activity.averageGameDurationMinutesThisWeek)} min / partie`)
-
-const activePlayers = computed(() => (props.activity.activePlayers ?? []).slice(0, 5).map(active => ({
+const activePlayers = computed(() => (props.activity.activePlayers ?? []).slice(0, 8).map(active => ({
   id: active.player.id,
+  name: playerDisplayName(active.player),
   title: `${playerDisplayName(active.player)} · ${active.games} partie${active.games > 1 ? 's' : ''}`,
-  iconStyle: active.player.lolIconId != null
-    ? { backgroundImage: `url('${getProfileIconUrl(active.player.lolIconId, patchStore.currentPatch)}')` }
-    : {},
+  iconUrl: active.player.lolIconId != null
+    ? getProfileIconUrl(active.player.lolIconId, patchStore.currentPatch)
+    : null,
 })))
+
 const activeText = computed(() => {
   const count = props.activity.activePlayers?.length ?? 0
   return `${count} joueur${count > 1 ? 's' : ''} actif${count > 1 ? 's' : ''} sur ${props.crewSize}`
@@ -78,153 +69,621 @@ const todayKey = computed(() => parisDayKey(props.activity.windowEnd ?? Date.now
 
 const days = computed(() => {
   const list = props.activity.days ?? []
+  if (list.length === 0) return []
   const maxLp = Math.max(...list.map(day => Math.abs(day.netLpChange ?? 0)), 1)
   const maxMinutes = Math.max(...list.map(day => day.playtimeMinutes), 1)
 
-  return list.map((day, index) => {
-    const label = describeDay(day.date, todayKey.value)
+  return list.map((day) => {
+    const [year, month, dayNum] = day.date.split('-').map(Number)
+    const utcNoon = new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, dayNum ?? 1, 12))
+    const wd = weekdayShortFormat.format(utcNoon).toLowerCase()
+    const num = String(dayNum ?? '')
+    const isToday = day.date === todayKey.value
     const lp = day.netLpChange
-    const record = `${day.games} partie${day.games > 1 ? 's' : ''}`
-    // A genuine 0 is a flat tick on the baseline; unknown LP (`null`) draws nothing at all.
-    const barHeight = entered.value && lp !== null ? Math.max(3, (Math.abs(lp) / maxLp) * 46) : 0
+    const winPct = day.games > 0 ? (day.wins * 100) / day.games : 0
+    const timePct = maxMinutes > 0 ? (day.playtimeMinutes * 100) / maxMinutes : 0
+    const lpPct = lp !== null && lp !== 0 ? (Math.abs(lp) / maxLp) * 50 : 0
+
     return {
       key: day.date,
-      initial: label.initial,
-      isToday: label.isToday,
-      lpTitle: lp === null ? `${label.title} · LP inconnus` : `${label.title} · ${formatSigned(lp)} LP · ${record}`,
-      barStyle: {
-        top: `${lp !== null && lp < 0 ? 50 : 50 - barHeight}%`,
-        height: `${barHeight}%`,
-        transitionDelay: `${index * 60}ms`,
-      },
-      barClass: lp === null || lp === 0 ? 'bg-text-ter' : lp > 0 ? 'bg-win' : 'bg-loss',
-      heatTitle: `${label.title} · ${formatDecimal(day.playtimeMinutes / 60)} h · ${record}`,
-      heatStyle: {
-        opacity: entered.value ? 0.12 + 0.88 * (day.playtimeMinutes / maxMinutes) : 0,
-        transform: `scale(${entered.value ? 1 : 0.4})`,
-        transitionDelay: `${index * 60}ms`,
-      },
+      wd,
+      num,
+      label: `${wd} ${num}`,
+      isToday,
+      games: day.games,
+      wins: day.wins,
+      losses: day.losses,
+      winPct,
+      lp,
+      lpPct,
+      lpToneClass: lp === null || lp === 0 ? 'text-ink-3' : lp > 0 ? 'text-win-ink' : 'text-loss-ink',
+      lpBarKind: lp === null ? null : lp > 0 ? 'up' : lp < 0 ? 'down' : 'zero',
+      timePct,
+      hours: formatDecimal(day.playtimeMinutes / 60),
+      cellTitle: `${wd} ${num} : ${day.games} partie${day.games > 1 ? 's' : ''}, ${day.wins} V ${day.losses} D, ${lp === null ? 'LP inconnus' : `${formatSigned(lp)} LP`}`,
     }
   })
 })
-
-const heroBackdrop = { backgroundImage: `url('${championSplashUrl('Rammus')}')` }
 </script>
 
 <template>
-  <div class="grid grid-flow-row-dense grid-cols-2 gap-4 md:grid-cols-3 rail:grid-cols-[1.35fr_1fr_1fr_1fr]">
-    <!-- Hero: games played -->
-    <div class="relative col-span-2 flex min-h-[212px] animate-rise flex-col overflow-hidden rounded-[26px] bg-ink px-6 py-[22px] text-white shadow-hero text-shadow-photo md:col-span-3 rail:col-span-1">
-      <div aria-hidden="true" class="absolute inset-0 bg-cover bg-[position:right_20%] bg-no-repeat" :style="heroBackdrop" />
-      <div aria-hidden="true" class="absolute inset-0 bg-scrim-side" />
-      <img src="~/assets/img/JungleDiff_Logo.png" alt="" aria-hidden="true" class="pointer-events-none absolute right-3.5 top-3.5 size-[100px] animate-bob object-contain drop-shadow-xl">
-
-      <div class="relative text-[15px] font-bold text-white/78">Sur 7 jours, le crew a joué</div>
-      <div class="relative mt-1.5 flex items-baseline gap-2.5">
-        <span class="text-[56px] font-bold leading-none tracking-[-0.05em] md:text-[68px] rail:text-[76px]">{{ Math.round(games) }}</span>
-        <span class="text-[22px] font-bold">parties classées</span>
-      </div>
-      <div class="relative mt-3.5 flex flex-wrap gap-2">
-        <span class="rounded-full border border-signal/35 bg-signal/16 px-3 py-[5px] text-[13px] font-bold text-on-photo-green">
-          {{ formatSigned(gamesDelta) }} vs les 7 jours précédents
+  <section
+    aria-label="La semaine jour par jour"
+    class="ledger overflow-hidden rounded-5 border border-line/70 bg-surface shadow-card"
+  >
+    <div class="ledger-head">
+      <h2 class="type-title">La semaine jour par jour</h2>
+      <span v-if="activePlayers.length > 0" class="who-played">
+        <span class="stack">
+          <template v-for="player in activePlayers" :key="player.id">
+            <img
+              v-if="player.iconUrl"
+              :src="player.iconUrl"
+              :title="player.title"
+              alt=""
+            >
+          </template>
         </span>
+        <span class="type-small" title="Au moins une partie classée sur 7 jours">{{ activeText }}</span>
+      </span>
+    </div>
+
+    <!-- Wide table: days are columns, week total is the rightmost column -->
+    <div
+      v-if="days.length > 0"
+      class="lw"
+      :data-hover="hoveredDay !== null ? '' : undefined"
+      role="table"
+      aria-label="Activité classée du crew, jour par jour"
+      @pointerleave="hoveredDay = null"
+    >
+      <div class="lw-row lw-dates" role="row">
+        <span class="type-label" role="columnheader">Jour</span>
+        <div
+          v-for="day in days"
+          :key="`date-${day.key}`"
+          class="lw-day"
+          :class="{ today: day.isToday, hl: hoveredDay === day.key }"
+          :title="day.cellTitle"
+          @pointerenter="hoveredDay = day.key"
+        >
+          <span>{{ day.isToday ? 'auj.' : day.wd }}</span>
+          <b>{{ day.num }}</b>
+        </div>
+        <div class="tot" role="columnheader">
+          <span class="type-label text-ink-3">7 jours</span>
+        </div>
       </div>
-      <div v-if="activePlayers.length > 0" class="relative mt-auto flex items-center gap-3 pt-5">
-        <span class="flex">
-          <span
-            v-for="(player, index) in activePlayers"
-            :key="player.id"
-            :title="player.title"
-            class="size-[30px] rounded-full border-2 border-ink bg-surface-sunken bg-cover bg-center"
-            :class="index > 0 ? '-ml-2' : ''"
-            :style="player.iconStyle"
-          />
-        </span>
-        <span class="text-[13px] font-semibold text-white/78" title="Au moins une partie classée sur 7 jours">{{ activeText }}</span>
+
+      <div class="lw-row" role="row">
+        <span class="type-label" role="rowheader">Parties</span>
+        <div
+          v-for="day in days"
+          :key="`games-${day.key}`"
+          class="lw-day"
+          :class="{ today: day.isToday, hl: hoveredDay === day.key }"
+          :title="day.cellTitle"
+          @pointerenter="hoveredDay = day.key"
+        >
+          <span class="fig fig-s">{{ day.games }}</span>
+        </div>
+        <div class="tot">
+          <span><span class="fig">{{ activity.gamesThisWeek }}</span></span>
+          <span class="delta text-ink-2" :title="`${activity.gamesLastWeek} les 7 jours précédents`">
+            {{ formatSigned(gamesDelta) }} vs 7 j préc.
+          </span>
+        </div>
+      </div>
+
+      <div class="lw-row" role="row">
+        <span class="type-label" role="rowheader">Bilan</span>
+        <div
+          v-for="day in days"
+          :key="`bilan-${day.key}`"
+          class="lw-day"
+          :class="{ today: day.isToday, hl: hoveredDay === day.key }"
+          :title="day.cellTitle"
+          @pointerenter="hoveredDay = day.key"
+        >
+          <span class="lw-bilan">
+            <span class="split" :class="day.games === 0 ? 'empty-split' : ''" aria-hidden="true">
+              <i :style="{ width: `${day.winPct}%` }" />
+            </span>
+            <span>{{ day.wins }}–{{ day.losses }}</span>
+          </span>
+        </div>
+        <div class="tot">
+          <span>
+            <span class="fig">{{ Math.round(activity.winRateThisWeek) }}</span><span class="unit">%</span>
+          </span>
+          <span class="delta">
+            <span class="text-ink-3">{{ activity.winsThisWeek }} V · {{ activity.lossesThisWeek }} D</span>
+            <template v-if="winRateDelta">
+              <span class="text-ink-3"> · </span>
+              <span :class="winRateDelta.class" :title="winRateDelta.title">{{ winRateDelta.text }}</span>
+            </template>
+          </span>
+        </div>
+      </div>
+
+      <div class="lw-row" role="row">
+        <span class="type-label" role="rowheader">LP nets</span>
+        <div
+          v-for="day in days"
+          :key="`lp-${day.key}`"
+          class="lw-day"
+          :class="{ today: day.isToday, hl: hoveredDay === day.key }"
+          :title="day.cellTitle"
+          @pointerenter="hoveredDay = day.key"
+        >
+          <span class="lw-lp">
+            <span class="lp-bar" aria-hidden="true">
+              <i
+                v-if="day.lpBarKind !== null"
+                :class="day.lpBarKind"
+                :style="day.lpBarKind !== 'zero' ? { height: `${day.lpPct}%` } : undefined"
+              />
+            </span>
+            <span class="v" :class="day.lpToneClass">{{ day.lp === null ? '—' : formatSigned(day.lp) }}</span>
+          </span>
+        </div>
+        <div class="tot">
+          <span :class="lpTone">
+            <span class="fig">{{ formatSigned(activity.netLpChangeThisWeek) }}</span><span class="unit">LP</span>
+          </span>
+          <span class="delta text-ink-3">Solo/Duo + Flex</span>
+        </div>
+      </div>
+
+      <div class="lw-row" role="row">
+        <span class="type-label" role="rowheader">Temps</span>
+        <div
+          v-for="day in days"
+          :key="`time-${day.key}`"
+          class="lw-day lw-time"
+          :class="{ today: day.isToday, hl: hoveredDay === day.key }"
+          :title="day.cellTitle"
+          @pointerenter="hoveredDay = day.key"
+        >
+          <span class="bar" aria-hidden="true">
+            <i :style="{ width: `${day.timePct}%` }" />
+          </span>
+          <span>{{ day.hours }} h</span>
+        </div>
+        <div class="tot">
+          <span>
+            <span class="fig">{{ totalHours }}</span><span class="unit">h</span>
+          </span>
+          <span class="delta text-ink-3">{{ averageDuration }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Win rate -->
-    <div class="tile [animation-delay:80ms]">
-      <div class="flex items-baseline justify-between gap-2">
-        <span class="text-sm font-bold">Taux de victoire</span>
-        <span v-if="winRateDelta" :title="winRateDelta.title" class="whitespace-nowrap text-xs font-bold" :class="winRateDelta.class">{{ winRateDelta.text }}</span>
+    <!-- Narrow view (below 760px container width, or always when days are absent) -->
+    <div :class="days.length > 0 ? 'ln' : ''">
+      <div class="ln-tot" :class="days.length === 0 ? '!border-b-0' : ''">
+        <div>
+          <span class="type-label text-ink-3">Parties</span>
+          <span class="fig">{{ activity.gamesThisWeek }}</span>
+          <span class="delta text-ink-2">{{ formatSigned(gamesDelta) }} vs 7 j préc.</span>
+        </div>
+        <div>
+          <span class="type-label text-ink-3">Victoires</span>
+          <span><span class="fig">{{ Math.round(activity.winRateThisWeek) }}</span><span class="unit"> %</span></span>
+          <span v-if="winRateDelta" class="delta" :class="winRateDelta.class">{{ winRateDelta.text }}</span>
+          <span v-else class="delta text-ink-3">{{ activity.winsThisWeek }} V · {{ activity.lossesThisWeek }} D</span>
+        </div>
+        <div>
+          <span class="type-label text-ink-3">LP nets</span>
+          <span class="fig" :class="lpTone">{{ formatSigned(activity.netLpChangeThisWeek) }}</span>
+          <span class="delta text-ink-3">Solo/Duo + Flex</span>
+        </div>
+        <div>
+          <span class="type-label text-ink-3">Temps de jeu</span>
+          <span><span class="fig">{{ totalHours }}</span><span class="unit"> h</span></span>
+          <span class="delta text-ink-3">{{ averageDuration }}</span>
+        </div>
       </div>
-      <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-3">
-        <div class="relative size-[104px] shrink-0">
-          <svg viewBox="0 0 104 104" class="size-full -rotate-90" aria-hidden="true">
-            <circle cx="52" cy="52" :r="RING_RADIUS" fill="none" stroke-width="12" class="stroke-loss-track" />
-            <circle
-              cx="52"
-              cy="52"
-              :r="RING_RADIUS"
-              fill="none"
-              stroke-width="12"
-              class="stroke-win transition-[stroke-dasharray] duration-[1300ms] ease-out-expo"
-              :stroke-dasharray="ringDash"
+
+      <div v-if="days.length > 0" class="ln-days">
+        <div
+          v-for="day in days"
+          :key="`narrow-${day.key}`"
+          class="ln-day"
+          :class="{ today: day.isToday }"
+        >
+          <span class="d">
+            <b>{{ day.label }}</b>
+            <span>{{ day.wins }} V · {{ day.losses }} D</span>
+          </span>
+          <span class="n">{{ day.games }}</span>
+          <span class="ln-lp" aria-hidden="true">
+            <i
+              v-if="day.lp !== null && day.lp !== 0"
+              :class="day.lp > 0 ? 'up' : 'down'"
+              :style="{ width: `${day.lpPct}%` }"
             />
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center text-2xl font-bold tracking-[-0.03em]">{{ Math.round(winRateValue) }}%</span>
-        </div>
-        <div class="flex flex-col gap-2 text-[13px] font-semibold">
-          <span class="flex items-center gap-[7px] whitespace-nowrap"><span class="size-[9px] rounded-full bg-win" />{{ activity.winsThisWeek }} victoires</span>
-          <span class="flex items-center gap-[7px] whitespace-nowrap"><span class="size-[9px] rounded-full bg-loss-track" />{{ activity.lossesThisWeek }} défaites</span>
+          </span>
+          <span class="v" :class="day.lpToneClass">{{ day.lp === null ? '—' : `${formatSigned(day.lp)} LP` }}</span>
         </div>
       </div>
     </div>
-
-    <!-- LP -->
-    <div class="tile [animation-delay:160ms]">
-      <div class="flex items-baseline justify-between gap-2">
-        <span class="text-sm font-bold">LP gagnés ensemble</span>
-        <span class="whitespace-nowrap text-xs font-bold text-text-sec">Solo + Flex</span>
-      </div>
-      <div class="flex items-baseline gap-1.5" :class="lpTone">
-        <span class="text-[46px] font-bold leading-none tracking-[-0.05em]">{{ formatSigned(Math.round(netLp)) }}</span>
-        <span class="text-base font-bold">LP</span>
-      </div>
-      <div v-if="days.length > 0" class="grid min-h-16 flex-1 grid-cols-7 gap-1.5">
-        <div v-for="day in days" :key="day.key" :title="day.lpTitle" class="flex cursor-default flex-col items-center gap-1.5">
-          <div class="relative min-h-11 w-full flex-1">
-            <span class="absolute -inset-x-[3px] top-1/2 h-px bg-border-accent" />
-            <span
-              class="absolute inset-x-[16%] rounded transition-[top,height] duration-[800ms] ease-spring-soft"
-              :class="day.barClass"
-              :style="day.barStyle"
-            />
-          </div>
-          <span class="text-[11px] font-bold" :class="day.isToday ? 'text-text-main' : 'text-text-sec'">{{ day.initial }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Playtime -->
-    <div class="tile col-span-2 [animation-delay:240ms] md:col-span-1">
-      <div class="flex items-baseline justify-between gap-2">
-        <span class="text-sm font-bold">Temps de jeu</span>
-        <span class="whitespace-nowrap text-xs font-bold text-text-sec">{{ averageDuration }}</span>
-      </div>
-      <div class="flex items-baseline gap-1.5">
-        <span class="text-[46px] font-bold leading-none tracking-[-0.05em]">{{ Math.round(hours) }}</span>
-        <span class="text-base font-bold">h</span>
-      </div>
-      <div v-if="days.length > 0" class="grid flex-1 grid-cols-7 items-end gap-1.5">
-        <div v-for="day in days" :key="day.key" :title="day.heatTitle" class="flex cursor-default flex-col items-center gap-1.5">
-          <span
-            class="aspect-square w-full max-w-[30px] rounded-lg bg-brand-link transition-[opacity,transform] duration-500 ease-spring"
-            :style="day.heatStyle"
-          />
-          <span class="text-[11px] font-bold" :class="day.isToday ? 'text-text-main' : 'text-text-sec'">{{ day.initial }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  </section>
 </template>
 
 <style scoped>
 @reference "../../assets/css/main.css";
 
-.tile {
-  @apply relative flex min-h-[212px] animate-rise flex-col gap-3.5 rounded-[26px] border border-border-subtle bg-surface-base p-5 shadow-card transition-[translate,box-shadow] duration-[350ms] ease-spring hover:-translate-y-1 hover:shadow-card-hover;
+.ledger {
+  container: ledger / inline-size;
+}
+
+.ledger-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger-head .who-played {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-2);
+}
+
+.stack {
+  display: flex;
+  align-items: center;
+}
+
+.stack img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.stack img + img {
+  margin-left: -6px;
+}
+
+/* Wide: days are columns, the week total is the last column */
+.lw {
+  display: none;
+}
+
+.lw-row {
+  display: grid;
+  grid-template-columns: 104px repeat(7, minmax(0, 1fr)) 168px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lw-row:last-child {
+  border-bottom: 0;
+}
+
+.lw-row > * {
+  padding: 10px 8px;
+  min-width: 0;
+}
+
+.lw-row > :first-child {
+  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  color: var(--ink-3);
+}
+
+.lw-row > .tot {
+  padding: 10px 16px;
+  border-left: 1px solid var(--line);
+  background: var(--sunken);
+  display: grid;
+  gap: 3px;
+  align-content: center;
+}
+
+.lw-day {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  text-align: center;
+  transition: background-color 120ms var(--ease-out);
+}
+
+.lw[data-hover] .lw-day.hl {
+  background: color-mix(in oklch, var(--sunken) 80%, var(--surface));
+}
+
+.lw-dates .lw-day {
+  gap: 1px;
+  padding-block: 10px 8px;
+}
+
+.lw-dates .lw-day b {
+  font-stretch: 72%;
+  font-weight: 680;
+  font-size: 1.25rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.lw-dates .lw-day span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.lw-dates .lw-day.today {
+  box-shadow: inset 0 2px 0 var(--ink);
+}
+
+.lw-dates .lw-day.today span {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.lw-dates .tot {
+  background: var(--sunken);
+}
+
+.lw .fig-s {
+  font-size: 1.125rem;
+}
+
+.lw-bilan {
+  width: 100%;
+  max-width: 72px;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+}
+
+.split {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--loss);
+}
+
+.split.empty-split {
+  background: var(--neutral-soft);
+}
+
+.split i {
+  display: block;
+  height: 100%;
+  background: var(--win);
+}
+
+.lw-bilan span:not(.split) {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.lw-lp {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.lp-bar {
+  position: relative;
+  width: 100%;
+  max-width: 40px;
+  height: 64px;
+}
+
+.lp-bar::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  top: 50%;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.lp-bar i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 2px;
+}
+
+.lp-bar i.up {
+  background: var(--win);
+  bottom: 50%;
+}
+
+.lp-bar i.down {
+  background: var(--loss);
+  top: 50%;
+}
+
+.lp-bar i.zero {
+  top: calc(50% - 1px);
+  height: 2px;
+  background: var(--ink-3);
+}
+
+.lw-lp .v {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.tot .fig {
+  font-size: 1.75rem;
+}
+
+.tot .unit,
+.ln-tot .unit {
+  font-weight: 620;
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  margin-left: 2px;
+}
+
+.tot .delta,
+.ln-tot .delta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.lw-time .bar {
+  width: 100%;
+  max-width: 40px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--neutral-soft);
+  overflow: hidden;
+}
+
+.lw-time .bar i {
+  display: block;
+  height: 100%;
+  background: var(--canopy);
+  opacity: 0.75;
+}
+
+.lw-time span:not(.bar) {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+/* Narrow: the week total first, then one row per day */
+.ln-tot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.ln-tot > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  min-width: 0;
+}
+
+.ln-tot > div:nth-child(even) {
+  border-left: 1px solid var(--line);
+}
+
+.ln-tot > div:nth-child(n + 3) {
+  border-top: 1px solid var(--line);
+}
+
+.ln-tot .fig {
+  font-size: 2.25rem;
+}
+
+.ln-days {
+  display: grid;
+}
+
+.ln-day {
+  display: grid;
+  grid-template-columns: 78px 28px minmax(0, 1fr) 64px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.ln-day:first-child {
+  border-top: 0;
+}
+
+.ln-day .d {
+  display: grid;
+  line-height: 1.15;
+}
+
+.ln-day .d b {
+  font-weight: 640;
+  font-size: 0.8125rem;
+}
+
+.ln-day .d span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.ln-day.today .d b::after {
+  content: " · auj.";
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.ln-day .n {
+  font-stretch: 72%;
+  font-weight: 680;
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ln-lp {
+  position: relative;
+  height: 10px;
+}
+
+.ln-lp::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 50%;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.ln-lp i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+}
+
+.ln-lp i.up {
+  left: 50%;
+  background: var(--win);
+}
+
+.ln-lp i.down {
+  right: 50%;
+  background: var(--loss);
+}
+
+.ln-day .v {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: right;
+}
+
+@container ledger (min-width: 760px) {
+  .lw {
+    display: block;
+  }
+
+  .ln {
+    display: none;
+  }
 }
 </style>

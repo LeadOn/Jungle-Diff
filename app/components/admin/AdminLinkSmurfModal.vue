@@ -83,18 +83,18 @@ const ctaLabel = computed(() => {
   <AdminModal size="md" @close="emit('close')">
     <template #default="{ titleId }">
       <div class="px-[22px] pt-[22px]">
-        <h2 :id="titleId" class="m-0 text-[22px] font-bold tracking-[-0.025em]">Lier un smurf</h2>
-        <p class="mt-1 text-[13px] font-semibold text-pretty text-text-sec">
+        <h2 :id="titleId" class="m-0 type-d3 text-ink">Lier un smurf</h2>
+        <p class="mt-1.5 type-body text-pretty text-ink-2">
           Crée le compte s'il est inconnu, importe son rang et ses parties récentes, et lui rattache les parties déjà jouées avec le crew.
         </p>
       </div>
 
       <div class="flex flex-col gap-4 px-[22px] py-5">
         <label class="flex flex-col gap-1.5">
-          <span class="text-[12.5px] font-bold">Compte principal</span>
+          <span class="text-[13px] font-semibold text-ink">Compte principal</span>
           <select
             v-model="mainId"
-            class="h-11 rounded-[14px] border border-border-accent bg-surface-hover px-3 text-sm font-semibold text-text-main outline-none focus:border-text-main/45"
+            class="h-11 min-w-0 cursor-pointer rounded-2 border border-line-strong bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-120 ease-out hover:border-ink-3"
             @change="clearResult"
           >
             <option v-for="main in mains" :key="main.id" :value="main.id">{{ mainLabel(main.id) }}</option>
@@ -102,7 +102,7 @@ const ctaLabel = computed(() => {
         </label>
 
         <div class="flex flex-col gap-1.5">
-          <span class="text-[12.5px] font-bold">Riot ID du smurf</span>
+          <span class="text-[13px] font-semibold text-ink">Riot ID du smurf</span>
           <AdminRiotIdInput
             v-model:name="name"
             v-model:tag="tag"
@@ -120,7 +120,7 @@ const ctaLabel = computed(() => {
         <AdminRoute>POST /lol/Summoner/{playerId}/smurfs · 404 introuvable · 409 déjà utilisé</AdminRoute>
       </div>
 
-      <div class="flex justify-end gap-2 border-t border-border-subtle bg-surface-muted px-[22px] py-3.5">
+      <div class="flex justify-end gap-2 border-t border-line bg-sunken px-[22px] py-3.5">
         <AdminButton variant="secondary" @click="emit('close')">Annuler</AdminButton>
         <AdminButton icon="lucide:rotate-cw" :busy="busy" :disabled="!result?.ok && !canSubmit" @click="submit">
           {{ ctaLabel }}

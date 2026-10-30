@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { LeagueOfLegendsRank, LoLRankChangeEntryDto } from '~/lib/types'
 import { rankScore, tierLabel } from '~/utils/lol-tier'
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber'
+import type { UiSegmentedOption } from '~/components/ui/Segmented.vue'
 import LpChangesChart from '~/components/lol/LpChangesChart.vue'
 
 type Queue = 'solo' | 'flex'
@@ -36,7 +37,7 @@ const selectedQueue = computed<Queue>(() => {
   const flexEmpty = props.flexEntries.length === 0 && props.flexChanges.length === 0
   return soloEmpty && !flexEmpty ? 'flex' : 'solo'
 })
-const QUEUES: { value: Queue, label: string }[] = [
+const QUEUES: UiSegmentedOption<Queue>[] = [
   { value: 'solo', label: 'Solo/Duo' },
   { value: 'flex', label: 'Flex' },
 ]
@@ -117,37 +118,30 @@ function onMouseMove(event: MouseEvent) {
 </script>
 
 <template>
-  <section aria-labelledby="profile-lp" class="rounded-3xl border border-border-subtle bg-surface-base p-5 shadow-card">
+  <section aria-labelledby="profile-lp" class="min-w-0 rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface p-4 shadow-card">
     <div class="flex items-baseline justify-between gap-2">
-      <h3 id="profile-lp" class="m-0 text-xl font-bold tracking-[-0.025em]">Progression classement</h3>
+      <h3 id="profile-lp" class="type-title m-0 text-ink">Progression classement</h3>
       <span
         v-if="hasEnoughData && !loading"
-        class="whitespace-nowrap text-base font-bold"
-        :class="trendUp ? 'text-brand-green' : 'text-brand-red'"
+        class="fig whitespace-nowrap text-[1.375rem]"
+        :class="trendUp ? 'text-win-ink' : 'text-loss-ink'"
       >{{ netLabel }}</span>
     </div>
 
-    <div class="mb-[22px] mt-1.5 flex items-center justify-between gap-2">
-      <span class="text-[12.5px] font-semibold text-text-sec">{{ caption }}</span>
-      <div role="group" aria-label="File classée" class="flex rounded-full border border-border-base bg-surface-muted p-[3px]">
-        <button
-          v-for="q in QUEUES"
-          :key="q.value"
-          type="button"
-          :aria-pressed="selectedQueue === q.value"
-          class="cursor-pointer rounded-full px-[11px] py-1 text-xs font-bold transition-colors duration-200"
-          :class="selectedQueue === q.value ? 'bg-inverse text-inverse-text' : 'text-text-main'"
-          @click="selectQueue(q.value)"
-        >
-          {{ q.label }}
-        </button>
-      </div>
+    <div class="mt-1.5 mb-5 flex items-center justify-between gap-2">
+      <span class="type-small text-ink-2">{{ caption }}</span>
+      <UiSegmented
+        :model-value="selectedQueue"
+        :options="QUEUES"
+        aria-label="File classée"
+        @update:model-value="selectQueue"
+      />
     </div>
 
-    <div v-if="loading" class="h-24 animate-pulse rounded-[14px] bg-surface-high" />
+    <UiSkeleton v-if="loading" class="h-24 rounded-3" />
     <div
       v-else-if="!hasEnoughData"
-      class="flex h-24 items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-border-dashed text-center text-[12.5px] font-bold text-text-sec"
+      class="type-small flex h-24 items-center justify-center rounded-3 border border-dashed border-line-strong px-3 text-center text-ink-2"
     >
       Pas assez de relevés sur cette période.
     </div>
@@ -170,30 +164,30 @@ function onMouseMove(event: MouseEvent) {
         </svg>
         <span
           v-if="lastPoint"
-          class="absolute -ml-[4.5px] -mt-[4.5px] size-[9px] rounded-full"
+          class="absolute -mt-[4.5px] -ml-[4.5px] size-[9px] rounded-full"
           :class="trendUp ? 'bg-win' : 'bg-loss'"
           :style="toPercent(lastPoint)"
         />
         <template v-if="hoveredPoint && hoveredEntry">
-          <span class="absolute inset-y-0 w-0 border-l border-dashed border-border-accent" :style="{ left: toPercent(hoveredPoint).left }" />
+          <span class="absolute inset-y-0 w-0 border-l border-dashed border-line-strong" :style="{ left: toPercent(hoveredPoint).left }" />
           <span
-            class="absolute -ml-[5.5px] -mt-[5.5px] size-[11px] rounded-full border-2 border-surface-base shadow-[0_2px_6px_rgba(22,36,27,0.3)]"
+            class="absolute -mt-[5.5px] -ml-[5.5px] size-[11px] rounded-full border-2 border-surface shadow-hair"
             :class="trendUp ? 'bg-win' : 'bg-loss'"
             :style="toPercent(hoveredPoint)"
           />
-          <span role="tooltip" class="pointer-events-none absolute -top-2 z-10 whitespace-nowrap rounded-xl bg-ink px-[11px] py-[7px] text-ink-text" :style="tooltipStyle">
-            <span class="block text-[11px] font-semibold text-ink-muted">{{ formatLongDate(hoveredEntry.createdOn) }}</span>
-            <span class="block text-[12.5px] font-bold">{{ tierLabel(hoveredEntry) }} {{ hoveredEntry.leaguePoints }} LP</span>
+          <span role="tooltip" class="pointer-events-none absolute -top-2 z-10 grid gap-0.5 whitespace-nowrap rounded-3 bg-night px-2.5 py-2 text-on-night shadow-float" :style="tooltipStyle">
+            <span class="block font-mono text-[11px] text-on-night-2">{{ formatLongDate(hoveredEntry.createdOn) }}</span>
+            <span class="block text-[0.8125rem] font-[640]">{{ tierLabel(hoveredEntry) }} {{ hoveredEntry.leaguePoints }} LP</span>
           </span>
         </template>
       </div>
-      <div class="mt-2.5 flex justify-between gap-2 border-t border-dashed border-border-dashed pt-2.5 text-[11.5px] font-bold text-text-sec">
-        <span>{{ firstLabel }}</span>
-        <span class="text-text-main">{{ nowLabel }}</span>
+      <div class="mt-2.5 flex justify-between gap-2 border-t border-dashed border-line-strong pt-2.5">
+        <span class="type-mono text-ink-3">{{ firstLabel }}</span>
+        <span class="text-[0.75rem] font-[640] text-ink">{{ nowLabel }}</span>
       </div>
     </template>
 
-    <div class="mt-5 border-t border-border-base pt-[18px]">
+    <div class="mt-5 border-t border-line pt-4">
       <LpChangesChart :entries="changes" :loading="changesLoading" />
     </div>
   </section>

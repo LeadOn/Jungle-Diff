@@ -23,9 +23,9 @@ export function kdaLabel(player: LoLGameParticipantDto): string {
 }
 
 export function kdaColorClass(value: number): string {
-  if (value >= 3) return 'text-brand-green';
-  if (value >= 2) return 'text-brand-gold';
-  return 'text-text-sec';
+  if (value >= 3) return 'text-win-ink';
+  if (value >= 2) return 'text-gold-ink';
+  return 'text-ink-2';
 }
 
 export function itemSlots(player: LoLGameParticipantDto): number[] {
@@ -353,10 +353,10 @@ export function ratingTone(rating: number): RatingTone {
 }
 
 const RATING_TONE_CLASSES: Record<RatingTone, string> = {
-  gold: 'bg-brand-gold-soft text-brand-gold',
-  green: 'bg-win-soft text-brand-green',
-  blue: 'bg-team-blue-soft text-team-blue-text',
-  grey: 'bg-surface-high text-text-sec',
+  gold: 'bg-gold-soft text-gold-ink',
+  green: 'bg-win-soft text-win-ink',
+  blue: 'bg-side-blue-soft text-side-blue-ink',
+  grey: 'bg-neutral-soft text-ink-2',
 };
 
 /** The rating's chip on a light surface: a soft wash and its ink. */

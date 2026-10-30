@@ -278,7 +278,7 @@ watch(
   <div class="w-full">
     <NuxtLink
       :to="backLink.to"
-      class="mb-4 inline-flex h-[30px] items-center gap-2 rounded-full border border-border-base bg-surface-base pl-2.5 pr-3 text-[12.5px] font-bold transition-[border-color,translate] duration-[250ms] ease-spring hover:-translate-x-0.5 hover:border-border-accent">
+      class="mb-4 inline-flex h-7 items-center gap-1.5 rounded-2 border border-line-strong bg-surface pl-2 pr-2.5 text-[0.8125rem] font-semibold text-ink no-underline transition-colors duration-[120ms] ease-out hover:border-ink-3 hover:bg-raised">
       <Icon name="lucide:arrow-left" class="size-[13px]" />
       {{ backLink.label }}
     </NuxtLink>
@@ -291,12 +291,12 @@ watch(
       <img
         src="~/assets/img/JungleDiff_Logo.png"
         alt=""
-        class="size-[72px] animate-bob object-contain" >
+        class="size-[72px] object-contain" >
       <span
-        class="inline-flex items-center gap-[9px] text-sm font-bold text-text-sec">
+        class="inline-flex items-center gap-[9px] text-sm font-semibold text-ink-2">
         <Icon
           name="lucide:refresh-cw"
-          class="size-[15px] animate-spin text-win" />
+          class="size-[15px] animate-spin text-ink-3" />
         Chargement de la partie…
       </span>
     </div>
@@ -304,32 +304,33 @@ watch(
     <div
       v-else-if="!match"
       role="alert"
-      class="flex flex-wrap items-center gap-5 rounded-[26px] border border-brand-red/30 bg-surface-base p-[26px] shadow-card">
+      class="flex flex-wrap items-center gap-5 rounded-5 border border-[color-mix(in_oklch,var(--loss)_45%,var(--line))] bg-surface p-[22px] shadow-card">
       <img
         src="~/assets/img/JungleDiff_Logo.png"
         alt=""
         class="size-20 object-contain grayscale-[0.4]" >
       <div class="min-w-60 flex-1">
-        <h2 class="m-0 text-[26px] font-bold tracking-[-0.03em]">
+        <h2 class="type-d2 m-0 text-ink">
           Partie indisponible.
         </h2>
         <p
-          class="m-0 mt-1.5 text-pretty text-[14.5px] leading-normal text-text-sec">
+          class="type-body m-0 mt-1.5 text-pretty text-ink-2">
           L'API GameOn n'a pas pu charger le détail de cette partie. Réessayez
           dans un instant.
         </p>
       </div>
-      <button
-        type="button"
+      <UiButton
+        variant="primary"
+        size="lg"
         :disabled="status === 'pending'"
-        class="inline-flex h-[46px] cursor-pointer items-center gap-[9px] rounded-full bg-inverse px-[22px] text-[15px] font-bold text-inverse-text transition-transform duration-[250ms] ease-spring hover:scale-105 disabled:cursor-wait"
+        :busy="status === 'pending'"
         @click="refresh()">
         <Icon
           name="lucide:refresh-cw"
           class="size-[15px]"
           :class="{'animate-spin': status === 'pending'}" />
         Réessayer
-      </button>
+      </UiButton>
     </div>
 
     <template v-else>
@@ -382,10 +383,10 @@ watch(
           <section aria-labelledby="game-highlights" class="mt-5 md:mt-8">
             <h2
               id="game-highlights"
-              class="m-0 text-[32px] font-bold tracking-[-0.035em]">
+              class="type-d2 m-0 text-ink">
               Mentions spéciales
             </h2>
-            <p class="m-0 mb-5 mt-1.5 text-sm font-semibold text-text-sec">
+            <p class="type-body m-0 mb-4 mt-1.5 text-ink-2">
               Les petits records de cette partie, sur les
               {{ allPlayers.length }} joueurs
             </p>
@@ -401,35 +402,35 @@ watch(
         <div v-else-if="activeTabId === 'film'">
           <div
             v-if="!timeline?.length"
-            class="rounded-[22px] border-[1.5px] border-dashed border-border-dashed px-6 py-10 text-center text-sm font-bold text-text-sec">
+            class="rounded-5 border border-dashed border-line-strong px-6 py-10 text-center text-sm font-semibold text-ink-2">
             Timeline indisponible pour cette partie : pas de film à rejouer.
           </div>
 
           <div v-else class="flex flex-col gap-4">
             <section
               aria-labelledby="game-film"
-              class="animate-rise overflow-hidden rounded-[26px] border border-border-subtle bg-surface-base shadow-card">
+              class="overflow-hidden rounded-5 border border-[color-mix(in_oklch,var(--line)_70%,transparent)] bg-surface shadow-card">
               <div
-                class="flex flex-wrap items-end justify-between gap-x-5 gap-y-3 px-[22px] pt-[22px]">
+                class="flex flex-wrap items-end justify-between gap-x-5 gap-y-3 px-4 pt-4 sm:px-5">
                 <div>
                   <h3
                     id="game-film"
-                    class="m-0 text-xl font-bold tracking-[-0.025em]">
+                    class="type-title m-0 text-ink">
                     Le film de la partie
                   </h3>
                   <p
-                    class="m-0 mt-[3px] text-[12.5px] font-semibold text-text-sec">
+                    class="type-small m-0 mt-0.5 text-ink-2">
                     Mini-carte, course à l'or et événements — pilotés par la
                     même timeline
                   </p>
                 </div>
-                <div class="flex gap-3.5 text-[12.5px] font-bold">
+                <div class="flex gap-3.5 text-[0.8125rem] font-semibold text-ink-2">
                   <span class="flex items-center gap-1.5">
                     <span class="size-[9px] rounded-full bg-loss" />
                     Éliminations
                   </span>
                   <span class="flex items-center gap-1.5">
-                    <span class="size-[9px] rounded-full bg-brand-gold-bright" />
+                    <span class="size-[9px] rounded-full bg-gold" />
                     Objectifs
                   </span>
                 </div>
@@ -442,7 +443,7 @@ watch(
                 @play-progress-change="playProgress = $event" />
 
               <div
-                class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] border-t-[1.5px] border-dashed border-border-dashed">
+                class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] border-t border-dashed border-line-strong">
                 <LolGameMinimap
                   :timeline="timeline"
                   :players="allPlayers"

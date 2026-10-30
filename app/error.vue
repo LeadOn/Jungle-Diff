@@ -6,6 +6,13 @@ const props = defineProps<{
   error: NuxtError
 }>()
 
+// The error page replaces `app.vue` entirely, so the stored theme choice has to be applied here too
+// or a dark-theme reader gets a light error page.
+useHead({
+  htmlAttrs: { lang: 'fr' },
+  script: [{ src: '/theme-init.js', tagPosition: 'head' }],
+})
+
 const isNotFound = computed(() => props.error?.statusCode === 404)
 const isForbidden = computed(() => props.error?.statusCode === 403)
 
@@ -28,44 +35,53 @@ useSeoMeta({
   }),
 })
 
+// A 404 or a 403 is something missing (the empty-state look); anything else is a failure (the
+// error-state look, loss-tinted and announced).
+const isFailure = computed(() => !isNotFound.value && !isForbidden.value)
+
 const handleHome = () => clearError({ redirect: '/' })
 </script>
 
 <template>
-  <div class="relative flex min-h-screen flex-col overflow-hidden">
-    <div class="pointer-events-none absolute inset-0 z-0 flex justify-center overflow-hidden">
-      <div class="relative h-full w-full max-w-[1200px]">
-        <div class="absolute right-[10%] top-[10%] h-[600px] w-[600px] rounded-full bg-(--color-glow) blur-[100px]"/>
-      </div>
-    </div>
-
-    <div class="relative z-10 flex flex-grow flex-col">
-      <header class="mx-auto flex w-full max-w-[1400px] items-center px-6 py-4 md:px-8 md:py-5">
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Logo" class="h-8 w-8 object-contain drop-shadow-sm" >
-          <span class="font-sans text-lg font-extrabold tracking-tight text-text-main md:text-[22px]">JungleDiff</span>
+  <div class="flex min-h-screen flex-col bg-paper">
+    <header class="border-b border-line bg-header">
+      <div class="mx-auto flex h-14 w-full max-w-[1280px] items-center px-4 md:px-6 rail:px-8">
+        <NuxtLink to="/" class="flex items-center gap-2 text-ink no-underline">
+          <img src="~/assets/img/JungleDiff_Logo.png" alt="JungleDiff Logo" class="size-[30px] object-contain" >
+          <span class="font-wide text-[17px] font-[780] tracking-[-0.035em] md:text-[18px]">JungleDiff</span>
         </NuxtLink>
-      </header>
+      </div>
+    </header>
 
-      <main class="mx-auto flex w-full max-w-[1200px] flex-grow flex-col items-center justify-center gap-6 px-6 py-24 text-center">
-        <p class="font-mono text-sm font-bold tracking-widest text-brand-gold">
-          {{ error?.statusCode || 500 }}
-        </p>
-        <h1 class="font-sans text-3xl font-extrabold text-text-main md:text-4xl">
-          {{ title }}
-        </h1>
-        <p class="text-text-sec max-w-md">
-          {{ message }}
-        </p>
-        <button
-          type="button"
-          class="mt-2 inline-flex items-center gap-2 rounded-full bg-brand-gold px-5 py-2.5 text-sm font-bold text-brand-gold-text transition-opacity hover:opacity-90"
-          @click="handleHome"
+    <main class="mx-auto flex w-full max-w-[1280px] flex-grow items-center justify-center px-4 py-16 md:px-6 md:py-24">
+      <div
+        :role="isFailure ? 'alert' : undefined"
+        class="grid w-full max-w-[34rem] grid-cols-[auto_minmax(0,1fr)] items-start gap-4 rounded-5 border bg-surface p-[22px] shadow-card"
+        :class="isFailure
+          ? 'border-[color-mix(in_oklch,var(--loss)_45%,var(--line))]'
+          : 'border-[color-mix(in_oklch,var(--line)_70%,transparent)]'"
+      >
+        <img
+          src="~/assets/img/JungleDiff_Logo.png"
+          alt=""
+          class="size-12 shrink-0 object-contain grayscale-50"
         >
-          <Icon name="lucide:arrow-left" class="h-4 w-4" />
-          Retour à l'accueil
-        </button>
-      </main>
-    </div>
+        <div class="grid min-w-0 justify-items-start gap-2">
+          <p class="type-mono m-0 text-ink-3">
+            {{ error?.statusCode || 500 }}
+          </p>
+          <h1 class="type-d3 m-0 text-ink">
+            {{ title }}
+          </h1>
+          <p class="type-body m-0 max-w-[46ch] text-ink-2 [overflow-wrap:anywhere]">
+            {{ message }}
+          </p>
+          <UiButton variant="primary" class="mt-2" @click="handleHome">
+            <Icon name="lucide:arrow-left" class="size-4" aria-hidden="true" />
+            Retour à l'accueil
+          </UiButton>
+        </div>
+      </div>
+    </main>
   </div>
 </template>

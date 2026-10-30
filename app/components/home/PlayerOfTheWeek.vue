@@ -10,7 +10,7 @@ import { formatSigned } from '~/utils/number'
 
 /**
  * `factOfTheWeek` from `/lol/Home`: the best net LP swing over the last 7 days (the home page asks
- * for `window=Last7Days`), told as a player card.
+ * for `window=Last7Days`), told as a Canopée feature card on `--night`.
  */
 const props = defineProps<{
   fact: LoLFactOfTheWeekDto
@@ -25,55 +25,191 @@ const name = computed(() => playerDisplayName(props.fact.player))
 const crewPlayer = computed(() => props.players.find(player => player.id === playerId.value) ?? null)
 const soloRank = computed(() => crewPlayer.value?.leagueOfLegendsSoloRank ?? null)
 
-const iconStyle = computed(() => (props.fact.player.lolIconId != null
-  ? { backgroundImage: `url('${getProfileIconUrl(props.fact.player.lolIconId, patchStore.currentPatch)}')` }
-  : {}))
+const iconUrl = computed(() => (props.fact.player.lolIconId != null
+  ? getProfileIconUrl(props.fact.player.lolIconId, patchStore.currentPatch)
+  : null))
 
 // `mainChampionName` is only served by the crew list, not on the fact's own player.
 const mainChampion = computed(() => crewPlayer.value?.mainChampionName ?? null)
-const backdropStyle = computed(() => (mainChampion.value
-  ? { backgroundImage: `url('${championSplashUrl(mainChampion.value)}')` }
-  : {}))
-
-const lpClass = computed(() => (props.fact.lpChange < 0 ? 'text-on-photo-red' : 'text-on-photo-lime'))
-
-const summary = computed(() => {
-  const f = props.fact
-  const games = `${f.gamesThisWeek} partie${f.gamesThisWeek > 1 ? 's' : ''}`
-  const streak = f.longestWinStreakThisWeek > 1 ? `, dont ${f.longestWinStreakThisWeek} succès d'affilée` : ''
-  return `${games} à ${Math.round(f.winRateThisWeek)}\u00A0% de victoires${streak}.`
-})
+const splashUrl = computed(() => (mainChampion.value ? championSplashUrl(mainChampion.value) : null))
 </script>
 
 <template>
-  <section aria-labelledby="player-of-the-week" class="relative overflow-hidden rounded-[26px] bg-ink p-[22px] text-white shadow-hero">
-    <div aria-hidden="true" class="absolute inset-0 bg-cover bg-top bg-no-repeat" :style="backdropStyle" />
-    <div aria-hidden="true" class="absolute inset-0 bg-scrim-rise" />
+  <section aria-labelledby="player-of-the-week" class="feature">
+    <div class="feature-art">
+      <img v-if="splashUrl" :src="splashUrl" alt="">
+    </div>
 
-    <div class="relative text-shadow-photo">
-      <div id="player-of-the-week" class="inline-flex rounded-full border border-brand-gold-bright/40 bg-brand-gold-bright/20 px-[11px] py-1 text-xs font-bold text-on-photo-gold">Joueur de la semaine</div>
-      <div class="mt-[72px] flex items-center gap-3">
-        <span class="size-[54px] shrink-0 rounded-2xl border-2 border-white/85 bg-ink bg-cover bg-center" :style="iconStyle" />
-        <span class="flex min-w-0 flex-col gap-[3px]">
-          <span class="truncate text-[21px] font-bold tracking-[-0.02em]">{{ name }}</span>
-          <span v-if="soloRank" class="flex items-center gap-[5px] text-[13px] font-semibold text-white/85">
-            <img :src="tierEmblemUrl(soloRank)" alt="" class="size-5 object-contain">
+    <div class="feature-body">
+      <span id="player-of-the-week" class="type-label text-on-night-gold">Joueur de la semaine</span>
+
+      <div class="feature-id">
+        <span class="feature-av">
+          <img v-if="iconUrl" :src="iconUrl" alt="">
+        </span>
+        <span class="min-w-0">
+          <b>{{ name }}</b>
+          <span v-if="soloRank" class="rk">
+            <img :src="tierEmblemUrl(soloRank)" alt="">
             {{ tierLabel(soloRank) }} · {{ soloRank.leaguePoints }} LP
           </span>
         </span>
       </div>
-      <div class="mt-[18px] flex items-baseline gap-2 leading-[0.9]" :class="lpClass">
-        <span class="text-[64px] font-bold tracking-[-0.05em]">{{ formatSigned(fact.lpChange) }}</span>
-        <span class="text-xl font-bold">LP</span>
-        <span class="ml-1 text-[13px] font-semibold text-white/72">en 7 jours</span>
+
+      <div class="feature-fig" :class="fact.lpChange < 0 ? 'text-on-night-loss' : 'text-on-night-win'">
+        <span class="fig">{{ formatSigned(fact.lpChange) }}</span>
+        <small>LP en 7 jours</small>
       </div>
-      <p class="mt-3 text-pretty text-sm font-medium leading-normal text-white/86">{{ summary }}</p>
-      <NuxtLink
-        :to="`/summoner/${playerId}`"
-        class="mt-[18px] flex h-11 items-center justify-center gap-2 rounded-full bg-white text-sm font-bold text-ink text-shadow-none transition-transform duration-[250ms] ease-spring hover:scale-[1.03]"
-      >
-        Voir sa fiche →
-      </NuxtLink>
+
+      <div class="feature-stats">
+        <div>
+          <span class="fig">{{ fact.gamesThisWeek }}</span>
+          <span>partie{{ fact.gamesThisWeek > 1 ? 's' : '' }}</span>
+        </div>
+        <div>
+          <span class="fig">{{ Math.round(fact.winRateThisWeek) }} %</span>
+          <span>victoires</span>
+        </div>
+        <div>
+          <span class="fig">{{ fact.longestWinStreakThisWeek }}</span>
+          <span>victoires d'affilée</span>
+        </div>
+      </div>
+
+      <UiButton :to="`/summoner/${playerId}`" variant="night" block>
+        Voir sa fiche
+        <Icon name="lucide:arrow-right" class="size-4" />
+      </UiButton>
     </div>
   </section>
 </template>
+
+<style scoped>
+@reference "../../assets/css/main.css";
+
+.feature {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-5);
+  background: var(--night);
+  color: var(--on-night);
+}
+
+.feature-art {
+  position: relative;
+  height: 148px;
+  background: var(--night-2);
+}
+
+.feature-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+}
+
+.feature-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-rise-value);
+}
+
+.feature-body {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  padding: 0 18px 18px;
+  margin-top: -44px;
+}
+
+.feature-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.feature-av {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--night-2);
+  box-shadow: 0 0 0 2px var(--night), 0 0 0 3px var(--on-night-gold);
+}
+
+.feature-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.feature-id b {
+  display: block;
+  font-stretch: 118%;
+  font-weight: 740;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feature-id .rk {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8125rem;
+  color: var(--on-night-2);
+}
+
+.feature-id .rk img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.feature-fig {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.feature-fig .fig {
+  font-size: 4.25rem;
+}
+
+.feature-fig small {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--on-night-2);
+}
+
+.feature-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--on-night-line);
+}
+
+.feature-stats div {
+  padding-top: 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.feature-stats div + div {
+  padding-left: 12px;
+  border-left: 1px solid var(--on-night-line);
+}
+
+.feature-stats .fig {
+  font-size: 1.5rem;
+}
+
+.feature-stats span:not(.fig) {
+  font-size: 11.5px;
+  color: var(--on-night-2);
+}
+</style>
